@@ -10,7 +10,7 @@ import {
   setProjectStatusRequest,
   updateProject,
 } from "@/features/projects/api";
-import type { ProjectListItem, ProjectStatus } from "@/lib/types";
+import type { ProjectDetail, ProjectListItem, ProjectStatus } from "@/lib/types";
 import type { ProjectInput } from "@/lib/validators";
 
 export const projectKeys = {
@@ -72,14 +72,18 @@ export function useSetProjectStatus() {
           project.id === projectId ? { ...project, status } : project,
         ),
       );
-      return { previous };
+      const detail = queryClient.getQueryData<ProjectDetail>(projectKeys.detail(projectId));
+      if (detail) queryClient.setQueryData(projectKeys.detail(projectId), { ...detail, status });
+      return { previous, detail };
     },
-    onError: (error: Error, _vars, context) => {
+    onError: (error: Error, vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(projectKeys.all, context.previous);
       }
+      if (context?.detail) queryClient.setQueryData(projectKeys.detail(vars.projectId), context.detail);
       toast.error(error.message);
     },
+    onSuccess: () => toast.success("Project status updated"),
     onSettled: (_data, _error, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
       queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });

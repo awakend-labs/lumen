@@ -103,18 +103,14 @@ export async function reorderStashes(
     .from(stashes)
     .where(eq(stashes.projectId, projectId));
   const existing = new Set(rows.map((row) => row.id));
-  if (ids.length !== existing.size || ids.some((id) => !existing.has(id))) {
+  if (new Set(ids).size !== ids.length || ids.length !== existing.size || ids.some((id) => !existing.has(id))) {
     throw new HttpError(400, "Stash order is out of date");
   }
 
-  await db.transaction(async (tx) => {
-    for (const [index, id] of ids.entries()) {
-      await tx
-        .update(stashes)
-        .set({ order: index, updatedAt: new Date() })
-        .where(eq(stashes.id, id));
-    }
-  });
+  if (ids.length) {
+    const updates = ids.map((id, index) => db.update(stashes).set({ order: index, updatedAt: new Date() }).where(and(eq(stashes.id, id), eq(stashes.projectId, projectId))));
+    await db.batch([updates[0], ...updates.slice(1)]);
+  }
   await touchProject(projectId);
 }
 

@@ -29,6 +29,13 @@
       "when": 1792349026849,
       "tag": "0003_previous_sugar_man",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792354801698,
+      "tag": "0004_lame_medusa",
+      "breakpoints": true
     }
   ]
 }

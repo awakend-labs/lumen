@@ -29,10 +29,9 @@ export function useSaveEndpoint(projectId: string, endpointId?: string) {
   return useMutation({
     mutationFn: (input: EndpointInput) => saveEndpoint(projectId, input, endpointId),
     onSuccess: (endpoint) => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
-      queryClient.invalidateQueries({
-        queryKey: endpointKeys.detail(projectId, endpoint.id),
-      });
+      const project = queryClient.getQueryData<ProjectDetail>(projectKeys.detail(projectId));
+      if (project) queryClient.setQueryData(endpointKeys.detail(projectId, endpoint.id), { endpoint, role: project.role });
+      queryClient.invalidateQueries({ queryKey: projectKeys.all });
       toast.success(endpointId ? "Endpoint updated" : "Endpoint created");
     },
     onError: (error: Error) => toast.error(error.message),

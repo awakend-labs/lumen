@@ -20,6 +20,12 @@ export function toErrorResponse(error: unknown) {
       { status: 400 },
     );
   }
+  const cause = error && typeof error === "object" && "cause" in error ? error.cause : error;
+  if (cause && typeof cause === "object" && "code" in cause && cause.code === "23505") {
+    const constraint = "constraint" in cause ? String(cause.constraint) : "";
+    const message = constraint.includes("route_uidx") ? "This method and path already exist in this project and version" : constraint.includes("name_uidx") ? "An endpoint with this name already exists in this project and version" : "This record already exists";
+    return NextResponse.json({ error: message }, { status: 409 });
+  }
   console.error(error);
   return NextResponse.json(
     { error: "Something went wrong" },
@@ -29,7 +35,9 @@ export function toErrorResponse(error: unknown) {
 
 export async function handle(action: () => Promise<Response>) {
   try {
-    return await action();
+    const response = await action();
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
   } catch (error) {
     return toErrorResponse(error);
   }

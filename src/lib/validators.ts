@@ -1,11 +1,20 @@
 import { z } from "zod";
 import {
-  HTTP_METHODS,
+  HTTP_METHODS, AUTH_SCHEMES, ACCESS_LEVELS, FIELD_TYPES,
   INVITE_ROLES,
   PROJECT_STATUSES,
   STASH_COLORS,
   STASH_STATUSES,
 } from "@/lib/types";
+
+import { validEndpointPath, pathParameterNames } from "@/lib/endpoint-path";
+
+export const projectAuthSchema = z.object({
+  scheme: z.enum(AUTH_SCHEMES),
+  headerName: z.string().trim().max(120).default("X-API-Key"),
+  location: z.enum(["header", "query"]).default("header"),
+  description: z.string().max(2000).default(""),
+}).refine(value => value.scheme !== "api_key" || /^[A-Za-z0-9_-]+$/.test(value.headerName), "Enter an API key parameter name");
 
 export const signInSchema = z.object({
   email: z.email("Enter a valid email"),
@@ -51,7 +60,13 @@ export const reorderSchema = z.object({
   ids: z.array(z.uuid()).min(1),
 });
 
-const paramFieldSchema = z.object({
+export const paramFieldSchema = z.object({
+  type: z.enum(FIELD_TYPES).optional(),
+  enum: z.array(z.string().max(500)).max(100).optional(),
+  default: z.string().max(2000).optional(),
+  format: z.string().max(120).optional(),
+  min: z.number().finite().optional(),
+  max: z.number().finite().optional(),
   key: z.string().trim().min(1, "Name is required").max(120),
   value: z.string().max(2000).optional().default(""),
   required: z.boolean().optional().default(false),
@@ -61,6 +76,7 @@ const paramFieldSchema = z.object({
 const requestBodySchema = z
   .object({
     schema: z.unknown().optional(),
+    fields: z.array(paramFieldSchema).max(200).optional(),
     example: z.unknown().optional(),
   })
   .nullable()
@@ -74,6 +90,7 @@ const responseDocSchema = z.object({
 });
 
 export const endpointInputSchema = z.object({
+  access: z.enum(ACCESS_LEVELS).default("public"),
   stashId: z.uuid(),
   name: z.string().trim().min(1, "Name is required").max(120),
   method: z.enum(HTTP_METHODS),
@@ -82,7 +99,7 @@ export const endpointInputSchema = z.object({
     .trim()
     .min(1, "Path is required")
     .max(300)
-    .refine((path) => path.startsWith("/"), "Path must start with /"),
+    .refine(validEndpointPath, "Use a path starting with /, without spaces, # or ?. Use {id} or :id for parameters."),
   description: z.string().max(20000).optional().default(""),
   headers: z.array(paramFieldSchema).optional().default([]),
   queryParams: z.array(paramFieldSchema).optional().default([]),
@@ -92,6 +109,18 @@ export const endpointInputSchema = z.object({
   tags: z.array(z.string().trim().min(1).max(40)).max(12).optional().default([]),
   version: routeVersionSchema.optional().default("v1"),
   isDeprecated: z.boolean().optional().default(false),
+}).superRefine((value, ctx) => {
+  const names = pathParameterNames(value.path);
+  if (value.pathParams.length !== names.length || names.some(name => !value.pathParams.some(param => param.key === name && param.required))) {
+    ctx.addIssue({ code: "custom", path: ["pathParams"], message: "Path parameters must match the route and be required" });
+  }
+  for (const group of ["headers", "queryParams", "pathParams"] as const) {
+    const keys = value[group].map(field => group === "headers" ? field.key.toLowerCase() : field.key);
+    if (new Set(keys).size !== keys.length) ctx.addIssue({code: "custom", path: [group], message: "Field names must be unique"});
+  }
+  for (const field of [...value.headers, ...value.queryParams, ...value.pathParams, ...(value.requestBody?.fields ?? [])]) {
+    if (field.min !== undefined && field.max !== undefined && field.min > field.max) ctx.addIssue({code: "custom", message: "Minimum cannot exceed maximum"});
+  }
 });
 
 export const invitationInputSchema = z.object({

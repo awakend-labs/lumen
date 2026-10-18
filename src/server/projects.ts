@@ -64,29 +64,24 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
   if (rows.length === 0) return [];
 
   const ids = rows.map((row) => row.id);
-  const stashCounts = await db
+  const [stashCounts, endpointCounts, previewRows] = await db.batch([db
     .select({
       projectId: stashes.projectId,
       count: sql<number>`count(*)::int`,
     })
     .from(stashes)
     .where(inArray(stashes.projectId, ids))
-    .groupBy(stashes.projectId);
-  const endpointCounts = await db
+    .groupBy(stashes.projectId),
+  db
     .select({
       projectId: endpoints.projectId,
       count: sql<number>`count(*)::int`,
     })
     .from(endpoints)
     .where(inArray(endpoints.projectId, ids))
-    .groupBy(endpoints.projectId);
+    .groupBy(endpoints.projectId),
 
-  const stashMap = new Map(stashCounts.map((row) => [row.projectId, row.count]));
-  const endpointMap = new Map(
-    endpointCounts.map((row) => [row.projectId, row.count]),
-  );
-
-  const previewRows = await db
+  db
     .select({
       projectId: endpoints.projectId,
       method: endpoints.method,
@@ -94,7 +89,14 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
       updatedAt: endpoints.updatedAt,
     })
     .from(endpoints)
-    .where(inArray(endpoints.projectId, ids));
+    .where(inArray(endpoints.projectId, ids))]);
+
+  const stashMap = new Map(stashCounts.map((row) => [row.projectId, row.count]));
+  const endpointMap = new Map(
+    endpointCounts.map((row) => [row.projectId, row.count]),
+  );
+
+
 
   const previewMap = new Map<
     string,
@@ -161,16 +163,16 @@ export async function getProjectDetail(
     .limit(1);
   if (!project) throw new HttpError(404, "Project not found");
 
-  const stashRows = await db
+  const [stashRows, endpointRows] = await db.batch([db
     .select()
     .from(stashes)
     .where(eq(stashes.projectId, projectId))
-    .orderBy(asc(stashes.order), asc(stashes.createdAt));
-  const endpointRows = await db
+    .orderBy(asc(stashes.order), asc(stashes.createdAt)),
+  db
     .select()
     .from(endpoints)
     .where(eq(endpoints.projectId, projectId))
-    .orderBy(asc(endpoints.order), asc(endpoints.createdAt));
+    .orderBy(asc(endpoints.order), asc(endpoints.createdAt))]);
 
   const grouped = new Map<string, EndpointRecord[]>();
   for (const row of endpointRows) {
@@ -199,6 +201,7 @@ export async function getProjectDetail(
     slug: project.slug,
     role: member.role,
     status: project.status,
+    auth: project.auth,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
     stashes: stashRecords,
@@ -262,14 +265,9 @@ export async function createEndpoint(
     throw new HttpError(400, "Choose a stash in this project");
   }
 
-  const [last] = await db
-    .select({ order: endpoints.order })
-    .from(endpoints)
-    .where(eq(endpoints.stashId, input.stashId))
-    .orderBy(desc(endpoints.order))
-    .limit(1);
 
-  const [created] = await db
+
+  const [[created]] = await db.batch([db
     .insert(endpoints)
     .values({
       stashId: input.stashId,
@@ -285,13 +283,13 @@ export async function createEndpoint(
       responses: input.responses,
       tags: input.tags,
       version: input.version,
+      access: input.access,
       isDeprecated: input.isDeprecated,
-      order: (last?.order ?? -1) + 1,
+      order: sql`(select coalesce(max(sort_order), -1) + 1 from endpoints where stash_id = ${input.stashId})`,
     })
-    .returning();
+    .returning(), db.update(projects).set({ updatedAt: new Date() }).where(eq(projects.id, projectId))]);
 
   if (!created) throw new HttpError(500, "Could not create the endpoint");
-  await touchProject(projectId);
   return toEndpoint(created);
 }
 
@@ -328,7 +326,7 @@ export async function updateEndpoint(
     throw new HttpError(400, "Choose a stash in this project");
   }
 
-  const [updated] = await db
+  const [[updated]] = await db.batch([db
     .update(endpoints)
     .set({
       stashId: input.stashId,
@@ -343,16 +341,16 @@ export async function updateEndpoint(
       responses: input.responses,
       tags: input.tags,
       version: input.version,
+      access: input.access,
       isDeprecated: input.isDeprecated,
       updatedAt: new Date(),
     })
-    .where(eq(endpoints.id, endpointId))
-    .returning();
+    .where(and(eq(endpoints.id, endpointId), eq(endpoints.projectId, projectId)))
+    .returning(), db.update(projects).set({ updatedAt: new Date() }).where(eq(projects.id, projectId))]);
 
   if (!updated || updated.projectId !== projectId) {
     throw new HttpError(404, "Endpoint not found");
   }
-  await touchProject(projectId);
   return toEndpoint(updated);
 }
 
@@ -382,19 +380,15 @@ export async function reorderEndpoints(
   const rows = await db
     .select({ id: endpoints.id })
     .from(endpoints)
-    .where(eq(endpoints.stashId, stashId));
+    .where(and(eq(endpoints.stashId, stashId), eq(endpoints.projectId, projectId)));
   const existing = new Set(rows.map((row) => row.id));
-  if (ids.length !== existing.size || ids.some((id) => !existing.has(id))) {
+  if (new Set(ids).size !== ids.length || ids.length !== existing.size || ids.some((id) => !existing.has(id))) {
     throw new HttpError(400, "Endpoint order is out of date");
   }
 
-  await db.transaction(async (tx) => {
-    for (const [index, id] of ids.entries()) {
-      await tx
-        .update(endpoints)
-        .set({ order: index, updatedAt: new Date() })
-        .where(eq(endpoints.id, id));
-    }
-  });
+  if (ids.length) {
+    const updates = ids.map((id, index) => db.update(endpoints).set({ order: index, updatedAt: new Date() }).where(and(eq(endpoints.id, id), eq(endpoints.projectId, projectId))));
+    await db.batch([updates[0], ...updates.slice(1)]);
+  }
   await touchProject(projectId);
 }

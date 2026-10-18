@@ -1,5 +1,6 @@
 "use client";
 
+import { GlobalSearch } from "@/features/search/components/global-search";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useProject } from "@/features/projects/queries";
 import { usePathname } from "next/navigation";
@@ -19,12 +20,13 @@ export function AppShell({
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur-md">
           <SidebarTrigger />
           <ShellTitle />
+          <GlobalSearch />
         </header>
-        <div className="flex flex-1 flex-col">{children}</div>
+        <div className="flex min-w-0 flex-1 flex-col">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

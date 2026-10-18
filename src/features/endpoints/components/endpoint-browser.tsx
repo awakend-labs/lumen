@@ -33,6 +33,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import ReactMarkdown from "react-markdown";
 import { MethodBadge, statusClass } from "@/components/method-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -525,7 +526,13 @@ function EndpointLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className={mode === "grid" ? "grid gap-3 md:grid-cols-2" : "flex flex-col gap-2"}>
+    <div
+      className={
+        mode === "grid"
+          ? "grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))]"
+          : "flex flex-col gap-2"
+      }
+    >
       {children}
     </div>
   );
@@ -590,7 +597,7 @@ function EndpointItem({
                   ) : null}
                 </div>
               </div>
-              <CardTitle className="text-base">
+              <CardTitle className="break-words text-base">
                 <Link href={href} className="hover:underline">
                   {endpoint.name}
                 </Link>
@@ -599,7 +606,7 @@ function EndpointItem({
             <CardContent className="flex flex-col gap-3">
               <p className="truncate font-mono text-xs text-muted-foreground">{endpoint.path}</p>
               <p className="line-clamp-2 text-sm text-muted-foreground">
-                {endpoint.description || "No description"}
+                <ReactMarkdown allowedElements={["p", "strong", "em", "code"]} unwrapDisallowed components={{ p: ({ children }) => <span>{children}</span> }}>{endpoint.description || "No description"}</ReactMarkdown>
               </p>
               {endpoint.isDeprecated ? <Badge variant="outline">Deprecated</Badge> : null}
             </CardContent>
@@ -694,6 +701,7 @@ function EndpointMenu({
           >
             Edit
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => router.push(`/projects/${projectId}/endpoints/new?duplicate=${endpoint.id}`)}>Duplicate endpoint</DropdownMenuItem>
           <ConfirmDelete
             title="Delete endpoint?"
             description="This removes the endpoint from the stash."

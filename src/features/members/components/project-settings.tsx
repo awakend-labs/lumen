@@ -218,6 +218,7 @@ export function ProjectSettings({
 
             <div className="flex flex-col gap-2">
               <h3 className="text-sm font-medium">Pending invitations</h3>
+              {invitations.isError ? <p role="alert" className="text-sm text-destructive">{invitations.error.message} <Button variant="ghost" onClick={() => invitations.refetch()}>Retry</Button></p> : null}
               {invitations.isLoading ? <Skeleton className="h-16 w-full" /> : null}
               {invitations.data && invitations.data.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No pending invitations.</p>
@@ -238,7 +239,8 @@ export function ProjectSettings({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => revoke.mutate(invitation.id)}
+                      disabled={revoke.isPending}
+                      onClick={() => revoke.mutate(invitation.id, { onSuccess: () => { if (created?.id === invitation.id) setCreated(null); } })}
                     >
                       Revoke
                     </Button>

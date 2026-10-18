@@ -1,0 +1,4 @@
+ALTER TABLE "endpoints" ADD COLUMN "access" text DEFAULT 'public' NOT NULL;--> statement-breakpoint
+ALTER TABLE "projects" ADD COLUMN "auth" jsonb DEFAULT '{"scheme":"none","headerName":"X-API-Key","location":"header","description":""}'::jsonb NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "endpoints_project_version_name_uidx" ON "endpoints" USING btree ("project_id","version",lower("name"));--> statement-breakpoint
+CREATE UNIQUE INDEX "endpoints_project_version_route_uidx" ON "endpoints" USING btree ("project_id","version","method",regexp_replace("path", '[{][A-Za-z_][A-Za-z0-9_]*[}]|:[A-Za-z_][A-Za-z0-9_]*', '{}', 'g'));

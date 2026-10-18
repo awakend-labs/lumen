@@ -13,6 +13,10 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { Shield, Copy } from "lucide-react";
+import { FieldTable, schemaFields } from "./field-table";
+import { authLabels } from "@/features/projects/components/project-auth-settings";
+import { useProject } from "@/features/projects/queries";
 import { CopyButton } from "@/components/copy-button";
 import { MarkdownView } from "@/components/markdown-view";
 import { MethodBadge, statusClass } from "@/components/method-badge";
@@ -39,6 +43,8 @@ export function EndpointDetail({
   role: ProjectRole;
   stashName?: string;
 }) {
+  const project = useProject(projectId);
+  const auth = project.data?.auth;
   return (
     <div className="flex flex-col gap-5">
       <section className={cn("flex flex-col gap-4", sectionSurfaceClass)}>
@@ -61,7 +67,7 @@ export function EndpointDetail({
                 </Badge>
               ))}
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight">{endpoint.name}</h1>
+            <h1 className="break-words text-2xl font-semibold tracking-tight">{endpoint.name}</h1>
             <div className="flex min-w-0 items-center gap-1">
               <code className={cn("truncate px-2.5 py-1 font-mono text-sm", insetSurfaceClass)}>
                 {endpoint.path}
@@ -70,16 +76,28 @@ export function EndpointDetail({
             </div>
           </div>
           {canEditContent(role) ? (
+            <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link href={`/projects/${projectId}/endpoints/new?duplicate=${endpoint.id}`}><Copy className="size-4" />Duplicate endpoint</Link></Button>
             <Button asChild size="lg" className="shrink-0 shadow-sm">
               <Link href={`/projects/${projectId}/endpoints/${endpoint.id}/edit`}>
                 <PencilIcon data-icon="inline-start" />
                 Edit endpoint
               </Link>
-            </Button>
+            </Button></div>
           ) : null}
         </div>
       </section>
 
+      <DetailSection icon={Shield} title="Authentication">
+        <p className="text-sm font-medium">{endpoint.access === "public" ? "Public · no authentication required" : endpoint.access === "admin_only" ? "Admin-only · administrator privileges required" : "Authenticated"}</p>
+        {endpoint.access !== "public" && <div className="space-y-2 text-sm text-muted-foreground">
+          <p>{auth ? authLabels[auth.scheme] : "Loading project authentication…"}</p>
+          {auth?.scheme === "bearer" && <code>Authorization: Bearer &lt;token&gt;</code>}
+          {auth?.scheme === "basic" && <code>Authorization: Basic &lt;base64(username:password)&gt;</code>}
+          {auth?.scheme === "api_key" && <p>{auth.location === "header" ? "Header" : "Query parameter"}: <code>{auth.headerName}: &lt;api-key&gt;</code></p>}
+          {auth?.description && <MarkdownView content={auth.description} />}
+          {auth?.scheme === "none" && <p>Configure the authentication scheme in project settings.</p>}
+        </div>}
+      </DetailSection>
       <DetailSection
         icon={FileTextIcon}
         title="Description"
@@ -119,7 +137,8 @@ export function EndpointDetail({
         description="Schema and a sample payload."
       >
         {endpoint.requestBody ? (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid min-w-0 gap-3">
+            <FieldTable fields={endpoint.requestBody.fields?.length ? endpoint.requestBody.fields : schemaFields(endpoint.requestBody.schema)} />
             <JsonBlock title="Schema" value={endpoint.requestBody.schema} />
             <JsonBlock title="Example" value={endpoint.requestBody.example} />
           </div>
@@ -154,7 +173,7 @@ export function EndpointDetail({
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <JsonBlock title="Example" value={response.body} />
-                  <JsonBlock title="Schema" value={response.schema} />
+                  <div className="min-w-0 space-y-3"><FieldTable fields={schemaFields(response.schema)} /><JsonBlock title="Schema" value={response.schema} /></div>
                 </div>
               </div>
             ))}
@@ -259,25 +278,7 @@ function ParamSection({
       {params.length === 0 ? (
         <EmptyNote>None.</EmptyNote>
       ) : (
-        <div className={cn("overflow-hidden", insetSurfaceClass)}>
-          {params.map((param) => (
-            <div
-              key={`${param.key}-${param.description}`}
-              className="grid gap-1 border-b border-border/30 px-4 py-3 last:border-b-0 dark:border-white/5 md:grid-cols-[180px_1fr]"
-            >
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-sm">{param.key}</span>
-                {param.required ? <Badge variant="outline">Required</Badge> : null}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {param.value ? (
-                  <span className="mr-2 font-mono text-foreground">{param.value}</span>
-                ) : null}
-                {param.description || "No description"}
-              </div>
-            </div>
-          ))}
-        </div>
+        <FieldTable fields={params} />
       )}
     </DetailSection>
   );

@@ -1,12 +1,12 @@
 # Lumen
 
-Lumen is a local-first API documentation app. You organize a project's endpoints into colored stashes, browse them as cards or a compact list, and invite editors or viewers with a shareable link.
+Lumen is a API documentation app backed by Postgres. You organize a project's endpoints into colored stashes, browse them as cards or a compact list, and invite editors or viewers with a shareable link.
 
 ## Stack
 
 - Next.js 15 App Router, TypeScript, Tailwind CSS, shadcn/ui
 - TanStack Query, Zod, Better Auth
-- PostgreSQL on Neon, Drizzle ORM (Neon WebSocket pool, so Better Auth can use transactions)
+- PostgreSQL on Neon, Drizzle ORM (lazy Neon HTTP driver)
 
 ## Setup
 
@@ -110,3 +110,17 @@ Project owners can invite an editor or a viewer from project settings. Lumen sho
 Owners manage the project. Editors change stashes and endpoints. Viewers can read.
 
 The "Try it" panel on an endpoint is a placeholder and does not send a request.
+
+## Endpoint documentation improvements
+
+- Duplicate from endpoint actions to open a prefilled new form; update the name or version and method/path before saving.
+- Workspace search (Ctrl/Cmd K) searches only projects the signed-in user belongs to.
+- Project settings define Bearer/JWT, API key, or Basic authentication documentation. Each endpoint declares public, authenticated, or admin-only access. This documents the external API; it does not change Lumen membership roles.
+- Parameter and body fields support type, enum, default, format, and min/max. Detail pages show field tables alongside JSON schemas and examples.
+- Both {id} and :id route placeholders create required path fields. Spaces, fragments, and query strings are rejected in paths.
+- Names are unique within a project/version (case insensitive); method + canonical path is unique within a project/version, including across stashes.
+- Unsaved forms warn on refresh, closing the tab, Cancel, and link navigation. Drafts are not persisted.
+
+### Migration
+
+Run pnpm db:migrate locally before deploying this version. The new migration adds project auth and endpoint access, and unique endpoint indexes. Existing duplicate names/routes must be resolved first; the migration intentionally does not delete or rename documentation. Never run migrations inside a Worker.

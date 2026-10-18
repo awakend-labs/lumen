@@ -1,5 +1,9 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
+import { pathParameterNames, validEndpointPath } from "@/lib/endpoint-path";
+import { endpointInputSchema } from "@/lib/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   BracesIcon,
@@ -43,7 +47,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useSaveEndpoint } from "@/features/endpoints/queries";
-import { HTTP_METHODS, type EndpointRecord, type StashRecord } from "@/lib/types";
+import { HTTP_METHODS, FIELD_TYPES, ACCESS_LEVELS, type ParamField, type EndpointRecord, type StashRecord } from "@/lib/types";
 import type { EndpointInput } from "@/lib/validators";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +68,7 @@ const jsonText = z.string().refine((value) => {
 }, "Enter valid JSON");
 
 const paramFormSchema = z.object({
+  type: z.enum(FIELD_TYPES), enumText: z.string(), default: z.string(), format: z.string(), min: z.string(), max: z.string(),
   key: z.string(),
   value: z.string(),
   required: z.boolean(),
@@ -78,6 +83,8 @@ const responseFormSchema = z.object({
 });
 
 const endpointFormSchema = z.object({
+  access: z.enum(ACCESS_LEVELS),
+  bodyFields: z.array(paramFormSchema),
   stashId: z.string().min(1, "Choose a stash"),
   name: z.string().trim().min(1, "Name is required").max(120),
   method: z.enum(HTTP_METHODS),
@@ -85,7 +92,7 @@ const endpointFormSchema = z.object({
     .string()
     .trim()
     .min(1, "Path is required")
-    .refine((path) => path.startsWith("/"), "Path must start with /"),
+    .max(300).refine(validEndpointPath, "Start with /; use {id} or :id for parameters. Spaces, # and ? are not allowed."),
   description: z.string().max(20000),
   headers: z.array(paramFormSchema),
   queryParams: z.array(paramFormSchema),
@@ -105,7 +112,7 @@ const endpointFormSchema = z.object({
 
 type EndpointFormValues = z.infer<typeof endpointFormSchema>;
 
-const emptyParam = { key: "", value: "", required: false, description: "" };
+const emptyParam = { type: "string" as const, enumText: "", default: "", format: "", min: "", max: "", key: "", value: "", required: false, description: "" };
 
 function pretty(value: unknown) {
   if (value === undefined) return "";
@@ -117,14 +124,16 @@ function toFormValues(
   stashId: string,
 ): EndpointFormValues {
   return {
+    access: endpoint?.access ?? "public",
+    bodyFields: (endpoint?.requestBody?.fields ?? []).map(fieldToForm),
     stashId: endpoint?.stashId ?? stashId,
     name: endpoint?.name ?? "",
     method: endpoint?.method ?? "GET",
     path: endpoint?.path ?? "/",
     description: endpoint?.description ?? "",
-    headers: endpoint?.headers ?? [],
-    queryParams: endpoint?.queryParams ?? [],
-    pathParams: endpoint?.pathParams ?? [],
+    headers: (endpoint?.headers ?? []).map(fieldToForm),
+    queryParams: (endpoint?.queryParams ?? []).map(fieldToForm),
+    pathParams: (endpoint?.pathParams ?? []).map(fieldToForm),
     requestSchema: pretty(endpoint?.requestBody?.schema),
     requestExample: pretty(endpoint?.requestBody?.example),
     responses:
@@ -152,6 +161,10 @@ function cleanParams(params: EndpointFormValues["headers"]) {
   return params
     .filter((param) => param.key.trim())
     .map((param) => ({
+      type: param.type,
+      enum: param.enumText.trim() ? param.enumText.split(",").map(item => item.trim()) : undefined,
+      default: param.default || undefined, format: param.format || undefined,
+      min: param.min.trim() ? Number(param.min) : undefined, max: param.max.trim() ? Number(param.max) : undefined,
       key: param.key.trim(),
       value: param.value,
       required: param.required,
@@ -164,31 +177,54 @@ export function EndpointForm({
   stashes,
   endpoint,
   initialStashId,
+  duplicateFrom,
 }: {
   projectId: string;
   stashes: StashRecord[];
   endpoint?: EndpointRecord;
   initialStashId?: string;
+  duplicateFrom?: EndpointRecord;
 }) {
   const router = useRouter();
   const save = useSaveEndpoint(projectId, endpoint?.id);
   const form = useForm<EndpointFormValues>({
     resolver: zodResolver(endpointFormSchema),
-    defaultValues: toFormValues(endpoint, initialStashId ?? stashes[0]?.id ?? ""),
+    defaultValues: toFormValues(endpoint ?? (duplicateFrom ? { ...duplicateFrom, name: `${duplicateFrom.name.slice(0, 113)} (copy)` } : undefined), initialStashId ?? stashes[0]?.id ?? ""),
   });
   const headers = useFieldArray({ control: form.control, name: "headers" });
   const queryParams = useFieldArray({ control: form.control, name: "queryParams" });
   const pathParams = useFieldArray({ control: form.control, name: "pathParams" });
+  const bodyFields = useFieldArray({ control: form.control, name: "bodyFields" });
   const responses = useFieldArray({ control: form.control, name: "responses" });
   const description = form.watch("description");
   const method = form.watch("method");
   const path = form.watch("path");
   const name = form.watch("name");
 
+  const allowLeave = useRef(false);
+  const dirty = form.formState.isDirty || Boolean(duplicateFrom);
+  useEffect(() => {
+    if (!dirty) return;
+    const beforeUnload = (event: BeforeUnloadEvent) => { if (!allowLeave.current) { event.preventDefault(); event.returnValue = ""; } };
+    const click = (event: MouseEvent) => {
+      const anchor = (event.target as Element).closest("a[href]");
+      if (anchor && !allowLeave.current && !event.ctrlKey && !event.metaKey && !window.confirm("Leave this page? Your unsaved endpoint changes will be lost.")) { event.preventDefault(); event.stopPropagation(); }
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    document.addEventListener("click", click, true);
+    return () => { window.removeEventListener("beforeunload", beforeUnload); document.removeEventListener("click", click, true); };
+  }, [dirty]);
+  useEffect(() => {
+    const current = form.getValues("pathParams");
+    const next = pathParameterNames(path).map(key => ({ ...(current.find(field => field.key === key) ?? emptyParam), key, required: true }));
+    if (JSON.stringify(current) !== JSON.stringify(next)) form.setValue("pathParams", next, { shouldDirty: true });
+  }, [path, form]);
+
   function submit(values: EndpointFormValues) {
     const requestSchema = parseJson(values.requestSchema);
     const requestExample = parseJson(values.requestExample);
     const payload: EndpointInput = {
+      access: values.access,
       stashId: values.stashId,
       name: values.name.trim(),
       method: values.method,
@@ -198,9 +234,9 @@ export function EndpointForm({
       queryParams: cleanParams(values.queryParams),
       pathParams: cleanParams(values.pathParams),
       requestBody:
-        requestSchema === undefined && requestExample === undefined
+        requestSchema === undefined && requestExample === undefined && !values.bodyFields.length
           ? null
-          : { schema: requestSchema, example: requestExample },
+          : { schema: requestSchema, example: requestExample, fields: cleanParams(values.bodyFields) },
       responses: values.responses.map((response) => ({
         statusCode: response.statusCode,
         description: response.description,
@@ -218,20 +254,26 @@ export function EndpointForm({
       version: values.version.trim().toLowerCase(),
       isDeprecated: values.isDeprecated,
     };
-    save.mutate(payload, {
+    const validation = endpointInputSchema.safeParse(payload);
+    if (!validation.success) { toast.error(validation.error.issues[0]?.message ?? "Check your fields"); return; }
+    save.mutate(validation.data, {
       onSuccess: (saved) => {
+        allowLeave.current = true;
+        form.reset(values);
         router.push(`/projects/${projectId}/endpoints/${saved.id}`);
       },
     });
   }
 
   return (
-    <form className="flex flex-col gap-5 pb-20" onSubmit={form.handleSubmit(submit)}>
-      <div className={cn("flex items-center gap-3 px-4 py-3", sectionSurfaceClass)}>
+    <form className="flex min-w-0 max-w-full flex-col gap-5 pb-20" onSubmit={form.handleSubmit(submit)}>
+      {duplicateFrom && <p className="text-sm text-muted-foreground">Duplicating {duplicateFrom.name}. Choose a unique name and route before saving.</p>}
+      {dirty && <p role="status" className="text-xs text-amber-600 dark:text-amber-300">Unsaved changes · save before leaving this page.</p>}
+      <div className={cn("flex min-w-0 max-w-full items-center gap-3 overflow-hidden px-4 py-3", sectionSurfaceClass)}>
         <MethodBadge method={method} className="h-6 min-w-16" />
         <span
           className={cn(
-            "px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground",
+            "max-w-20 shrink-0 truncate px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground",
             insetSurfaceClass,
           )}
         >
@@ -240,7 +282,7 @@ export function EndpointForm({
         <span className="min-w-0 flex-1 truncate font-mono text-sm">
           {path.trim() || "/"}
         </span>
-        <span className="hidden max-w-48 truncate text-sm text-muted-foreground sm:block">
+        <span className="hidden min-w-0 max-w-48 truncate text-sm text-muted-foreground sm:block">
           {name.trim() || "Untitled endpoint"}
         </span>
       </div>
@@ -272,7 +314,7 @@ export function EndpointForm({
               </FieldLabel>
               <Select
                 value={form.watch("stashId")}
-                onValueChange={(value) => form.setValue("stashId", value, { shouldValidate: true })}
+                onValueChange={(value) => form.setValue("stashId", value, { shouldValidate: true, shouldDirty: true })}
               >
                 <SelectTrigger className="w-full" aria-invalid={Boolean(form.formState.errors.stashId)}>
                   <SelectValue placeholder="Choose a stash" />
@@ -297,7 +339,7 @@ export function EndpointForm({
               <Select
                 value={method}
                 onValueChange={(value) =>
-                  form.setValue("method", value as EndpointFormValues["method"])
+                  form.setValue("method", value as EndpointFormValues["method"], { shouldDirty: true })
                 }
               >
                 <SelectTrigger className="w-full">
@@ -355,7 +397,7 @@ export function EndpointForm({
               <Switch
                 id="deprecated"
                 checked={form.watch("isDeprecated")}
-                onCheckedChange={(checked) => form.setValue("isDeprecated", checked)}
+                onCheckedChange={(checked) => form.setValue("isDeprecated", checked, { shouldDirty: true })}
               />
               <FieldLabel htmlFor="deprecated" className="gap-1.5">
                 <TriangleAlertIcon className="size-3.5 text-muted-foreground" aria-hidden />
@@ -366,6 +408,11 @@ export function EndpointForm({
         </FieldGroup>
       </FormSection>
 
+      <FormSection icon={VariableIcon} title="Access" description="Uses the authentication scheme configured in project settings.">
+        <label className="grid gap-2 text-sm">Endpoint access<select className="h-9 rounded-md border bg-background px-3" {...form.register("access")}>
+          <option value="public">Public</option><option value="authenticated">Authenticated</option><option value="admin_only">Admin-only</option>
+        </select></label>
+      </FormSection>
       <FormSection
         icon={FileTextIcon}
         title="Description"
@@ -429,7 +476,7 @@ export function EndpointForm({
       <ParamList
         icon={VariableIcon}
         title="Path parameters"
-        hint="Segments in the path, such as :id."
+        hint="Use {id} or :id in the route. Matching required fields are added automatically."
         fields={pathParams.fields}
         append={() => pathParams.append(emptyParam)}
         remove={pathParams.remove}
@@ -439,6 +486,7 @@ export function EndpointForm({
         setValue={form.setValue}
       />
 
+      <ParamList icon={BracesIcon} title="Body fields" hint="Document fields, their types, and constraints. Use JSON schema below for nested or advanced schemas." fields={bodyFields.fields} append={() => bodyFields.append(emptyParam)} remove={bodyFields.remove} register={form.register} name="bodyFields" watch={form.watch} setValue={form.setValue} />
       <FormSection
         icon={BracesIcon}
         title="Request body"
@@ -564,7 +612,7 @@ export function EndpointForm({
           "bg-background/90 dark:bg-white/[0.04]",
         )}
       >
-        <Button type="button" variant="outline" onClick={() => router.back()}>
+        <Button type="button" variant="outline" onClick={() => { if (!dirty || window.confirm("Discard unsaved endpoint changes?")) { allowLeave.current = true; router.back(); } }}>
           <XIcon data-icon="inline-start" />
           Cancel
         </Button>
@@ -633,7 +681,7 @@ function ParamList({
   append: () => void;
   remove: (index: number) => void;
   register: ReturnType<typeof useForm<EndpointFormValues>>["register"];
-  name: "headers" | "queryParams" | "pathParams";
+  name: "headers" | "queryParams" | "pathParams" | "bodyFields";
   watch: ReturnType<typeof useForm<EndpointFormValues>>["watch"];
   setValue: ReturnType<typeof useForm<EndpointFormValues>>["setValue"];
 }) {
@@ -643,7 +691,7 @@ function ParamList({
       title={title}
       description={hint}
       action={
-        <Button type="button" variant="outline" size="sm" onClick={append}>
+        <Button type="button" variant="outline" size="sm" disabled={name === "pathParams"} onClick={append}>
           <PlusIcon data-icon="inline-start" />
           Add
         </Button>
@@ -664,22 +712,29 @@ function ParamList({
             <div
               key={field.id}
               className={cn(
-                "grid gap-2 p-3 md:grid-cols-[1fr_1fr_1.4fr_auto_auto] md:items-center",
+                "grid min-w-0 gap-2 p-3 md:grid-cols-3 md:items-center",
                 insetSurfaceClass,
               )}
             >
-              <Input placeholder="Key" className="font-mono text-xs" {...register(`${name}.${index}.key`)} />
-              <Input placeholder="Value" {...register(`${name}.${index}.value`)} />
+              <Input aria-label="Field name" readOnly={name === "pathParams"} placeholder="Key" className="font-mono text-xs" {...register(`${name}.${index}.key`)} />
+              <label className="grid gap-1 text-xs">Type<select className="h-8 rounded-md border bg-background px-2" {...register(`${name}.${index}.type`)}>{FIELD_TYPES.map(type => <option key={type} value={type}>{type}</option>)}</select></label>
+              <Input aria-label="Example value" placeholder="Value" {...register(`${name}.${index}.value`)} />
               <Input placeholder="Description" {...register(`${name}.${index}.description`)} />
+              <Input aria-label="Enum values" placeholder="Enum (comma separated)" {...register(`${name}.${index}.enumText`)} />
+              <Input aria-label="Default value" placeholder="Default" {...register(`${name}.${index}.default`)} />
+              <Input aria-label="Format" placeholder="Format (email, uuid…)" {...register(`${name}.${index}.format`)} />
+              <Input aria-label="Minimum" type="number" step="any" placeholder="Min (value / length / items)" {...register(`${name}.${index}.min`)} />
+              <Input aria-label="Maximum" type="number" step="any" placeholder="Max (value / length / items)" {...register(`${name}.${index}.max`)} />
               <Field orientation="horizontal" className="justify-end">
                 <Switch
+                  disabled={name === "pathParams"}
                   checked={watch(`${name}.${index}.required`)}
-                  onCheckedChange={(checked) => setValue(`${name}.${index}.required`, checked)}
+                  onCheckedChange={(checked) => setValue(`${name}.${index}.required`, checked, { shouldDirty: true })}
                   aria-label="Required"
                 />
                 <span className="text-xs text-muted-foreground">Required</span>
               </Field>
-              <Button type="button" variant="ghost" size="icon" aria-label="Remove" onClick={() => remove(index)}>
+              <Button type="button" variant="ghost" size="icon" aria-label="Remove" disabled={name === "pathParams"} onClick={() => remove(index)}>
                 <Trash2Icon />
               </Button>
             </div>
@@ -688,4 +743,8 @@ function ParamList({
       )}
     </FormSection>
   );
+}
+
+function fieldToForm(field: ParamField) {
+  return { ...emptyParam, ...field, type: field.type ?? "string", enumText: field.enum?.join(", ") ?? "", default: field.default ?? "", format: field.format ?? "", min: field.min === undefined ? "" : String(field.min), max: field.max === undefined ? "" : String(field.max) };
 }

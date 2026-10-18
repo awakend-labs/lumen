@@ -16,7 +16,7 @@ import {
   Route,
   SearchIcon,
 } from "lucide-react";
-import Link from "next/link";
+
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -58,6 +58,7 @@ import {
 import { formatUpdatedLabel } from "@/lib/format";
 import { canManageProject } from "@/lib/permissions";
 import { accentFor } from "@/lib/project-accent";
+import { ProjectStatusControl } from "./project-status-control";
 import { cn } from "@/lib/utils";
 import type { ProjectListItem, ProjectStatus } from "@/lib/types";
 import type { ProjectInput } from "@/lib/validators";
@@ -112,7 +113,7 @@ export function ProjectBoard() {
   const totalCount = projects.data?.length ?? 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6">
+    <div className="mx-auto flex w-full flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
@@ -202,7 +203,7 @@ export function ProjectBoard() {
       ) : null}
 
       {projects.isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
           {Array.from({ length: 3 }).map((_, index) => (
             <Skeleton key={index} className="h-64 rounded-xl" />
           ))}
@@ -259,7 +260,9 @@ export function ProjectBoard() {
         <div
           className={cn(
             "gap-4",
-            view === "grid" ? "grid items-stretch sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col",
+            view === "grid"
+              ? "grid items-stretch [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))]"
+              : "flex flex-col",
           )}
         >
           {filteredProjects.map((project, index) => (
@@ -469,6 +472,7 @@ function ProjectCard({
             </span>
           </div>
 
+          <div onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}><ProjectStatusControl projectId={project.id} status={project.status} role={project.role} /></div>
           <div className="mt-auto flex items-center justify-between border-t border-border/50 pt-3">
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <Clock className="size-3.5 text-stash-green" />

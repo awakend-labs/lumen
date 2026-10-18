@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -14,6 +14,7 @@ import {
 import { account, session, user } from "./auth";
 import type {
   HttpMethod,
+  ProjectAuth,
   InviteRole,
   InviteStatus,
   ParamField,
@@ -72,6 +73,7 @@ export const projects = pgTable(
     description: text("description"),
     slug: text("slug").notNull().unique(),
     status: projectStatus("status").$type<ProjectStatus>().notNull().default("in_progress"),
+    auth: jsonb("auth").$type<ProjectAuth>().notNull().default({ scheme: "none", headerName: "X-API-Key", location: "header", description: "" }),
     ownerId: text("owner_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -118,11 +120,14 @@ export const endpoints = pgTable(
     responses: jsonb("responses").$type<ResponseDoc[]>().notNull().default([]),
     tags: text("tags").array().notNull().default([]),
     version: text("version").notNull().default("v1"),
+    access: text("access").$type<"public" | "authenticated" | "admin_only">().notNull().default("public"),
     isDeprecated: boolean("is_deprecated").notNull().default(false),
     order: integer("sort_order").notNull().default(0),
     ...timestamps,
   },
   (table) => [
+    uniqueIndex("endpoints_project_version_name_uidx").on(table.projectId, table.version, sql`lower(${table.name})`),
+    uniqueIndex("endpoints_project_version_route_uidx").on(table.projectId, table.version, table.method, sql`regexp_replace(${table.path}, '[{][A-Za-z_][A-Za-z0-9_]*[}]|:[A-Za-z_][A-Za-z0-9_]*', '{}', 'g')`),
     index("endpoints_stash_id_idx").on(table.stashId),
     index("endpoints_project_id_idx").on(table.projectId),
     index("endpoints_stash_order_idx").on(table.stashId, table.order),

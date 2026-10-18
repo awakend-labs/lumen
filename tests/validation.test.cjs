@@ -1,0 +1,40 @@
+require('./register.cjs');
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const { endpointInputSchema, projectAuthSchema } = require('../src/lib/validators.ts');
+const { validEndpointPath, pathParameterNames, canonicalPath } = require('../src/lib/endpoint-path.ts');
+const { schemaFields, FieldTable } = require('../src/features/endpoints/components/field-table.tsx');
+const { renderToStaticMarkup } = require('react-dom/server');
+const React = require('react');
+const base = { stashId: '12345678-1234-4234-8234-123456789012', name: 'Get user', method: 'GET', path: '/users/{id}', pathParams: [{ key: 'id', required: true }] };
+
+test('route validation rejects whitespace, fragments, queries, malformed placeholders and escapes', () => {
+  for (const value of ['/users here', '/users#x', '/users?a=1', 'users', '/users/{bad-name}', '/users/{id', '/x%ZZ']) assert.equal(validEndpointPath(value), false, value);
+  for (const value of ['/users/{id}', '/users/:id', '/v1/me', '/files/a%20b']) assert.equal(validEndpointPath(value), true, value);
+  assert.deepEqual(pathParameterNames('/users/{id}/items/:item'), ['id', 'item']);
+  assert.equal(canonicalPath('/users/{id}'), canonicalPath('/users/:userId'));
+});
+test('path parameters must match route and be required', () => {
+  assert.equal(endpointInputSchema.safeParse(base).success, true);
+  assert.equal(endpointInputSchema.safeParse({ ...base, pathParams: [] }).success, false);
+  assert.equal(endpointInputSchema.safeParse({ ...base, pathParams: [{ key: 'id', required: false }] }).success, false);
+  assert.equal(endpointInputSchema.safeParse({ ...base, pathParams: [{ key: 'other', required: true }] }).success, false);
+});
+test('typed fields and access survive validation, with invalid ranges and duplicates rejected', () => {
+  const input = { ...base, access: 'admin_only', queryParams: [{ key: 'limit', type: 'integer', enum: ['10', '20'], default: '10', min: 1, max: 100, format: 'int32' }], requestBody: { fields: [{ key: 'email', type: 'string', format: 'email', required: true }] } };
+  const result = endpointInputSchema.parse(input);
+  assert.equal(result.access, 'admin_only'); assert.equal(result.queryParams[0].max, 100); assert.equal(result.requestBody.fields[0].format, 'email');
+  assert.equal(endpointInputSchema.safeParse({ ...input, queryParams: [{ key: 'x', min: 5, max: 2 }] }).success, false);
+  assert.equal(endpointInputSchema.safeParse({ ...base, headers: [{ key: 'Accept' }, { key: 'accept' }] }).success, false);
+});
+test('auth schemes validate API key location and name', () => {
+  for (const scheme of ['none', 'bearer', 'api_key', 'basic']) assert.equal(projectAuthSchema.safeParse({ scheme }).success, true);
+  assert.equal(projectAuthSchema.safeParse({ scheme: 'api_key', headerName: '' }).success, false);
+  assert.equal(projectAuthSchema.safeParse({ scheme: 'api_key', location: 'cookie' }).success, false);
+});
+test('schema tables show nested fields, required flags, types and constraints safely', () => {
+  const fields = schemaFields({ type: 'object', required: ['user'], properties: { user: { type: 'object', properties: { name: { type: 'string', minLength: 1, description: '<script>alert(1)</script>' } } }, count: { type: 'integer', minimum: 0, maximum: 10 } } });
+  assert.equal(fields[0].required, true); assert.equal(fields[1].key, 'user.name'); assert.equal(fields[2].min, 0);
+  const html = renderToStaticMarkup(React.createElement(FieldTable, { fields }));
+  assert.match(html, /<table/); assert.match(html, /integer/); assert.match(html, /Required/); assert.doesNotMatch(html, /<script>/);
+});

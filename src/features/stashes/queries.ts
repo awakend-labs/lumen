@@ -10,15 +10,17 @@ import {
   setStashStatusRequest,
   updateStash,
 } from "@/features/stashes/api";
-import type { ProjectDetail, StashStatus } from "@/lib/types";
+import type { ProjectDetail, StashRecord, StashStatus } from "@/lib/types";
 import type { StashInput } from "@/lib/validators";
 
 export function useCreateStash(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: StashInput) => createStash(projectId, input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
+    onSuccess: async (stash) => {
+      await queryClient.cancelQueries({ queryKey: projectKeys.detail(projectId) });
+      queryClient.setQueryData<ProjectDetail>(projectKeys.detail(projectId), current => current ? { ...current, stashes: [...current.stashes, { ...(stash as StashRecord), endpoints: [] }] } : current);
+      queryClient.invalidateQueries({ queryKey: projectKeys.all });
       toast.success("Stash created");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -31,7 +33,7 @@ export function useUpdateStash(projectId: string) {
     mutationFn: ({ stashId, input }: { stashId: string; input: StashInput }) =>
       updateStash(projectId, stashId, input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
+      queryClient.invalidateQueries({ queryKey: projectKeys.all });
       toast.success("Stash updated");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -63,7 +65,7 @@ export function useSetStashStatus(projectId: string) {
       toast.error(error.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
+      queryClient.invalidateQueries({ queryKey: projectKeys.all });
     },
   });
 }
@@ -73,7 +75,7 @@ export function useDeleteStash(projectId: string) {
   return useMutation({
     mutationFn: (stashId: string) => deleteStash(projectId, stashId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
+      queryClient.invalidateQueries({ queryKey: projectKeys.all });
       toast.success("Stash deleted");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -107,7 +109,7 @@ export function useReorderStashes(projectId: string) {
       toast.error(error.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
+      queryClient.invalidateQueries({ queryKey: projectKeys.all });
     },
   });
 }

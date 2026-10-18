@@ -10,6 +10,7 @@ import {
   revokeInvitation,
   updateMemberRole,
 } from "@/features/members/api";
+import type { InvitationRecord } from "@/lib/types";
 import type { InvitationInput } from "@/lib/validators";
 
 export const memberKeys = {
@@ -36,7 +37,9 @@ export function useInviteMember(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: InvitationInput) => createInvitation(projectId, input),
-    onSuccess: () => {
+    onSuccess: async (invitation) => {
+      await queryClient.cancelQueries({ queryKey: memberKeys.invites(projectId) });
+      queryClient.setQueryData<InvitationRecord[]>(memberKeys.invites(projectId), current => [invitation, ...(current ?? []).filter(item => item.id !== invitation.id)]);
       queryClient.invalidateQueries({ queryKey: memberKeys.invites(projectId) });
       toast.success("Invitation ready to share");
     },

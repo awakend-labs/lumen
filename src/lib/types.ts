@@ -45,7 +45,17 @@ export const STASH_COLORS = [
 
 export type StashColor = (typeof STASH_COLORS)[number];
 
+export const AUTH_SCHEMES = ["none", "bearer", "api_key", "basic"] as const;
+export const ACCESS_LEVELS = ["public", "authenticated", "admin_only"] as const;
+export const FIELD_TYPES = ["string", "integer", "number", "boolean", "object", "array"] as const;
+export type ProjectAuth = { scheme: typeof AUTH_SCHEMES[number]; headerName: string; location: "header" | "query"; description: string };
 export type ParamField = {
+  type?: typeof FIELD_TYPES[number];
+  enum?: string[];
+  default?: string;
+  format?: string;
+  min?: number;
+  max?: number;
   key: string;
   value: string;
   required: boolean;
@@ -54,6 +64,7 @@ export type ParamField = {
 
 export type RequestBodyDoc = {
   schema?: unknown;
+  fields?: ParamField[];
   example?: unknown;
 } | null;
 
@@ -65,6 +76,7 @@ export type ResponseDoc = {
 };
 
 export type EndpointRecord = {
+  access: typeof ACCESS_LEVELS[number];
   id: string;
   stashId: string;
   projectId: string;
@@ -99,6 +111,7 @@ export type StashRecord = {
 };
 
 export type ProjectDetail = {
+  auth: ProjectAuth;
   id: string;
   name: string;
   description: string | null;
