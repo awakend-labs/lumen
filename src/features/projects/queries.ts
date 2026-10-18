@@ -7,8 +7,10 @@ import {
   deleteProject,
   fetchProject,
   fetchProjects,
+  setProjectStatusRequest,
   updateProject,
 } from "@/features/projects/api";
+import type { ProjectListItem, ProjectStatus } from "@/lib/types";
 import type { ProjectInput } from "@/lib/validators";
 
 export const projectKeys = {
@@ -52,6 +54,35 @@ export function useUpdateProject(projectId: string) {
       toast.success("Project updated");
     },
     onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useSetProjectStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectId, status }: { projectId: string; status: ProjectStatus }) =>
+      setProjectStatusRequest(projectId, status),
+    onMutate: async ({ projectId, status }) => {
+      // Optimistic update so the toggle feels instant; rolled back on error.
+      await queryClient.cancelQueries({ queryKey: projectKeys.all });
+      const previous = queryClient.getQueryData<ProjectListItem[]>(projectKeys.all);
+      queryClient.setQueryData<ProjectListItem[]>(projectKeys.all, (current) =>
+        current?.map((project) =>
+          project.id === projectId ? { ...project, status } : project,
+        ),
+      );
+      return { previous };
+    },
+    onError: (error: Error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(projectKeys.all, context.previous);
+      }
+      toast.error(error.message);
+    },
+    onSettled: (_data, _error, { projectId }) => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.all });
+      queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
+    },
   });
 }
 

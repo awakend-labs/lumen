@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { HTTP_METHODS, INVITE_ROLES, STASH_COLORS } from "@/lib/types";
+import { HTTP_METHODS, INVITE_ROLES, PROJECT_STATUSES, STASH_COLORS } from "@/lib/types";
 
 export const signInSchema = z.object({
   email: z.email("Enter a valid email"),
@@ -15,6 +15,11 @@ export const signUpSchema = z.object({
 export const projectInputSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80),
   description: z.string().trim().max(500).optional().default(""),
+  status: z.enum(PROJECT_STATUSES).optional(),
+});
+
+export const projectStatusSchema = z.object({
+  status: z.enum(PROJECT_STATUSES),
 });
 
 export const stashInputSchema = z.object({

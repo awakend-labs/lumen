@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { ProjectDetail, ProjectListItem } from "@/lib/types";
+import type { ProjectDetail, ProjectListItem, ProjectStatus } from "@/lib/types";
 import type { ProjectInput } from "@/lib/validators";
 
 export function fetchProjects() {
@@ -18,6 +18,13 @@ export function updateProject(projectId: string, input: ProjectInput) {
   return api(`/api/projects/${projectId}`, {
     method: "PATCH",
     body: JSON.stringify(input),
+  });
+}
+
+export function setProjectStatusRequest(projectId: string, status: ProjectStatus) {
+  return api(`/api/projects/${projectId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
   });
 }
 

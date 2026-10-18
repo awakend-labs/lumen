@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { EndpointBrowser } from "@/features/endpoints/components/endpoint-browser";
 import { ProjectFrame } from "@/features/projects/components/project-frame";
+import { ProjectStatusControl } from "@/features/projects/components/project-status-control";
 import { StashDialog } from "@/features/stashes/components/stash-dialog";
 import { useCreateStash } from "@/features/stashes/queries";
 import { canEditContent } from "@/lib/permissions";
@@ -54,6 +55,13 @@ function ProjectView({ projectId }: { projectId: string }) {
               <p className="text-sm text-muted-foreground">
                 {project.description || "No description yet."}
               </p>
+              <div className="pt-2">
+                <ProjectStatusControl
+                  projectId={project.id}
+                  status={project.status}
+                  role={project.role}
+                />
+              </div>
             </div>
             <div className="flex gap-2">
               <Button asChild variant="outline">

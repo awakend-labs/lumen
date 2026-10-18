@@ -15,6 +15,13 @@
       "when": 1792330631737,
       "tag": "0001_aspiring_gunslinger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792342906733,
+      "tag": "0002_project_status",
+      "breakpoints": true
     }
   ]
 }

@@ -18,6 +18,7 @@ import type {
   InviteStatus,
   ParamField,
   ProjectRole,
+  ProjectStatus,
   RequestBodyDoc,
   ResponseDoc,
   StashColor,
@@ -39,6 +40,11 @@ export const projectRole = pgEnum("project_role", [
   "viewer",
 ]);
 
+export const projectStatus = pgEnum("project_status", [
+  "in_progress",
+  "documented",
+]);
+
 export const invitationStatus = pgEnum("invitation_status", [
   "pending",
   "accepted",
@@ -57,6 +63,7 @@ export const projects = pgTable(
     name: text("name").notNull(),
     description: text("description"),
     slug: text("slug").notNull().unique(),
+    status: projectStatus("status").$type<ProjectStatus>().notNull().default("in_progress"),
     ownerId: text("owner_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
