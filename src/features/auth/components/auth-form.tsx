@@ -44,7 +44,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         });
     setPending(false);
     if (result.error) {
-      toast.error(result.error.message ?? "Could not sign in");
+      const fallback = isSignup ? "Could not create account" : "Could not sign in";
+      toast.error(result.error.message ?? fallback);
       return;
     }
     router.push(callbackUrl);
