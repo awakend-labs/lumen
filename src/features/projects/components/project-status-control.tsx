@@ -5,6 +5,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useSetProjectStatus } from "@/features/projects/queries";
 import { canEditContent } from "@/lib/permissions";
 import type { ProjectRole, ProjectStatus } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export function ProjectStatusControl({
   projectId,
@@ -19,10 +20,7 @@ export function ProjectStatusControl({
   const editable = canEditContent(role);
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-        Status
-      </span>
+    <div className="flex flex-wrap items-center gap-2">
       <ToggleGroup
         type="single"
         variant="outline"
@@ -34,12 +32,15 @@ export function ProjectStatusControl({
           setStatus.mutate({ projectId, status: value as ProjectStatus });
         }}
         aria-label="Project status"
-        className="rounded-lg bg-muted/40 p-1"
+        className="rounded-full border border-border/70 bg-muted/30 p-0.5"
       >
         <ToggleGroupItem
           value="in_progress"
           aria-label="In progress"
-          className="gap-1.5 px-3 text-xs data-[state=on]:bg-stash-amber/15 data-[state=on]:text-stash-amber"
+          className={cn(
+            "h-7 gap-1.5 rounded-full px-2.5 text-xs",
+            "data-[state=on]:border-stash-amber/40 data-[state=on]:bg-stash-amber/15 data-[state=on]:text-stash-amber",
+          )}
         >
           <Hourglass className="size-3.5" />
           In progress
@@ -47,14 +48,17 @@ export function ProjectStatusControl({
         <ToggleGroupItem
           value="documented"
           aria-label="Documented"
-          className="gap-1.5 px-3 text-xs data-[state=on]:bg-stash-green/15 data-[state=on]:text-stash-green"
+          className={cn(
+            "h-7 gap-1.5 rounded-full px-2.5 text-xs",
+            "data-[state=on]:border-stash-green/40 data-[state=on]:bg-stash-green/15 data-[state=on]:text-stash-green",
+          )}
         >
           <CircleCheck className="size-3.5" />
           Documented
         </ToggleGroupItem>
       </ToggleGroup>
       {!editable ? (
-        <span className="text-xs text-muted-foreground">Only owners and editors can change status.</span>
+        <span className="text-xs text-muted-foreground">View only</span>
       ) : null}
     </div>
   );
