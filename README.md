@@ -44,12 +44,62 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Scripts
 
-- `pnpm dev` starts the app
-- `pnpm build` creates a production build
+- `pnpm dev` starts the app (Next.js dev server)
+- `pnpm build` creates a standard Next.js production build
+- `pnpm preview` builds with OpenNext and runs the app in the Workers runtime locally
+- `pnpm deploy` builds with OpenNext and deploys to Cloudflare Workers (requires Wrangler login)
 - `pnpm lint` runs ESLint
 - `pnpm db:generate` writes a new Drizzle migration from the schema
-- `pnpm db:migrate` applies migrations
+- `pnpm db:migrate` applies migrations (run locally or in CI, not on the Worker)
 - `pnpm db:studio` opens Drizzle Studio
+
+## Deploy on Cloudflare Workers
+
+Lumen uses [@opennextjs/cloudflare](https://opennext.js.org/cloudflare/get-started). Do **not** deploy with `pnpm build` alone.
+
+### One-time: local preview
+
+```bash
+cp .dev.vars.example .dev.vars
+# Fill in the same values as .env (use http://localhost:8787 for auth URLs when using preview)
+pnpm preview
+```
+
+OpenNext works best on macOS/Linux or WSL; on Windows, use WSL if preview fails.
+
+### Connect GitHub (Workers Builds)
+
+In the Cloudflare dashboard when creating the app from `awakend-labs/lumen`:
+
+| Setting | Value |
+| --- | --- |
+| Package manager | `pnpm` |
+| Build command | `pnpm install && pnpm exec opennextjs-cloudflare build` |
+| Deploy command | `pnpm exec opennextjs-cloudflare deploy` |
+
+Add **Variables and secrets** (Production and Build):
+
+| Variable | Secret |
+| --- | --- |
+| `DATABASE_URL` | Yes |
+| `BETTER_AUTH_SECRET` | Yes |
+| `BETTER_AUTH_URL` | No — `https://<your-worker>.workers.dev` or custom domain |
+| `NEXT_PUBLIC_APP_URL` | No — same as `BETTER_AUTH_URL` |
+
+After the first deploy, set both URL variables to the live origin and redeploy so sign-in and invite links work.
+
+Run `pnpm db:migrate` against your Neon database from your machine when the schema changes; migrations are not run during Worker deploy.
+
+### CLI deploy
+
+```bash
+pnpm exec wrangler login
+pnpm deploy
+```
+
+Set secrets in the dashboard or with `wrangler secret put DATABASE_URL` (and `BETTER_AUTH_SECRET`). Plain vars can go in the dashboard or `wrangler.jsonc` `[vars]` (avoid committing secrets).
+
+Optional: enable R2 incremental cache — see [OpenNext caching](https://opennext.js.org/cloudflare/caching).
 
 ## Using Lumen
 

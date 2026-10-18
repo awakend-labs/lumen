@@ -9,7 +9,6 @@ import {
   fetchProjects,
   updateProject,
 } from "@/features/projects/api";
-import type { ProjectDetail } from "@/lib/types";
 import type { ProjectInput } from "@/lib/validators";
 
 export const projectKeys = {

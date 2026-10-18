@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { account, session, user, verification } from "@/db/schema";
 
 const baseURL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+const publicURL = process.env.NEXT_PUBLIC_APP_URL ?? baseURL;
 
 export const auth = betterAuth({
   appName: "Lumen",
@@ -19,7 +20,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  trustedOrigins: [baseURL],
+  trustedOrigins: [...new Set([baseURL, publicURL].filter(Boolean))],
   plugins: [nextCookies()],
 });
 
