@@ -18,6 +18,14 @@ export type ProjectRole = (typeof PROJECT_ROLES)[number];
 export const PROJECT_STATUSES = ["in_progress", "documented"] as const;
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 
+export const STASH_STATUSES = [
+  "in_development",
+  "active",
+  "testing",
+  "deprecated",
+] as const;
+export type StashStatus = (typeof STASH_STATUSES)[number];
+
 export const INVITE_ROLES = ["editor", "viewer"] as const;
 export type InviteRole = (typeof INVITE_ROLES)[number];
 
@@ -70,6 +78,7 @@ export type EndpointRecord = {
   requestBody: RequestBodyDoc;
   responses: ResponseDoc[];
   tags: string[];
+  version: string;
   isDeprecated: boolean;
   order: number;
   createdAt: string;
@@ -82,6 +91,7 @@ export type StashRecord = {
   name: string;
   description: string | null;
   color: StashColor;
+  status: StashStatus;
   order: number;
   createdAt: string;
   updatedAt: string;

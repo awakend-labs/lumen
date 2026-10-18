@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { HTTP_METHODS, INVITE_ROLES, PROJECT_STATUSES, STASH_COLORS } from "@/lib/types";
+import {
+  HTTP_METHODS,
+  INVITE_ROLES,
+  PROJECT_STATUSES,
+  STASH_COLORS,
+  STASH_STATUSES,
+} from "@/lib/types";
 
 export const signInSchema = z.object({
   email: z.email("Enter a valid email"),
@@ -26,7 +32,20 @@ export const stashInputSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80),
   description: z.string().trim().max(500).optional().default(""),
   color: z.enum(STASH_COLORS).default("blue"),
+  status: z.enum(STASH_STATUSES).optional(),
 });
+
+export const stashStatusSchema = z.object({
+  status: z.enum(STASH_STATUSES),
+});
+
+export const routeVersionSchema = z
+  .string()
+  .trim()
+  .min(1, "Version is required")
+  .max(12)
+  .regex(/^v\d+$/i, "Use a version like v1 or v2")
+  .transform((value) => value.toLowerCase());
 
 export const reorderSchema = z.object({
   ids: z.array(z.uuid()).min(1),
@@ -71,6 +90,7 @@ export const endpointInputSchema = z.object({
   requestBody: requestBodySchema,
   responses: z.array(responseDocSchema).optional().default([]),
   tags: z.array(z.string().trim().min(1).max(40)).max(12).optional().default([]),
+  version: routeVersionSchema.optional().default("v1"),
   isDeprecated: z.boolean().optional().default(false),
 });
 

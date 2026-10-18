@@ -48,7 +48,12 @@ function NewEndpoint({ projectId }: { projectId: string }) {
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <h1 className="text-2xl font-semibold tracking-tight">New endpoint</h1>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-semibold tracking-tight">New endpoint</h1>
+            <p className="text-sm text-muted-foreground">
+              Document the route, parameters, and the responses callers should expect.
+            </p>
+          </div>
           <EndpointForm
             projectId={project.id}
             stashes={project.stashes}

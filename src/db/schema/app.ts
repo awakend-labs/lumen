@@ -20,6 +20,7 @@ import type {
   ProjectRole,
   ProjectStatus,
   RequestBodyDoc,
+  StashStatus,
   ResponseDoc,
   StashColor,
 } from "@/lib/types";
@@ -43,6 +44,13 @@ export const projectRole = pgEnum("project_role", [
 export const projectStatus = pgEnum("project_status", [
   "in_progress",
   "documented",
+]);
+
+export const stashStatus = pgEnum("stash_status", [
+  "in_development",
+  "active",
+  "testing",
+  "deprecated",
 ]);
 
 export const invitationStatus = pgEnum("invitation_status", [
@@ -82,6 +90,7 @@ export const stashes = pgTable(
     name: text("name").notNull(),
     description: text("description"),
     color: text("color").$type<StashColor>(),
+    status: stashStatus("status").$type<StashStatus>().notNull().default("in_development"),
     order: integer("sort_order").notNull().default(0),
     ...timestamps,
   },
@@ -108,6 +117,7 @@ export const endpoints = pgTable(
     requestBody: jsonb("request_body").$type<RequestBodyDoc>(),
     responses: jsonb("responses").$type<ResponseDoc[]>().notNull().default([]),
     tags: text("tags").array().notNull().default([]),
+    version: text("version").notNull().default("v1"),
     isDeprecated: boolean("is_deprecated").notNull().default(false),
     order: integer("sort_order").notNull().default(0),
     ...timestamps,

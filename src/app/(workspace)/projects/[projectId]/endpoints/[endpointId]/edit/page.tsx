@@ -40,7 +40,12 @@ export default function EditEndpointPage({
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <h1 className="text-2xl font-semibold tracking-tight">Edit endpoint</h1>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-semibold tracking-tight">Edit endpoint</h1>
+            <p className="text-sm text-muted-foreground">
+              Update the route, parameters, and responses. Saving keeps this endpoint in the same project.
+            </p>
+          </div>
           {endpoint.isLoading ? <Skeleton className="h-96 w-full" /> : null}
           {endpoint.data ? (
             <EndpointForm

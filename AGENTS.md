@@ -12,7 +12,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Do not persist app-related state in the browser; Postgres is the source of truth for projects, collaboration data, and user preferences (display-only theme via next-themes is fine).
 - Use pnpm for installs, scripts, and CI-style commands in this repo.
-- Use yellow as the primary accent: yellow with black backgrounds in dark mode, and yellow with white backgrounds in light mode.
+- Use yellow as the primary accent on soft charcoal surfaces in dark mode and white surfaces in light mode (avoid pure black backgrounds).
 - Prefer modern, polished UI with icons and accent colors wherever they fit.
 
 ## Learned Workspace Facts
@@ -27,3 +27,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Drizzle migrations run from the local machine via `pnpm db:migrate` (`drizzle-kit migrate`) against Neon, not inside the Worker.
 - Cloudflare Worker env must have its own secrets (e.g. `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`); a missing variable there caused sign-up 500 errors in production.
 - Project status (`documented` or `in_progress`) is stored in the Postgres `projects.status` column, toggled from project cards, and filterable on the dashboard.
+- Stash status (`in_development`, `active`, `testing`, or `deprecated`) is stored in Postgres on `stashes.status` and is editable per stash.
+- Endpoints have a `version` field (e.g. `v1`, `v2`) for route versioning, stored in Postgres on `endpoints.version`.

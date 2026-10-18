@@ -185,6 +185,7 @@ export async function getProjectDetail(
     name: stash.name,
     description: stash.description,
     color: stash.color ?? "slate",
+    status: stash.status,
     order: stash.order,
     createdAt: stash.createdAt.toISOString(),
     updatedAt: stash.updatedAt.toISOString(),
@@ -283,6 +284,7 @@ export async function createEndpoint(
       requestBody: input.requestBody ?? null,
       responses: input.responses,
       tags: input.tags,
+      version: input.version,
       isDeprecated: input.isDeprecated,
       order: (last?.order ?? -1) + 1,
     })
@@ -340,6 +342,7 @@ export async function updateEndpoint(
       requestBody: input.requestBody ?? null,
       responses: input.responses,
       tags: input.tags,
+      version: input.version,
       isDeprecated: input.isDeprecated,
       updatedAt: new Date(),
     })

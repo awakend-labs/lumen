@@ -1,14 +1,13 @@
-import { AppHeader } from "@/components/app-header";
+import { cookies } from "next/headers";
+import { AppShell } from "@/components/app-shell";
 
-export default function WorkspaceLayout({
+export default async function WorkspaceLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="flex min-h-full flex-1 flex-col">
-      <AppHeader />
-      <div className="flex-1">{children}</div>
-    </div>
-  );
+  const cookieStore = await cookies();
+  const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
+
+  return <AppShell defaultOpen={defaultOpen}>{children}</AppShell>;
 }

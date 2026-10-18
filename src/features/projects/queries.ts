@@ -29,6 +29,7 @@ export function useProject(projectId: string) {
   return useQuery({
     queryKey: projectKeys.detail(projectId),
     queryFn: () => fetchProject(projectId),
+    enabled: projectId.length > 0,
   });
 }
 

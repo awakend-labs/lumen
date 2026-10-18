@@ -7,9 +7,10 @@ import {
   createStash,
   deleteStash,
   reorderStashes,
+  setStashStatusRequest,
   updateStash,
 } from "@/features/stashes/api";
-import type { ProjectDetail } from "@/lib/types";
+import type { ProjectDetail, StashStatus } from "@/lib/types";
 import type { StashInput } from "@/lib/validators";
 
 export function useCreateStash(projectId: string) {
@@ -34,6 +35,36 @@ export function useUpdateStash(projectId: string) {
       toast.success("Stash updated");
     },
     onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useSetStashStatus(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ stashId, status }: { stashId: string; status: StashStatus }) =>
+      setStashStatusRequest(projectId, stashId, status),
+    onMutate: async ({ stashId, status }) => {
+      await queryClient.cancelQueries({ queryKey: projectKeys.detail(projectId) });
+      const previous = queryClient.getQueryData<ProjectDetail>(projectKeys.detail(projectId));
+      if (previous) {
+        queryClient.setQueryData<ProjectDetail>(projectKeys.detail(projectId), {
+          ...previous,
+          stashes: previous.stashes.map((stash) =>
+            stash.id === stashId ? { ...stash, status } : stash,
+          ),
+        });
+      }
+      return { previous };
+    },
+    onError: (error: Error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(projectKeys.detail(projectId), context.previous);
+      }
+      toast.error(error.message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
+    },
   });
 }
 

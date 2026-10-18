@@ -67,6 +67,10 @@ import {
 } from "@/features/stashes/queries";
 import { useViewMode } from "@/hooks/use-view-mode";
 import { stashDotClass } from "@/lib/format";
+import {
+  STASH_STATUS_CLASS,
+  STASH_STATUS_LABEL,
+} from "@/features/stashes/components/stash-status-control";
 import { canEditContent } from "@/lib/permissions";
 import type { EndpointRecord, ProjectDetail, StashRecord } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -102,6 +106,14 @@ export function EndpointBrowser({
 
   const visible: VisibleStash[] = baseStashes.flatMap((stash) => {
     if (!isFiltering) return [{ stash, endpoints: stash.endpoints }];
+    if (stashId) {
+      return [
+        {
+          stash,
+          endpoints: stash.endpoints.filter((endpoint) => matchesEndpoint(endpoint, normalized)),
+        },
+      ];
+    }
     const stashMatch = stash.name.toLowerCase().includes(normalized);
     const endpoints = stash.endpoints.filter(
       (endpoint) => stashMatch || matchesEndpoint(endpoint, normalized),
@@ -156,8 +168,8 @@ export function EndpointBrowser({
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Filter stashes or routes..."
-            aria-label="Filter stashes or routes"
+            placeholder={stashId ? "Filter endpoints..." : "Filter stashes or routes..."}
+            aria-label={stashId ? "Filter endpoints" : "Filter stashes or routes"}
             className="h-9 bg-background pl-8"
           />
         </div>
@@ -213,6 +225,7 @@ export function EndpointBrowser({
                   filtering={isFiltering}
                   mode={mode}
                   showStashLink={!stashId}
+                  bare={Boolean(stashId)}
                 />
               ))}
             </div>
@@ -224,7 +237,7 @@ export function EndpointBrowser({
         <button
           type="button"
           onClick={onCreateStash}
-          className="group flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-6 py-8 text-center transition-all hover:border-primary hover:bg-primary/10"
+          className="group flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-primary/35 bg-linear-to-br from-primary/10 via-background to-muted/30 px-6 py-8 text-center shadow-sm transition-all hover:border-primary/50 hover:from-primary/15 hover:shadow-md"
         >
           <span className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground transition-transform group-hover:scale-105">
             <PlusIcon className="size-5" />
@@ -244,7 +257,8 @@ function matchesEndpoint(endpoint: EndpointRecord, q: string) {
     endpoint.name.toLowerCase().includes(q) ||
     endpoint.path.toLowerCase().includes(q) ||
     endpoint.method.toLowerCase().includes(q) ||
-    (endpoint.description ?? "").toLowerCase().includes(q)
+    (endpoint.description ?? "").toLowerCase().includes(q) ||
+    endpoint.version.toLowerCase().includes(q)
   );
 }
 
@@ -257,6 +271,7 @@ function StashSection({
   filtering,
   mode,
   showStashLink,
+  bare = false,
 }: {
   projectId: string;
   stash: StashRecord;
@@ -266,6 +281,7 @@ function StashSection({
   filtering: boolean;
   mode: "grid" | "list";
   showStashLink: boolean;
+  bare?: boolean;
 }) {
   const sortable = useSortable({
     id: stash.id,
@@ -306,6 +322,32 @@ function StashSection({
     />
   ));
 
+  const endpointBody =
+    endpoints.length === 0 ? (
+      filtering ? (
+        <p className="text-sm text-muted-foreground">No matching endpoints in this stash.</p>
+      ) : editable ? (
+        <EmptyStashState projectId={projectId} stashId={stash.id} />
+      ) : (
+        <p className="text-sm text-muted-foreground">No endpoints in this stash yet.</p>
+      )
+    ) : canReorder ? (
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <SortableContext
+          items={endpoints.map((endpoint) => endpoint.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <EndpointLayout mode={mode}>{endpointNodes}</EndpointLayout>
+        </SortableContext>
+      </DndContext>
+    ) : (
+      <EndpointLayout mode={mode}>{endpointNodes}</EndpointLayout>
+    );
+
+  if (bare) {
+    return endpointBody;
+  }
+
   return (
     <section
       ref={sortable.setNodeRef}
@@ -342,6 +384,14 @@ function StashSection({
             )}
             <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">
               {endpoints.length}
+            </span>
+            <span
+              className={cn(
+                "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                STASH_STATUS_CLASS[stash.status],
+              )}
+            >
+              {STASH_STATUS_LABEL[stash.status]}
             </span>
             {stash.description ? (
               <span className="hidden truncate text-sm text-muted-foreground md:block">
@@ -405,28 +455,7 @@ function StashSection({
           </div>
         </div>
         <CollapsibleContent>
-          <div className="border-t p-4">
-            {endpoints.length === 0 ? (
-              filtering ? (
-                <p className="text-sm text-muted-foreground">No matching endpoints in this stash.</p>
-              ) : editable ? (
-                <EmptyStashState projectId={projectId} stashId={stash.id} />
-              ) : (
-                <p className="text-sm text-muted-foreground">No endpoints in this stash yet.</p>
-              )
-            ) : canReorder ? (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                <SortableContext
-                  items={endpoints.map((endpoint) => endpoint.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <EndpointLayout mode={mode}>{endpointNodes}</EndpointLayout>
-                </SortableContext>
-              </DndContext>
-            ) : (
-              <EndpointLayout mode={mode}>{endpointNodes}</EndpointLayout>
-            )}
-          </div>
+          <div className="border-t p-4">{endpointBody}</div>
         </CollapsibleContent>
       </Collapsible>
       <StashDialog
@@ -528,10 +557,17 @@ function EndpointItem({
     <div ref={sortable.setNodeRef} style={style}>
       {mode === "grid" ? (
         <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
-          <Card className="h-full">
+          <Card
+            className="h-full border-border/60 bg-linear-to-br from-muted/30 via-card to-background shadow-sm transition-shadow hover:shadow-md"
+          >
             <CardHeader className="gap-3">
               <div className="flex items-center justify-between gap-2">
-                <MethodBadge method={endpoint.method} />
+                <div className="flex items-center gap-1.5">
+                  <MethodBadge method={endpoint.method} />
+                  <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                    {endpoint.version}
+                  </span>
+                </div>
                 <div className="flex items-center">
                   {canReorder ? (
                     <button
@@ -570,7 +606,7 @@ function EndpointItem({
           </Card>
         </motion.div>
       ) : (
-        <div className="group flex items-center gap-3 rounded-lg border bg-background/50 px-3 py-2.5 transition-colors hover:border-foreground/15 hover:bg-muted/40">
+        <div className="group flex items-center gap-3 rounded-lg border border-border/60 bg-linear-to-br from-muted/25 via-background to-muted/10 px-3 py-2.5 shadow-sm transition-colors hover:border-foreground/15 hover:bg-muted/40">
           {canReorder ? (
             <button
               type="button"
@@ -583,6 +619,9 @@ function EndpointItem({
             </button>
           ) : null}
           <MethodBadge method={endpoint.method} className="min-w-14 shrink-0" />
+          <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+            {endpoint.version}
+          </span>
           <Link
             href={href}
             className="min-w-0 flex-1 truncate font-mono text-sm hover:underline"

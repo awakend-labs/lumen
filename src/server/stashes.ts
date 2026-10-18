@@ -1,6 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { endpoints, stashes } from "@/db/schema";
+import type { StashStatus } from "@/lib/types";
 import type { StashInput } from "@/lib/validators";
 import { requireEditor, touchProject } from "./access";
 import { HttpError } from "./http";
@@ -25,6 +26,7 @@ export async function createStash(
       name: input.name,
       description: input.description.trim() ? input.description.trim() : null,
       color: input.color,
+      status: input.status ?? "in_development",
       order: (last?.order ?? -1) + 1,
     })
     .returning();
@@ -47,10 +49,28 @@ export async function updateStash(
       name: input.name,
       description: input.description.trim() ? input.description.trim() : null,
       color: input.color,
+      ...(input.status ? { status: input.status } : {}),
       updatedAt: new Date(),
     })
     .where(and(eq(stashes.id, stashId), eq(stashes.projectId, projectId)))
     .returning();
+  if (!updated) throw new HttpError(404, "Stash not found");
+  await touchProject(projectId);
+  return updated;
+}
+
+export async function setStashStatus(
+  userId: string,
+  projectId: string,
+  stashId: string,
+  status: StashStatus,
+) {
+  await requireEditor(userId, projectId);
+  const [updated] = await db
+    .update(stashes)
+    .set({ status, updatedAt: new Date() })
+    .where(and(eq(stashes.id, stashId), eq(stashes.projectId, projectId)))
+    .returning({ id: stashes.id, status: stashes.status });
   if (!updated) throw new HttpError(404, "Stash not found");
   await touchProject(projectId);
   return updated;

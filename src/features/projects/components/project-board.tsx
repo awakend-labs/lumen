@@ -2,38 +2,27 @@
 
 import { motion } from "framer-motion";
 import {
+  ArrowRight,
   Braces,
   CircleCheck,
   Clock,
-  Crown,
-  Eye,
   FolderOpen,
   Hourglass,
   Layers,
   LayoutGridIcon,
   ListIcon,
   MoreHorizontalIcon,
-  PencilIcon,
   PlusIcon,
   Route,
   SearchIcon,
-  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import { MethodBadge } from "@/components/method-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -270,7 +259,7 @@ export function ProjectBoard() {
         <div
           className={cn(
             "gap-4",
-            view === "grid" ? "grid sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col",
+            view === "grid" ? "grid items-stretch sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col",
           )}
         >
           {filteredProjects.map((project, index) => (
@@ -348,14 +337,14 @@ function CreateProjectCard({
       type="button"
       onClick={onCreate}
       className={cn(
-        "group flex min-h-64 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-6 py-8 text-center transition-all hover:-translate-y-0.5 hover:border-primary hover:bg-primary/10",
+        "group flex h-full min-h-56 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-primary/35 bg-linear-to-br from-primary/10 via-background to-muted/30 px-6 py-8 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:from-primary/15 hover:shadow-md",
         view === "list" && "min-h-0 flex-row justify-start px-5 py-4 text-left",
       )}
     >
       <span
         className={cn(
-          "flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm transition-transform group-hover:scale-105",
-          view === "list" && "size-10 shrink-0",
+          "flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-transform group-hover:scale-105",
+          view === "list" && "size-9 shrink-0",
         )}
       >
         <PlusIcon className="size-5" />
@@ -369,24 +358,6 @@ function CreateProjectCard({
     </button>
   );
 }
-
-const ROLE_META: Record<string, { label: string; icon: typeof Crown; className: string }> = {
-  owner: {
-    label: "Owner",
-    icon: Crown,
-    className: "bg-primary/20 text-foreground",
-  },
-  editor: {
-    label: "Editor",
-    icon: PencilIcon,
-    className: "bg-stash-blue/15 text-stash-blue",
-  },
-  viewer: {
-    label: "Viewer",
-    icon: Eye,
-    className: "bg-muted text-muted-foreground",
-  },
-};
 
 function ProjectCard({
   project,
@@ -406,11 +377,8 @@ function ProjectCard({
   deleting: boolean;
 }) {
   const accent = accentFor(project.id);
-  const role = ROLE_META[project.role] ?? ROLE_META.viewer;
-  const RoleIcon = role.icon;
   const stashLabel = project.stashCount === 1 ? "stash" : "stashes";
   const endpointLabel = project.endpointCount === 1 ? "endpoint" : "endpoints";
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -430,43 +398,34 @@ function ProjectCard({
           }
         }}
         className={cn(
-          "group relative h-full cursor-pointer gap-0 overflow-hidden border-border/70 bg-card py-0 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+          "group relative h-full cursor-pointer gap-0 overflow-hidden border-border/60 bg-linear-to-br from-muted/20 via-card to-background py-0 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
           accent.hover,
           view === "list" && "flex flex-row items-stretch",
         )}
       >
-        <span
-          className={cn("absolute inset-x-0 top-0 h-1", accent.bar)}
-          aria-hidden
-        />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <CardHeader className="gap-3 pt-6 pb-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-start gap-3">
-                <span
-                  className={cn(
-                    "flex size-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105",
-                    accent.tile,
-                  )}
-                  aria-hidden
-                >
-                  <Braces className="size-5" />
-                </span>
-                <div className="min-w-0">
-                  <CardTitle className="truncate text-base">{project.name}</CardTitle>
-                  {project.slug ? (
-                    <span className="mt-0.5 block truncate font-mono text-[11px] text-muted-foreground">
-                      /{project.slug}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-              {canManageProject(project.role) ? (
-                <div
-                  className="shrink-0"
-                  onClick={(event) => event.stopPropagation()}
-                  onKeyDown={(event) => event.stopPropagation()}
-                >
+        <div className="flex min-w-0 flex-1 flex-col gap-4 p-5">
+          <div className="flex items-start gap-3">
+            <span
+              className={cn(
+                "flex size-10 shrink-0 items-center justify-center rounded-xl",
+                accent.tile,
+              )}
+              aria-hidden
+            >
+              <Braces className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1 pt-0.5">
+              <CardTitle className="truncate text-base leading-tight">{project.name}</CardTitle>
+              <CardDescription className="mt-1 line-clamp-2 text-sm leading-relaxed">
+                {project.description || "No description yet."}
+              </CardDescription>
+            </div>
+            {canManageProject(project.role) ? (
+              <div
+                className="-mt-1 -mr-1 shrink-0"
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+              >
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon-sm" aria-label="Project actions">
@@ -493,78 +452,33 @@ function ProjectCard({
                     </DropdownMenuGroup>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                </div>
-              ) : null}
-            </div>
-            <CardDescription className="line-clamp-2 min-h-10 text-[13px] leading-relaxed">
-              {project.description || "No description yet."}
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="flex flex-col gap-3 pb-4">
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <Link
-                href={`/projects/${project.id}`}
-                onClick={(event) => event.stopPropagation()}
-                className="flex flex-wrap items-center gap-2"
-              >
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/70 px-2 py-1 text-muted-foreground transition-colors hover:text-foreground">
-                  <Layers className={cn("size-3.5", accent.icon)} />
-                  <span className="font-medium text-foreground">{project.stashCount}</span>
-                  {stashLabel}
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/70 px-2 py-1 text-muted-foreground transition-colors hover:text-foreground">
-                  <Route className={cn("size-3.5", accent.icon)} />
-                  <span className="font-medium text-foreground">{project.endpointCount}</span>
-                  {endpointLabel}
-                </span>
-              </Link>
-            </div>
-
-            {project.previewEndpoints.length > 0 ? (
-              <div className="flex flex-col gap-1.5">
-                <span className="flex items-center gap-1.5 text-[10px] font-medium tracking-wider text-muted-foreground uppercase">
-                  <Sparkles className={cn("size-3", accent.icon)} />
-                  Latest routes
-                </span>
-                {project.previewEndpoints.map((endpoint) => (
-                  <div
-                    key={`${endpoint.method}-${endpoint.path}`}
-                    className="flex items-center gap-2 rounded-md border border-border/60 bg-background/60 px-2 py-1.5"
-                  >
-                    <MethodBadge
-                      method={endpoint.method}
-                      className="h-5 min-w-13 text-[10px]"
-                    />
-                    <span className="truncate font-mono text-[11px] text-muted-foreground">
-                      {endpoint.path}
-                    </span>
-                  </div>
-                ))}
               </div>
-            ) : (
-              <div className="flex items-center gap-2 rounded-md border border-dashed border-border/70 bg-muted/20 px-3 py-2.5 text-xs text-muted-foreground">
-                <Sparkles className={cn("size-3.5 shrink-0", accent.icon)} />
-                Add stashes and endpoints to preview routes here.
-              </div>
-            )}
-          </CardContent>
+            ) : null}
+          </div>
 
-          <CardFooter className="mt-auto items-center justify-between border-t border-border/50 bg-muted/15 py-3">
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
-                role.className,
-              )}
-            >
-              <RoleIcon className="size-3" />
-              {role.label}
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground">
+              <Layers className={cn("size-3.5", accent.icon)} />
+              <span className="font-medium text-foreground">{project.stashCount}</span>
+              {stashLabel}
             </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground">
+              <Route className={cn("size-3.5", accent.icon)} />
+              <span className="font-medium text-foreground">{project.endpointCount}</span>
+              {endpointLabel}
+            </span>
+          </div>
+
+          <div className="mt-auto flex items-center justify-between border-t border-border/50 pt-3">
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Clock className="size-3" />
+              <Clock className="size-3.5 text-stash-green" />
               {formatUpdatedLabel(project.updatedAt)}
             </span>
-          </CardFooter>
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground">
+              Open
+              <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </div>
         </div>
       </Card>
     </motion.div>

@@ -14,11 +14,20 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { stashDotClass } from "@/lib/format";
-import { STASH_COLORS, type StashColor, type StashRecord } from "@/lib/types";
+import { STASH_COLORS, STASH_STATUSES, type StashColor, type StashRecord, type StashStatus } from "@/lib/types";
+import { STASH_STATUS_LABEL } from "@/features/stashes/components/stash-status-control";
 import { stashInputSchema, type StashInput } from "@/lib/validators";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +50,7 @@ export function StashDialog({
       name: stash?.name ?? "",
       description: stash?.description ?? "",
       color: stash?.color ?? "blue",
+      status: stash?.status ?? "in_development",
     },
   });
 
@@ -50,6 +60,7 @@ export function StashDialog({
         name: stash?.name ?? "",
         description: stash?.description ?? "",
         color: stash?.color ?? "blue",
+        status: stash?.status ?? "in_development",
       });
     }
   }, [open, stash, form]);
@@ -79,6 +90,26 @@ export function StashDialog({
             <Field>
               <FieldLabel htmlFor="stash-description">Description</FieldLabel>
               <Textarea id="stash-description" rows={3} {...form.register("description")} />
+            </Field>
+            <Field>
+              <FieldLabel>Status</FieldLabel>
+              <Select
+                value={form.watch("status")}
+                onValueChange={(value) => form.setValue("status", value as StashStatus)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {STASH_STATUSES.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {STASH_STATUS_LABEL[status]}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </Field>
             <Field>
               <FieldLabel>Color</FieldLabel>

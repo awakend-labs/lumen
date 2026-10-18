@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import type { StashStatus } from "@/lib/types";
 import type { StashInput } from "@/lib/validators";
 
 export function createStash(projectId: string, input: StashInput) {
@@ -12,6 +13,17 @@ export function updateStash(projectId: string, stashId: string, input: StashInpu
   return api(`/api/projects/${projectId}/stashes/${stashId}`, {
     method: "PATCH",
     body: JSON.stringify(input),
+  });
+}
+
+export function setStashStatusRequest(
+  projectId: string,
+  stashId: string,
+  status: StashStatus,
+) {
+  return api(`/api/projects/${projectId}/stashes/${stashId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
   });
 }
 
