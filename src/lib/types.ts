@@ -15,6 +15,9 @@ export type HttpMethod = (typeof HTTP_METHODS)[number];
 export const PROJECT_ROLES = ["owner", "editor", "viewer"] as const;
 export type ProjectRole = (typeof PROJECT_ROLES)[number];
 
+export const PROJECT_STATUSES = ["in_progress", "documented"] as const;
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+
 export const INVITE_ROLES = ["editor", "viewer"] as const;
 export type InviteRole = (typeof INVITE_ROLES)[number];
 
@@ -91,9 +94,15 @@ export type ProjectDetail = {
   description: string | null;
   slug: string;
   role: ProjectRole;
+  status: ProjectStatus;
   createdAt: string;
   updatedAt: string;
   stashes: StashRecord[];
+};
+
+export type ProjectEndpointPreview = {
+  method: HttpMethod;
+  path: string;
 };
 
 export type ProjectListItem = {
@@ -102,8 +111,10 @@ export type ProjectListItem = {
   description: string | null;
   slug: string;
   role: ProjectRole;
+  status: ProjectStatus;
   stashCount: number;
   endpointCount: number;
+  previewEndpoints: ProjectEndpointPreview[];
   createdAt: string;
   updatedAt: string;
 };

@@ -2,7 +2,13 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { endpoints, projectMembers, projects, stashes } from "@/db/schema";
 import { slugify } from "@/lib/slug";
-import type { EndpointRecord, ProjectDetail, ProjectListItem, StashRecord } from "@/lib/types";
+import type {
+  EndpointRecord,
+  ProjectDetail,
+  ProjectListItem,
+  ProjectStatus,
+  StashRecord,
+} from "@/lib/types";
 import type { EndpointInput, ProjectInput } from "@/lib/validators";
 import { requireEditor, requireOwner, requireReader, touchProject } from "./access";
 import { HttpError } from "./http";
@@ -45,6 +51,7 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
       name: projects.name,
       description: projects.description,
       slug: projects.slug,
+      status: projects.status,
       role: projectMembers.role,
       createdAt: projects.createdAt,
       updatedAt: projects.updatedAt,
@@ -79,14 +86,39 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
     endpointCounts.map((row) => [row.projectId, row.count]),
   );
 
+  const previewRows = await db
+    .select({
+      projectId: endpoints.projectId,
+      method: endpoints.method,
+      path: endpoints.path,
+      updatedAt: endpoints.updatedAt,
+    })
+    .from(endpoints)
+    .where(inArray(endpoints.projectId, ids));
+
+  const previewMap = new Map<
+    string,
+    { method: (typeof previewRows)[number]["method"]; path: string }[]
+  >();
+  for (const projectId of ids) {
+    const projectEndpoints = previewRows
+      .filter((row) => row.projectId === projectId)
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+      .slice(0, 3)
+      .map((row) => ({ method: row.method, path: row.path }));
+    previewMap.set(projectId, projectEndpoints);
+  }
+
   return rows.map((row) => ({
     id: row.id,
     name: row.name,
     description: row.description,
     slug: row.slug,
+    status: row.status,
     role: row.role,
     stashCount: stashMap.get(row.id) ?? 0,
     endpointCount: endpointMap.get(row.id) ?? 0,
+    previewEndpoints: previewMap.get(row.id) ?? [],
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }));
@@ -101,6 +133,7 @@ export async function createProject(userId: string, input: ProjectInput) {
       name: input.name,
       description,
       slug,
+      status: input.status ?? "in_progress",
       ownerId: userId,
     })
     .returning();
@@ -164,6 +197,7 @@ export async function getProjectDetail(
     description: project.description,
     slug: project.slug,
     role: member.role,
+    status: project.status,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
     stashes: stashRecords,
@@ -179,9 +213,30 @@ export async function updateProject(
   const description = input.description.trim() ? input.description.trim() : null;
   const [project] = await db
     .update(projects)
-    .set({ name: input.name, description, updatedAt: new Date() })
+    .set({
+      name: input.name,
+      description,
+      // Only change status when the caller sends it, so renames don't reset it.
+      ...(input.status ? { status: input.status } : {}),
+      updatedAt: new Date(),
+    })
     .where(eq(projects.id, projectId))
     .returning();
+  if (!project) throw new HttpError(404, "Project not found");
+  return project;
+}
+
+export async function setProjectStatus(
+  userId: string,
+  projectId: string,
+  status: ProjectStatus,
+) {
+  await requireEditor(userId, projectId);
+  const [project] = await db
+    .update(projects)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(projects.id, projectId))
+    .returning({ id: projects.id, status: projects.status });
   if (!project) throw new HttpError(404, "Project not found");
   return project;
 }
