@@ -32,7 +32,12 @@ import { z } from "zod";
 import { MarkdownView } from "@/components/markdown-view";
 import { MethodBadge } from "@/components/method-badge";
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -47,7 +52,14 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useSaveEndpoint } from "@/features/endpoints/queries";
-import { HTTP_METHODS, FIELD_TYPES, ACCESS_LEVELS, type ParamField, type EndpointRecord, type StashRecord } from "@/lib/types";
+import {
+  HTTP_METHODS,
+  FIELD_TYPES,
+  ACCESS_LEVELS,
+  type ParamField,
+  type EndpointRecord,
+  type StashRecord,
+} from "@/lib/types";
 import type { EndpointInput } from "@/lib/validators";
 import { cn } from "@/lib/utils";
 
@@ -68,7 +80,12 @@ const jsonText = z.string().refine((value) => {
 }, "Enter valid JSON");
 
 const paramFormSchema = z.object({
-  type: z.enum(FIELD_TYPES), enumText: z.string(), default: z.string(), format: z.string(), min: z.string(), max: z.string(),
+  type: z.enum(FIELD_TYPES),
+  enumText: z.string(),
+  default: z.string(),
+  format: z.string(),
+  min: z.string(),
+  max: z.string(),
   key: z.string(),
   value: z.string(),
   required: z.boolean(),
@@ -92,7 +109,11 @@ const endpointFormSchema = z.object({
     .string()
     .trim()
     .min(1, "Path is required")
-    .max(300).refine(validEndpointPath, "Start with /; use {id} or :id for parameters. Spaces, # and ? are not allowed."),
+    .max(300)
+    .refine(
+      validEndpointPath,
+      "Start with /; use {id} or :id for parameters. Spaces, # and ? are not allowed.",
+    ),
   description: z.string().max(20000),
   headers: z.array(paramFormSchema),
   queryParams: z.array(paramFormSchema),
@@ -112,7 +133,18 @@ const endpointFormSchema = z.object({
 
 type EndpointFormValues = z.infer<typeof endpointFormSchema>;
 
-const emptyParam = { type: "string" as const, enumText: "", default: "", format: "", min: "", max: "", key: "", value: "", required: false, description: "" };
+const emptyParam = {
+  type: "string" as const,
+  enumText: "",
+  default: "",
+  format: "",
+  min: "",
+  max: "",
+  key: "",
+  value: "",
+  required: false,
+  description: "",
+};
 
 function pretty(value: unknown) {
   if (value === undefined) return "";
@@ -162,9 +194,13 @@ function cleanParams(params: EndpointFormValues["headers"]) {
     .filter((param) => param.key.trim())
     .map((param) => ({
       type: param.type,
-      enum: param.enumText.trim() ? param.enumText.split(",").map(item => item.trim()) : undefined,
-      default: param.default || undefined, format: param.format || undefined,
-      min: param.min.trim() ? Number(param.min) : undefined, max: param.max.trim() ? Number(param.max) : undefined,
+      enum: param.enumText.trim()
+        ? param.enumText.split(",").map((item) => item.trim())
+        : undefined,
+      default: param.default || undefined,
+      format: param.format || undefined,
+      min: param.min.trim() ? Number(param.min) : undefined,
+      max: param.max.trim() ? Number(param.max) : undefined,
       key: param.key.trim(),
       value: param.value,
       required: param.required,
@@ -189,12 +225,30 @@ export function EndpointForm({
   const save = useSaveEndpoint(projectId, endpoint?.id);
   const form = useForm<EndpointFormValues>({
     resolver: zodResolver(endpointFormSchema),
-    defaultValues: toFormValues(endpoint ?? (duplicateFrom ? { ...duplicateFrom, name: `${duplicateFrom.name.slice(0, 113)} (copy)` } : undefined), initialStashId ?? stashes[0]?.id ?? ""),
+    defaultValues: toFormValues(
+      endpoint ??
+        (duplicateFrom
+          ? {
+              ...duplicateFrom,
+              name: `${duplicateFrom.name.slice(0, 113)} (copy)`,
+            }
+          : undefined),
+      initialStashId ?? stashes[0]?.id ?? "",
+    ),
   });
   const headers = useFieldArray({ control: form.control, name: "headers" });
-  const queryParams = useFieldArray({ control: form.control, name: "queryParams" });
-  const pathParams = useFieldArray({ control: form.control, name: "pathParams" });
-  const bodyFields = useFieldArray({ control: form.control, name: "bodyFields" });
+  const queryParams = useFieldArray({
+    control: form.control,
+    name: "queryParams",
+  });
+  const pathParams = useFieldArray({
+    control: form.control,
+    name: "pathParams",
+  });
+  const bodyFields = useFieldArray({
+    control: form.control,
+    name: "bodyFields",
+  });
   const responses = useFieldArray({ control: form.control, name: "responses" });
   const description = form.watch("description");
   const method = form.watch("method");
@@ -205,19 +259,43 @@ export function EndpointForm({
   const dirty = form.formState.isDirty || Boolean(duplicateFrom);
   useEffect(() => {
     if (!dirty) return;
-    const beforeUnload = (event: BeforeUnloadEvent) => { if (!allowLeave.current) { event.preventDefault(); event.returnValue = ""; } };
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (!allowLeave.current) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
     const click = (event: MouseEvent) => {
       const anchor = (event.target as Element).closest("a[href]");
-      if (anchor && !allowLeave.current && !event.ctrlKey && !event.metaKey && !window.confirm("Leave this page? Your unsaved endpoint changes will be lost.")) { event.preventDefault(); event.stopPropagation(); }
+      if (
+        anchor &&
+        !allowLeave.current &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !window.confirm(
+          "Leave this page? Your unsaved endpoint changes will be lost.",
+        )
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
     };
     window.addEventListener("beforeunload", beforeUnload);
     document.addEventListener("click", click, true);
-    return () => { window.removeEventListener("beforeunload", beforeUnload); document.removeEventListener("click", click, true); };
+    return () => {
+      window.removeEventListener("beforeunload", beforeUnload);
+      document.removeEventListener("click", click, true);
+    };
   }, [dirty]);
   useEffect(() => {
     const current = form.getValues("pathParams");
-    const next = pathParameterNames(path).map(key => ({ ...(current.find(field => field.key === key) ?? emptyParam), key, required: true }));
-    if (JSON.stringify(current) !== JSON.stringify(next)) form.setValue("pathParams", next, { shouldDirty: true });
+    const next = pathParameterNames(path).map((key) => ({
+      ...(current.find((field) => field.key === key) ?? emptyParam),
+      key,
+      required: true,
+    }));
+    if (JSON.stringify(current) !== JSON.stringify(next))
+      form.setValue("pathParams", next, { shouldDirty: true });
   }, [path, form]);
 
   function submit(values: EndpointFormValues) {
@@ -234,9 +312,15 @@ export function EndpointForm({
       queryParams: cleanParams(values.queryParams),
       pathParams: cleanParams(values.pathParams),
       requestBody:
-        requestSchema === undefined && requestExample === undefined && !values.bodyFields.length
+        requestSchema === undefined &&
+        requestExample === undefined &&
+        !values.bodyFields.length
           ? null
-          : { schema: requestSchema, example: requestExample, fields: cleanParams(values.bodyFields) },
+          : {
+              schema: requestSchema,
+              example: requestExample,
+              fields: cleanParams(values.bodyFields),
+            },
       responses: values.responses.map((response) => ({
         statusCode: response.statusCode,
         description: response.description,
@@ -255,7 +339,10 @@ export function EndpointForm({
       isDeprecated: values.isDeprecated,
     };
     const validation = endpointInputSchema.safeParse(payload);
-    if (!validation.success) { toast.error(validation.error.issues[0]?.message ?? "Check your fields"); return; }
+    if (!validation.success) {
+      toast.error(validation.error.issues[0]?.message ?? "Check your fields");
+      return;
+    }
     save.mutate(validation.data, {
       onSuccess: (saved) => {
         allowLeave.current = true;
@@ -266,10 +353,27 @@ export function EndpointForm({
   }
 
   return (
-    <form className="flex min-w-0 max-w-full flex-col gap-5 pb-20" onSubmit={form.handleSubmit(submit)}>
-      {duplicateFrom && <p className="text-sm text-muted-foreground">Duplicating {duplicateFrom.name}. Choose a unique name and route before saving.</p>}
-      {dirty && <p role="status" className="text-xs text-amber-600 dark:text-amber-300">Unsaved changes · save before leaving this page.</p>}
-      <div className={cn("flex min-w-0 max-w-full items-center gap-3 overflow-hidden px-4 py-3", sectionSurfaceClass)}>
+    <form
+      className="flex min-w-0 max-w-full flex-col gap-5 pb-20"
+      onSubmit={form.handleSubmit(submit)}
+    >
+      {duplicateFrom && (
+        <p className="text-sm text-muted-foreground">
+          Duplicating {duplicateFrom.name}. Choose a unique name and route
+          before saving.
+        </p>
+      )}
+      {dirty && (
+        <p role="status" className="text-xs text-amber-600 dark:text-amber-300">
+          Unsaved changes · save before leaving this page.
+        </p>
+      )}
+      <div
+        className={cn(
+          "flex min-w-0 max-w-full items-center gap-3 overflow-hidden px-4 py-3",
+          sectionSurfaceClass,
+        )}
+      >
         <MethodBadge method={method} className="h-6 min-w-16" />
         <span
           className={cn(
@@ -294,9 +398,14 @@ export function EndpointForm({
       >
         <FieldGroup>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field data-invalid={Boolean(form.formState.errors.name) || undefined}>
+            <Field
+              data-invalid={Boolean(form.formState.errors.name) || undefined}
+            >
               <FieldLabel htmlFor="endpoint-name" className="gap-1.5">
-                <FileTextIcon className="size-3.5 text-muted-foreground" aria-hidden />
+                <FileTextIcon
+                  className="size-3.5 text-muted-foreground"
+                  aria-hidden
+                />
                 Name
               </FieldLabel>
               <Input
@@ -307,16 +416,29 @@ export function EndpointForm({
               />
               <FieldError errors={[form.formState.errors.name]} />
             </Field>
-            <Field data-invalid={Boolean(form.formState.errors.stashId) || undefined}>
+            <Field
+              data-invalid={Boolean(form.formState.errors.stashId) || undefined}
+            >
               <FieldLabel className="gap-1.5">
-                <FolderIcon className="size-3.5 text-muted-foreground" aria-hidden />
+                <FolderIcon
+                  className="size-3.5 text-muted-foreground"
+                  aria-hidden
+                />
                 Stash
               </FieldLabel>
               <Select
                 value={form.watch("stashId")}
-                onValueChange={(value) => form.setValue("stashId", value, { shouldValidate: true, shouldDirty: true })}
+                onValueChange={(value) =>
+                  form.setValue("stashId", value, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
               >
-                <SelectTrigger className="w-full" aria-invalid={Boolean(form.formState.errors.stashId)}>
+                <SelectTrigger
+                  className="w-full"
+                  aria-invalid={Boolean(form.formState.errors.stashId)}
+                >
                   <SelectValue placeholder="Choose a stash" />
                 </SelectTrigger>
                 <SelectContent>
@@ -331,15 +453,24 @@ export function EndpointForm({
               </Select>
               <FieldError errors={[form.formState.errors.stashId]} />
             </Field>
-            <Field data-invalid={Boolean(form.formState.errors.method) || undefined}>
+            <Field
+              data-invalid={Boolean(form.formState.errors.method) || undefined}
+            >
               <FieldLabel className="gap-1.5">
-                <Code2Icon className="size-3.5 text-muted-foreground" aria-hidden />
+                <Code2Icon
+                  className="size-3.5 text-muted-foreground"
+                  aria-hidden
+                />
                 Method
               </FieldLabel>
               <Select
                 value={method}
                 onValueChange={(value) =>
-                  form.setValue("method", value as EndpointFormValues["method"], { shouldDirty: true })
+                  form.setValue(
+                    "method",
+                    value as EndpointFormValues["method"],
+                    { shouldDirty: true },
+                  )
                 }
               >
                 <SelectTrigger className="w-full">
@@ -356,9 +487,14 @@ export function EndpointForm({
                 </SelectContent>
               </Select>
             </Field>
-            <Field data-invalid={Boolean(form.formState.errors.path) || undefined}>
+            <Field
+              data-invalid={Boolean(form.formState.errors.path) || undefined}
+            >
               <FieldLabel htmlFor="endpoint-path" className="gap-1.5">
-                <MapPinIcon className="size-3.5 text-muted-foreground" aria-hidden />
+                <MapPinIcon
+                  className="size-3.5 text-muted-foreground"
+                  aria-hidden
+                />
                 Path
               </FieldLabel>
               <Input
@@ -370,9 +506,14 @@ export function EndpointForm({
               />
               <FieldError errors={[form.formState.errors.path]} />
             </Field>
-            <Field data-invalid={Boolean(form.formState.errors.version) || undefined}>
+            <Field
+              data-invalid={Boolean(form.formState.errors.version) || undefined}
+            >
               <FieldLabel htmlFor="endpoint-version" className="gap-1.5">
-                <BracesIcon className="size-3.5 text-muted-foreground" aria-hidden />
+                <BracesIcon
+                  className="size-3.5 text-muted-foreground"
+                  aria-hidden
+                />
                 Version
               </FieldLabel>
               <Input
@@ -388,19 +529,31 @@ export function EndpointForm({
           <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
             <Field>
               <FieldLabel htmlFor="endpoint-tags" className="gap-1.5">
-                <TagIcon className="size-3.5 text-muted-foreground" aria-hidden />
+                <TagIcon
+                  className="size-3.5 text-muted-foreground"
+                  aria-hidden
+                />
                 Tags
               </FieldLabel>
-              <Input id="endpoint-tags" placeholder="users, public" {...form.register("tags")} />
+              <Input
+                id="endpoint-tags"
+                placeholder="users, public"
+                {...form.register("tags")}
+              />
             </Field>
             <Field orientation="horizontal" className="h-8">
               <Switch
                 id="deprecated"
                 checked={form.watch("isDeprecated")}
-                onCheckedChange={(checked) => form.setValue("isDeprecated", checked, { shouldDirty: true })}
+                onCheckedChange={(checked) =>
+                  form.setValue("isDeprecated", checked, { shouldDirty: true })
+                }
               />
               <FieldLabel htmlFor="deprecated" className="gap-1.5">
-                <TriangleAlertIcon className="size-3.5 text-muted-foreground" aria-hidden />
+                <TriangleAlertIcon
+                  className="size-3.5 text-muted-foreground"
+                  aria-hidden
+                />
                 Deprecated
               </FieldLabel>
             </Field>
@@ -408,10 +561,22 @@ export function EndpointForm({
         </FieldGroup>
       </FormSection>
 
-      <FormSection icon={VariableIcon} title="Access" description="Uses the authentication scheme configured in project settings.">
-        <label className="grid gap-2 text-sm">Endpoint access<select className="h-9 rounded-md border bg-background px-3" {...form.register("access")}>
-          <option value="public">Public</option><option value="authenticated">Authenticated</option><option value="admin_only">Admin-only</option>
-        </select></label>
+      <FormSection
+        icon={VariableIcon}
+        title="Access"
+        description="Uses the authentication scheme configured in project settings."
+      >
+        <label className="grid gap-2 text-sm">
+          Endpoint access
+          <select
+            className="h-9 rounded-md border bg-background px-3"
+            {...form.register("access")}
+          >
+            <option value="public">Public</option>
+            <option value="authenticated">Authenticated</option>
+            <option value="admin_only">Admin-only</option>
+          </select>
+        </label>
       </FormSection>
       <FormSection
         icon={FileTextIcon}
@@ -439,11 +604,16 @@ export function EndpointForm({
               />
             </div>
           </TabsContent>
-          <TabsContent value="preview" className={cn("min-h-40 p-4", insetSurfaceClass)}>
+          <TabsContent
+            value="preview"
+            className={cn("min-h-40 p-4", insetSurfaceClass)}
+          >
             {description.trim() ? (
               <MarkdownView content={description} />
             ) : (
-              <p className="text-sm text-muted-foreground">Nothing to preview yet.</p>
+              <p className="text-sm text-muted-foreground">
+                Nothing to preview yet.
+              </p>
             )}
           </TabsContent>
         </Tabs>
@@ -486,16 +656,34 @@ export function EndpointForm({
         setValue={form.setValue}
       />
 
-      <ParamList icon={BracesIcon} title="Body fields" hint="Document fields, their types, and constraints. Use JSON schema below for nested or advanced schemas." fields={bodyFields.fields} append={() => bodyFields.append(emptyParam)} remove={bodyFields.remove} register={form.register} name="bodyFields" watch={form.watch} setValue={form.setValue} />
+      <ParamList
+        icon={BracesIcon}
+        title="Body fields"
+        hint="Document fields, their types, and constraints. Use JSON schema below for nested or advanced schemas."
+        fields={bodyFields.fields}
+        append={() => bodyFields.append(emptyParam)}
+        remove={bodyFields.remove}
+        register={form.register}
+        name="bodyFields"
+        watch={form.watch}
+        setValue={form.setValue}
+      />
       <FormSection
         icon={BracesIcon}
         title="Request body"
         description="Optional JSON schema and a sample payload."
       >
         <div className="grid gap-4 md:grid-cols-2">
-          <Field data-invalid={Boolean(form.formState.errors.requestSchema) || undefined}>
+          <Field
+            data-invalid={
+              Boolean(form.formState.errors.requestSchema) || undefined
+            }
+          >
             <FieldLabel htmlFor="request-schema" className="gap-1.5">
-              <BracesIcon className="size-3.5 text-muted-foreground" aria-hidden />
+              <BracesIcon
+                className="size-3.5 text-muted-foreground"
+                aria-hidden
+              />
               JSON schema
             </FieldLabel>
             <Textarea
@@ -507,9 +695,16 @@ export function EndpointForm({
             />
             <FieldError errors={[form.formState.errors.requestSchema]} />
           </Field>
-          <Field data-invalid={Boolean(form.formState.errors.requestExample) || undefined}>
+          <Field
+            data-invalid={
+              Boolean(form.formState.errors.requestExample) || undefined
+            }
+          >
             <FieldLabel htmlFor="request-example" className="gap-1.5">
-              <Code2Icon className="size-3.5 text-muted-foreground" aria-hidden />
+              <Code2Icon
+                className="size-3.5 text-muted-foreground"
+                aria-hidden
+              />
               Example
             </FieldLabel>
             <Textarea
@@ -534,7 +729,12 @@ export function EndpointForm({
             variant="outline"
             size="sm"
             onClick={() =>
-              responses.append({ statusCode: 200, description: "", body: "", schema: "" })
+              responses.append({
+                statusCode: 200,
+                description: "",
+                body: "",
+                schema: "",
+              })
             }
           >
             <PlusIcon data-icon="inline-start" />
@@ -544,7 +744,10 @@ export function EndpointForm({
       >
         <div className="flex flex-col gap-3">
           {responses.fields.map((field, index) => (
-            <div key={field.id} className={cn("flex flex-col gap-3 p-4", insetSurfaceClass)}>
+            <div
+              key={field.id}
+              className={cn("flex flex-col gap-3 p-4", insetSurfaceClass)}
+            >
               <div className="grid gap-3 md:grid-cols-[120px_1fr_auto] md:items-end">
                 <Field>
                   <FieldLabel htmlFor={`status-${field.id}`}>Status</FieldLabel>
@@ -563,7 +766,9 @@ export function EndpointForm({
                   />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor={`response-desc-${field.id}`}>Description</FieldLabel>
+                  <FieldLabel htmlFor={`response-desc-${field.id}`}>
+                    Description
+                  </FieldLabel>
                   <Input
                     id={`response-desc-${field.id}`}
                     placeholder="Success"
@@ -581,23 +786,37 @@ export function EndpointForm({
                 </Button>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
-                <Field data-invalid={Boolean(form.formState.errors.responses?.[index]?.body) || undefined}>
+                <Field
+                  data-invalid={
+                    Boolean(form.formState.errors.responses?.[index]?.body) ||
+                    undefined
+                  }
+                >
                   <FieldLabel>Example body</FieldLabel>
                   <Textarea
                     rows={6}
                     className={cn("font-mono text-xs", insetSurfaceClass)}
                     {...form.register(`responses.${index}.body`)}
                   />
-                  <FieldError errors={[form.formState.errors.responses?.[index]?.body]} />
+                  <FieldError
+                    errors={[form.formState.errors.responses?.[index]?.body]}
+                  />
                 </Field>
-                <Field data-invalid={Boolean(form.formState.errors.responses?.[index]?.schema) || undefined}>
+                <Field
+                  data-invalid={
+                    Boolean(form.formState.errors.responses?.[index]?.schema) ||
+                    undefined
+                  }
+                >
                   <FieldLabel>Schema</FieldLabel>
                   <Textarea
                     rows={6}
                     className={cn("font-mono text-xs", insetSurfaceClass)}
                     {...form.register(`responses.${index}.schema`)}
                   />
-                  <FieldError errors={[form.formState.errors.responses?.[index]?.schema]} />
+                  <FieldError
+                    errors={[form.formState.errors.responses?.[index]?.schema]}
+                  />
                 </Field>
               </div>
             </div>
@@ -612,12 +831,25 @@ export function EndpointForm({
           "bg-background/90 dark:bg-white/[0.04]",
         )}
       >
-        <Button type="button" variant="outline" onClick={() => { if (!dirty || window.confirm("Discard unsaved endpoint changes?")) { allowLeave.current = true; router.back(); } }}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            if (!dirty || window.confirm("Discard unsaved endpoint changes?")) {
+              allowLeave.current = true;
+              router.back();
+            }
+          }}
+        >
           <XIcon data-icon="inline-start" />
           Cancel
         </Button>
         <Button type="submit" disabled={save.isPending}>
-          {save.isPending ? <Spinner data-icon="inline-start" /> : <SaveIcon data-icon="inline-start" />}
+          {save.isPending ? (
+            <Spinner data-icon="inline-start" />
+          ) : (
+            <SaveIcon data-icon="inline-start" />
+          )}
           {endpoint ? "Save changes" : "Save endpoint"}
         </Button>
       </div>
@@ -652,7 +884,9 @@ function FormSection({
           ) : null}
           <div className="flex flex-col gap-0.5">
             <h2 className="text-sm font-semibold">{title}</h2>
-            {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+            {description ? (
+              <p className="text-xs text-muted-foreground">{description}</p>
+            ) : null}
           </div>
         </div>
         {action}
@@ -691,7 +925,13 @@ function ParamList({
       title={title}
       description={hint}
       action={
-        <Button type="button" variant="outline" size="sm" disabled={name === "pathParams"} onClick={append}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={name === "pathParams"}
+          onClick={append}
+        >
           <PlusIcon data-icon="inline-start" />
           Add
         </Button>
@@ -716,25 +956,85 @@ function ParamList({
                 insetSurfaceClass,
               )}
             >
-              <Input aria-label="Field name" readOnly={name === "pathParams"} placeholder="Key" className="font-mono text-xs" {...register(`${name}.${index}.key`)} />
-              <label className="grid gap-1 text-xs">Type<select className="h-8 rounded-md border bg-background px-2" {...register(`${name}.${index}.type`)}>{FIELD_TYPES.map(type => <option key={type} value={type}>{type}</option>)}</select></label>
-              <Input aria-label="Example value" placeholder="Value" {...register(`${name}.${index}.value`)} />
-              <Input placeholder="Description" {...register(`${name}.${index}.description`)} />
-              <Input aria-label="Enum values" placeholder="Enum (comma separated)" {...register(`${name}.${index}.enumText`)} />
-              <Input aria-label="Default value" placeholder="Default" {...register(`${name}.${index}.default`)} />
-              <Input aria-label="Format" placeholder="Format (email, uuid…)" {...register(`${name}.${index}.format`)} />
-              <Input aria-label="Minimum" type="number" step="any" placeholder="Min (value / length / items)" {...register(`${name}.${index}.min`)} />
-              <Input aria-label="Maximum" type="number" step="any" placeholder="Max (value / length / items)" {...register(`${name}.${index}.max`)} />
+              <Input
+                aria-label="Field name"
+                readOnly={name === "pathParams"}
+                placeholder="Key"
+                className="font-mono text-xs"
+                {...register(`${name}.${index}.key`)}
+              />
+              <label className="grid gap-1 text-xs">
+                Type
+                <select
+                  className="h-8 rounded-md border bg-background px-2"
+                  {...register(`${name}.${index}.type`)}
+                >
+                  {FIELD_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Input
+                aria-label="Example value"
+                placeholder="Value"
+                {...register(`${name}.${index}.value`)}
+              />
+              <Input
+                placeholder="Description"
+                {...register(`${name}.${index}.description`)}
+              />
+              <Input
+                aria-label="Enum values"
+                placeholder="Enum (comma separated)"
+                {...register(`${name}.${index}.enumText`)}
+              />
+              <Input
+                aria-label="Default value"
+                placeholder="Default"
+                {...register(`${name}.${index}.default`)}
+              />
+              <Input
+                aria-label="Format"
+                placeholder="Format (email, uuid…)"
+                {...register(`${name}.${index}.format`)}
+              />
+              <Input
+                aria-label="Minimum"
+                type="number"
+                step="any"
+                placeholder="Min (value / length / items)"
+                {...register(`${name}.${index}.min`)}
+              />
+              <Input
+                aria-label="Maximum"
+                type="number"
+                step="any"
+                placeholder="Max (value / length / items)"
+                {...register(`${name}.${index}.max`)}
+              />
               <Field orientation="horizontal" className="justify-end">
                 <Switch
                   disabled={name === "pathParams"}
                   checked={watch(`${name}.${index}.required`)}
-                  onCheckedChange={(checked) => setValue(`${name}.${index}.required`, checked, { shouldDirty: true })}
+                  onCheckedChange={(checked) =>
+                    setValue(`${name}.${index}.required`, checked, {
+                      shouldDirty: true,
+                    })
+                  }
                   aria-label="Required"
                 />
                 <span className="text-xs text-muted-foreground">Required</span>
               </Field>
-              <Button type="button" variant="ghost" size="icon" aria-label="Remove" disabled={name === "pathParams"} onClick={() => remove(index)}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Remove"
+                disabled={name === "pathParams"}
+                onClick={() => remove(index)}
+              >
                 <Trash2Icon />
               </Button>
             </div>
@@ -746,5 +1046,14 @@ function ParamList({
 }
 
 function fieldToForm(field: ParamField) {
-  return { ...emptyParam, ...field, type: field.type ?? "string", enumText: field.enum?.join(", ") ?? "", default: field.default ?? "", format: field.format ?? "", min: field.min === undefined ? "" : String(field.min), max: field.max === undefined ? "" : String(field.max) };
+  return {
+    ...emptyParam,
+    ...field,
+    type: field.type ?? "string",
+    enumText: field.enum?.join(", ") ?? "",
+    default: field.default ?? "",
+    format: field.format ?? "",
+    min: field.min === undefined ? "" : String(field.min),
+    max: field.max === undefined ? "" : String(field.max),
+  };
 }

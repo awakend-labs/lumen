@@ -1,8 +1,10 @@
 "use client";
 
+import { MailOpenIcon, ShieldCheckIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,30 +28,40 @@ export function InviteAccept({ token }: { token: string }) {
 
   return (
     <div className="flex min-h-full flex-1 items-center justify-center px-4 py-16">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Project invitation</CardTitle>
-          <CardDescription>Join a Lumen project with the role you were given.</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Card className="w-full max-w-md gap-0 overflow-hidden border-border/50 p-0 shadow-lg dark:border-white/5">
+        <div className="flex flex-col items-center gap-3 border-b border-border/50 bg-muted/30 px-6 py-8 text-center dark:bg-white/2">
+          <span className="flex size-12 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary shadow-sm">
+            <MailOpenIcon className="size-5" aria-hidden />
+          </span>
+          <div className="flex flex-col gap-1">
+            <CardTitle className="text-xl">Project invitation</CardTitle>
+            <CardDescription>Join a Lumen project with the role you were given.</CardDescription>
+          </div>
+        </div>
+        <CardContent className="flex flex-col gap-5 px-6 py-6">
           {preview.isLoading ? <Skeleton className="h-24 w-full" /> : null}
           {preview.isError ? (
             <p className="text-sm text-muted-foreground">{preview.error.message}</p>
           ) : null}
           {preview.data ? (
-            <div className="flex flex-col gap-2 text-sm">
-              <p>
-                <span className="text-muted-foreground">Project</span>
-                <span className="mt-1 block text-base font-medium">{preview.data.projectName}</span>
-              </p>
-              <p>
-                <span className="text-muted-foreground">Sent to</span>
-                <span className="mt-1 block">{preview.data.email}</span>
-              </p>
-              <p>
-                <span className="text-muted-foreground">Role</span>
-                <span className="mt-1 block capitalize">{preview.data.role}</span>
-              </p>
+            <div className="flex flex-col gap-4 text-sm">
+              <div className="flex flex-col gap-1 rounded-xl border border-border/50 bg-muted/20 p-4 dark:border-white/5 dark:bg-white/2">
+                <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Project</span>
+                <span className="text-base font-semibold">{preview.data.projectName}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Sent to</span>
+                  <span className="truncate">{preview.data.email}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Role</span>
+                  <Badge variant="outline" className="w-fit gap-1.5 rounded-full border-primary/35 bg-primary/10 capitalize">
+                    <ShieldCheckIcon className="size-3 text-primary" aria-hidden />
+                    {preview.data.role}
+                  </Badge>
+                </div>
+              </div>
               {preview.data.status !== "pending" ? (
                 <p className="text-muted-foreground">
                   This invitation is {preview.data.status}.
@@ -58,7 +70,7 @@ export function InviteAccept({ token }: { token: string }) {
             </div>
           ) : null}
         </CardContent>
-        <CardFooter className="flex flex-col items-stretch gap-2">
+        <CardFooter className="flex flex-col items-stretch gap-2 border-t border-border/50 bg-muted/20 px-6 py-5 dark:border-white/5">
           {preview.data?.status === "pending" && !session.data ? (
             <Button asChild>
               <Link href={`/login?callbackUrl=${encodeURIComponent(callback)}`}>

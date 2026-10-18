@@ -21,10 +21,14 @@ export function AppShell({
     <SidebarProvider defaultOpen={defaultOpen}>
       <AppSidebar />
       <SidebarInset className="min-w-0">
-        <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur-md">
-          <SidebarTrigger />
+        <header
+          className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/60 bg-background/85 px-4 py-2 backdrop-blur-md sm:px-6 lg:px-8"
+        >
+          <SidebarTrigger className="-ml-1 shrink-0" />
           <ShellTitle />
-          <GlobalSearch />
+          <div className="ml-auto flex w-full min-w-0 max-w-md flex-1 justify-end sm:max-w-lg md:max-w-xl lg:max-w-2xl">
+            <GlobalSearch />
+          </div>
         </header>
         <div className="flex min-w-0 flex-1 flex-col">{children}</div>
       </SidebarInset>
@@ -53,5 +57,9 @@ function ShellTitle() {
     title = name ?? "Project";
   }
 
-  return <p className="truncate text-sm font-medium">{title}</p>;
+  return (
+    <p className="min-w-0 max-w-[45%] truncate text-sm font-medium tracking-tight sm:max-w-none sm:flex-1">
+      {title}
+    </p>
+  );
 }

@@ -1,7 +1,9 @@
 "use client";
 
+import { SettingsIcon } from "lucide-react";
 import Link from "next/link";
 import { use } from "react";
+import { PageHeader } from "@/components/page-header";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -38,12 +40,11 @@ export default function SettingsPage({
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-            <p className="text-sm text-muted-foreground">
-              Members and invitations for {project.name}.
-            </p>
-          </div>
+          <PageHeader
+            icon={SettingsIcon}
+            title="Settings"
+            description={`Members, invitations, and access for ${project.name}.`}
+          />
           <ProjectAuthSettings key={project.id} project={project} />
           <ProjectSettings projectId={project.id} role={project.role} />
         </div>

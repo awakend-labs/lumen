@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import {
   ArrowRight,
+  ArrowUpDownIcon,
   Braces,
   CircleCheck,
   Clock,
@@ -20,6 +21,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -58,7 +60,6 @@ import {
 import { formatUpdatedLabel } from "@/lib/format";
 import { canManageProject } from "@/lib/permissions";
 import { accentFor } from "@/lib/project-accent";
-import { ProjectStatusControl } from "./project-status-control";
 import { cn } from "@/lib/utils";
 import type { ProjectListItem, ProjectStatus } from "@/lib/types";
 import type { ProjectInput } from "@/lib/validators";
@@ -89,8 +90,10 @@ export function ProjectBoard() {
     const all = projects.data ?? [];
     return {
       all: all.length,
-      documented: all.filter((project) => project.status === "documented").length,
-      in_progress: all.filter((project) => project.status === "in_progress").length,
+      documented: all.filter((project) => project.status === "documented")
+        .length,
+      in_progress: all.filter((project) => project.status === "in_progress")
+        .length,
     };
   }, [projects.data]);
 
@@ -100,7 +103,8 @@ export function ProjectBoard() {
     let list = projects.data.filter((project) => {
       if (filter !== "all" && project.status !== filter) return false;
       if (!normalized) return true;
-      const haystack = `${project.name} ${project.description ?? ""} ${project.slug}`.toLowerCase();
+      const haystack =
+        `${project.name} ${project.description ?? ""} ${project.slug}`.toLowerCase();
       return haystack.includes(normalized);
     });
     list = [...list].sort((a, b) => {
@@ -114,29 +118,27 @@ export function ProjectBoard() {
 
   return (
     <div className="mx-auto flex w-full flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-semibold tracking-tight">Projects</h1>
-            {totalCount > 0 ? (
-              <Badge
-                variant="outline"
-                className="gap-2 rounded-full border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium text-foreground"
-              >
-                <FolderOpen className="size-3.5 text-primary" />
-                {totalCount} {totalCount === 1 ? "project" : "projects"}
-              </Badge>
-            ) : null}
-          </div>
-          <p className="max-w-xl text-sm text-muted-foreground">
-            The APIs you document, grouped into calm, readable projects.
-          </p>
-        </div>
-        <Button className="shrink-0" onClick={() => setCreating(true)}>
-          <PlusIcon data-icon="inline-start" />
-          New project
-        </Button>
-      </div>
+      <PageHeader
+        icon={FolderOpen}
+        title="Projects"
+        description="The APIs you document, grouped into calm, readable projects."
+        badge={
+          totalCount > 0 ? (
+            <Badge
+              variant="outline"
+              className="gap-1.5 rounded-full border-primary/40 bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-foreground"
+            >
+              {totalCount} {totalCount === 1 ? "project" : "projects"}
+            </Badge>
+          ) : null
+        }
+        actions={
+          <Button className="h-9 shadow-sm" onClick={() => setCreating(true)}>
+            <PlusIcon data-icon="inline-start" />
+            New project
+          </Button>
+        }
+      />
 
       {projects.data && projects.data.length > 0 ? (
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -175,13 +177,25 @@ export function ProjectBoard() {
                 aria-label="Filter projects"
               />
             </div>
-            <Select value={sort} onValueChange={(value) => setSort(value as ProjectSort)}>
-              <SelectTrigger className="h-9 w-42 bg-background">
+            <Select
+              value={sort}
+              onValueChange={(value) => setSort(value as ProjectSort)}
+            >
+              <SelectTrigger
+                aria-label="Sort projects"
+                className="h-9 w-auto min-w-44 gap-2 bg-background pr-2.5 pl-3 text-sm dark:bg-white/3"
+              >
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="updated">Sort: Last updated</SelectItem>
-                <SelectItem value="name">Sort: Name</SelectItem>
+              <SelectContent align="end">
+                <SelectItem value="updated">
+                  <Clock className="size-3.5 text-muted-foreground" aria-hidden />
+                  Last updated
+                </SelectItem>
+                <SelectItem value="name">
+                  <ArrowUpDownIcon className="size-3.5 text-muted-foreground" aria-hidden />
+                  Name (A–Z)
+                </SelectItem>
               </SelectContent>
             </Select>
             <ToggleGroup
@@ -227,7 +241,8 @@ export function ProjectBoard() {
             </EmptyMedia>
             <EmptyTitle>No projects yet</EmptyTitle>
             <EmptyDescription>
-              Create a project, then organize endpoints into stashes like Authentication or Payments.
+              Create a project, then organize endpoints into stashes like
+              Authentication or Payments.
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
@@ -236,11 +251,15 @@ export function ProjectBoard() {
         </Empty>
       ) : null}
 
-      {projects.data && projects.data.length > 0 && filteredProjects.length === 0 ? (
+      {projects.data &&
+      projects.data.length > 0 &&
+      filteredProjects.length === 0 ? (
         <Empty className="min-h-48 border border-dashed">
           <EmptyHeader>
             <EmptyTitle>No projects match</EmptyTitle>
-            <EmptyDescription>Try another filter or clear your search.</EmptyDescription>
+            <EmptyDescription>
+              Try another filter or clear your search.
+            </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Button
@@ -293,7 +312,10 @@ export function ProjectBoard() {
           })
         }
       />
-      <EditProjectDialog project={editing} onOpenChange={() => setEditing(null)} />
+      <EditProjectDialog
+        project={editing}
+        onOpenChange={() => setEditing(null)}
+      />
     </div>
   );
 }
@@ -352,7 +374,9 @@ function CreateProjectCard({
       >
         <PlusIcon className="size-5" />
       </span>
-      <div className={cn("flex flex-col gap-1", view === "list" && "items-start")}>
+      <div
+        className={cn("flex flex-col gap-1", view === "list" && "items-start")}
+      >
         <span className="text-sm font-medium">Create another project</span>
         <span className="text-xs text-muted-foreground">
           Start from scratch and add stashes as you document endpoints.
@@ -395,7 +419,10 @@ function ProjectCard({
         aria-label={`Open ${project.name}`}
         onClick={onOpen}
         onKeyDown={(event) => {
-          if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+          if (
+            event.target === event.currentTarget &&
+            (event.key === "Enter" || event.key === " ")
+          ) {
             event.preventDefault();
             onOpen();
           }
@@ -418,7 +445,9 @@ function ProjectCard({
               <Braces className="size-5" />
             </span>
             <div className="min-w-0 flex-1 pt-0.5">
-              <CardTitle className="truncate text-base leading-tight">{project.name}</CardTitle>
+              <CardTitle className="truncate text-base leading-tight">
+                {project.name}
+              </CardTitle>
               <CardDescription className="mt-1 line-clamp-2 text-sm leading-relaxed">
                 {project.description || "No description yet."}
               </CardDescription>
@@ -431,7 +460,11 @@ function ProjectCard({
               >
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon-sm" aria-label="Project actions">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Project actions"
+                    >
                       <MoreHorizontalIcon />
                     </Button>
                   </DropdownMenuTrigger>
@@ -462,17 +495,20 @@ function ProjectCard({
           <div className="flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground">
               <Layers className={cn("size-3.5", accent.icon)} />
-              <span className="font-medium text-foreground">{project.stashCount}</span>
+              <span className="font-medium text-foreground">
+                {project.stashCount}
+              </span>
               {stashLabel}
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground">
               <Route className={cn("size-3.5", accent.icon)} />
-              <span className="font-medium text-foreground">{project.endpointCount}</span>
+              <span className="font-medium text-foreground">
+                {project.endpointCount}
+              </span>
               {endpointLabel}
             </span>
           </div>
 
-          <div onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}><ProjectStatusControl projectId={project.id} status={project.status} role={project.role} /></div>
           <div className="mt-auto flex items-center justify-between border-t border-border/50 pt-3">
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <Clock className="size-3.5 text-stash-green" />
