@@ -81,7 +81,7 @@ Add **Variables and secrets** (Production and Build):
 
 | Variable | Secret |
 | --- | --- |
-| `DATABASE_URL` | Yes |
+| `DATABASE_URL` | Yes — Neon `postgresql://…` connection string (required at runtime; missing values break sign-up) |
 | `BETTER_AUTH_SECRET` | Yes |
 | `BETTER_AUTH_URL` | No — `https://<your-worker>.workers.dev` or custom domain |
 | `NEXT_PUBLIC_APP_URL` | No — same as `BETTER_AUTH_URL` |
