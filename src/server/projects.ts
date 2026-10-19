@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { endpoints, projectMembers, projects, stashes } from "@/db/schema";
+import { apiGroups, endpoints, projectMembers, projects, stashes } from "@/db/schema";
+import { validateGroup } from "./api-groups";
 import { slugify } from "@/lib/slug";
 import type {
   EndpointRecord,
@@ -158,7 +159,7 @@ export async function getProjectDetail(
     .limit(1);
   if (!project) throw new HttpError(404, "Project not found");
 
-  const [stashRows, endpointRows] = await db.batch([db
+  const [stashRows, endpointRows, groupRows] = await db.batch([db
     .select()
     .from(stashes)
     .where(eq(stashes.projectId, projectId))
@@ -167,7 +168,10 @@ export async function getProjectDetail(
     .select()
     .from(endpoints)
     .where(eq(endpoints.projectId, projectId))
-    .orderBy(asc(endpoints.order), asc(endpoints.createdAt))]);
+    .orderBy(asc(endpoints.order), asc(endpoints.createdAt)),
+  db.select({ id: apiGroups.id, stashId: apiGroups.stashId, name: apiGroups.name }).from(apiGroups)
+    .innerJoin(stashes, eq(apiGroups.stashId, stashes.id)).where(eq(stashes.projectId, projectId))
+    .orderBy(asc(apiGroups.createdAt), asc(apiGroups.id))]);
 
   const grouped = new Map<string, EndpointRecord[]>();
   for (const row of endpointRows) {
@@ -177,6 +181,7 @@ export async function getProjectDetail(
   }
 
   const stashRecords: StashRecord[] = stashRows.map((stash) => ({
+    groups: groupRows.filter(group => group.stashId === stash.id),
     id: stash.id,
     projectId: stash.projectId,
     name: stash.name,
@@ -262,10 +267,12 @@ export async function createEndpoint(
 
 
 
+  await validateGroup(input.stashId, input.groupId);
   const [[created]] = await db.batch([db
     .insert(endpoints)
     .values({
       stashId: input.stashId,
+      groupId: input.groupId ?? null,
       projectId,
       name: input.name,
       method: input.method,
@@ -313,9 +320,15 @@ export async function updateEndpoint(
   input: EndpointInput,
 ) {
   await requireEditor(userId, projectId);
+  const { endpoint: existing } = await getEndpoint(userId, projectId, endpointId);
+  if (input.groupId !== undefined && existing.stashId !== input.stashId) {
+    throw new HttpError(409, "This endpoint moved to another stash. Reload before changing its group.");
+  }
+  await validateGroup(existing.stashId, input.groupId);
   const [[updated]] = await db.batch([db
     .update(endpoints)
     .set({
+      ...(input.groupId !== undefined ? { groupId: input.groupId } : {}),
       name: input.name,
       method: input.method,
       path: input.path,
@@ -349,7 +362,7 @@ export async function moveEndpoint(userId: string, projectId: string, endpointId
   if (!destination) throw new HttpError(400, "Choose a stash in this project");
   if (endpoint.stashId === stashId) return endpoint;
   const [[moved]] = await db.batch([
-    db.update(endpoints).set({ stashId,
+    db.update(endpoints).set({ stashId, groupId: null,
       order: sql`(select coalesce(max(sort_order), -1) + 1 from endpoints where stash_id = ${stashId})`,
       updatedAt: new Date(),
     }).where(and(eq(endpoints.id, endpointId), eq(endpoints.projectId, projectId))).returning(),

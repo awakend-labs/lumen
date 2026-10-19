@@ -13,6 +13,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProject } from "@/features/projects/queries";
 import type { ProjectDetail } from "@/lib/types";
+import { canEditContent } from "@/lib/permissions";
 
 const subscribeToHydration = () => () => {};
 const clientHydrated = () => true;
@@ -21,9 +22,11 @@ const serverHydrated = () => false;
 export function ProjectFrame({
   projectId,
   children,
+  editable = false,
 }: {
   projectId: string;
   children: (project: ProjectDetail) => React.ReactNode;
+  editable?: boolean;
 }) {
   const project = useProject(projectId);
   // The sidebar can populate this query before a streamed page hydrates.
@@ -60,5 +63,11 @@ export function ProjectFrame({
     );
   }
 
+  if (editable && !canEditContent(project.data.role)) {
+    return <div className="lumen-page"><Empty className="border">
+      <EmptyHeader><EmptyTitle>Read-only access</EmptyTitle><EmptyDescription>You can view this project, but only owners and editors can change endpoints.</EmptyDescription></EmptyHeader>
+      <EmptyContent><Button asChild><Link href={`/projects/${projectId}`}>Back to project</Link></Button></EmptyContent>
+    </Empty></div>;
+  }
   return <>{children(project.data)}</>;
 }

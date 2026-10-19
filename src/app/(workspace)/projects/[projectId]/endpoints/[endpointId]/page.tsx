@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EndpointDetail } from "@/features/endpoints/components/endpoint-detail";
 import { useEndpoint } from "@/features/endpoints/queries";
 import { useProject } from "@/features/projects/queries";
+import { ProjectFrame } from "@/features/projects/components/project-frame";
 
 export default function EndpointPage({
   params,
@@ -31,6 +32,7 @@ export default function EndpointPage({
   const endpoint = useEndpoint(projectId, endpointId);
 
   return (
+    <ProjectFrame projectId={projectId}>{() => (
     <div className="lumen-page flex flex-col gap-8">
       <Breadcrumb>
         <BreadcrumbList>
@@ -57,7 +59,7 @@ export default function EndpointPage({
           </EmptyHeader>
         </Empty>
       ) : null}
-      {endpoint.data ? (
+      {endpoint.data && !endpoint.isError ? (
         <EndpointDetail
           projectId={projectId}
           endpoint={endpoint.data.endpoint}
@@ -69,5 +71,6 @@ export default function EndpointPage({
         />
       ) : null}
     </div>
+    )}</ProjectFrame>
   );
 }

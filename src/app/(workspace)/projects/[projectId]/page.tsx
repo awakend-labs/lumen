@@ -82,12 +82,12 @@ function ProjectView({ projectId }: { projectId: string }) {
               </div>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <Button asChild variant="outline" className="h-9">
+              {canEditContent(project.role) && <Button asChild variant="outline" className="h-9">
                 <Link href={`/projects/${project.id}/settings`}>
                   <SettingsIcon data-icon="inline-start" />
                   Settings
                 </Link>
-              </Button>
+              </Button>}
               {canEditContent(project.role) ? (
                 <Button className="h-9" onClick={() => setOpen(true)}>
                   <PlusIcon data-icon="inline-start" />

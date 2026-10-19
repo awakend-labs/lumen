@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { CopyButton } from "@/components/copy-button";
+import { ConfirmDelete } from "@/components/confirm-delete";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +72,7 @@ export function ProjectSettings({
         </CardHeader>
         <CardContent>
           {members.isLoading ? <Skeleton className="h-32 w-full" /> : null}
+          {members.isError && <p role="alert" className="text-sm text-destructive">{members.error.message} <Button variant="ghost" onClick={() => members.refetch()}>Retry</Button></p>}
           {members.data ? (
             <Table>
               <TableHeader>
@@ -100,6 +102,7 @@ export function ProjectSettings({
                       {owner && member.role !== "owner" ? (
                         <Select
                           value={member.role}
+                          disabled={updateRole.isPending || remove.isPending}
                           onValueChange={(value) =>
                             updateRole.mutate({
                               memberId: member.id,
@@ -127,13 +130,9 @@ export function ProjectSettings({
                     {owner ? (
                       <TableCell className="text-right">
                         {member.role === "owner" ? null : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => remove.mutate(member.id)}
-                          >
-                            Remove
-                          </Button>
+                          <ConfirmDelete title="Remove collaborator?" description={`${member.name} (${member.email}) will lose access to this project. You can invite them again later.`}
+                            confirmLabel="Remove collaborator" pending={remove.isPending} onConfirm={() => remove.mutate(member.id)}
+                            trigger={<Button variant="ghost" size="sm" disabled={remove.isPending}>Remove</Button>} />
                         )}
                       </TableCell>
                     ) : null}
@@ -219,8 +218,8 @@ export function ProjectSettings({
             <div className="flex flex-col gap-2">
               <h3 className="text-sm font-medium">Pending invitations</h3>
               {invitations.isError ? <p role="alert" className="text-sm text-destructive">{invitations.error.message} <Button variant="ghost" onClick={() => invitations.refetch()}>Retry</Button></p> : null}
-              {invitations.isLoading ? <Skeleton className="h-16 w-full" /> : null}
-              {invitations.data && invitations.data.length === 0 ? (
+              {invitations.isLoading || ((invite.isPending || invitations.isFetching) && !invitations.data?.length) ? <Skeleton className="h-16 w-full" /> : null}
+              {invitations.data && invitations.data.length === 0 && !invite.isPending && !invitations.isFetching && !invitations.isError ? (
                 <p className="text-sm text-muted-foreground">No pending invitations.</p>
               ) : null}
               {invitations.data?.map((invitation) => (

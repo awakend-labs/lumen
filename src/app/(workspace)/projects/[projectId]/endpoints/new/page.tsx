@@ -34,7 +34,7 @@ function NewEndpoint({ projectId }: { projectId: string; }) {
   const stashId = search.get("stash") ?? undefined;
 
   return (
-    <ProjectFrame projectId={projectId}>
+    <ProjectFrame projectId={projectId} editable>
       {(project) => {
         const duplicate = project.stashes.flatMap(stash => stash.endpoints).find(endpoint => endpoint.id === search.get("duplicate"));
         const selectedStash = project.stashes.find(stash => stash.id === (duplicate?.stashId ?? stashId));

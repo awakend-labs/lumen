@@ -14,6 +14,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EndpointForm } from "@/features/endpoints/components/endpoint-form";
 import { useEndpoint } from "@/features/endpoints/queries";
 import { ProjectFrame } from "@/features/projects/components/project-frame";
+import { Button } from "@/components/ui/button";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 export default function EditEndpointPage({
   params,
@@ -24,7 +26,7 @@ export default function EditEndpointPage({
   const endpoint = useEndpoint(projectId, endpointId);
 
   return (
-    <ProjectFrame projectId={projectId}>
+    <ProjectFrame projectId={projectId} editable>
       {(project) => (
         <div className="lumen-page flex flex-col gap-8">
           <Breadcrumb>
@@ -48,7 +50,8 @@ export default function EditEndpointPage({
             </p>
           </div>
           {endpoint.isLoading ? <Skeleton className="h-96 w-full" /> : null}
-          {endpoint.data ? (
+          {endpoint.isError && <Empty className="border"><EmptyHeader><EmptyTitle>Endpoint unavailable</EmptyTitle><EmptyDescription>{endpoint.error.message}</EmptyDescription></EmptyHeader><EmptyContent><Button asChild variant="outline"><Link href={`/projects/${projectId}`}>Back to project</Link></Button></EmptyContent></Empty>}
+          {endpoint.data && !endpoint.isError ? (
             <EndpointForm
               projectId={project.id}
               stashes={project.stashes}

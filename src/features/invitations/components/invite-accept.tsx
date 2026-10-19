@@ -17,13 +17,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { useAcceptInvitation, useInvitationPreview } from "@/features/invitations/queries";
 import { authClient } from "@/lib/auth-client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 export function InviteAccept({ token }: { token: string; }) {
   const router = useRouter();
   const preview = useInvitationPreview(token);
   const accept = useAcceptInvitation(token);
   const session = authClient.useSession();
+  const client = useQueryClient();
+  const [switching, setSwitching] = useState(false);
   const callback = `/invite/${token}`;
+  const signedInUser = session.data?.user;
+  const wrongEmail = Boolean(signedInUser && preview.data && signedInUser.email.trim().toLowerCase() !== preview.data.email.trim().toLowerCase());
+  const sessionReady = !session.isPending && !session.error;
 
   return (
     <div className="flex min-h-full flex-1 items-center justify-center px-4 py-16">
@@ -66,25 +73,27 @@ export function InviteAccept({ token }: { token: string; }) {
                   This invitation is {preview.data.status}.
                 </p>
               ) : null}
+              {sessionReady && wrongEmail && <p role="alert" className="rounded-lg border border-border bg-muted/30 p-3 text-sm leading-6">This invitation is for <strong className="break-all">{preview.data.email}</strong>. You’re signed in as <span className="break-all">{signedInUser?.email}</span>. Use the invited account to continue.</p>}
+              {session.error && <p role="alert" className="text-sm text-destructive">We couldn’t verify your account. Reload this page to try again.</p>}
             </div>
           ) : null}
         </CardContent>
         <CardFooter className="flex flex-col items-stretch gap-2 border-t border-border/50 bg-muted/20 px-6 py-5 dark:border-white/5">
-          {preview.data?.status === "pending" && !session.data ? (
+          {preview.data && session.isPending && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Spinner />Checking your account…</p>}
+          {preview.data && ["pending", "accepted"].includes(preview.data.status) && sessionReady && !signedInUser ? (
             <Button asChild>
               <Link href={`/login?callbackUrl=${encodeURIComponent(callback)}`}>
-                Sign in to accept
+                {preview.data.status === "accepted" ? "Sign in to open project" : "Sign in to accept"}
               </Link>
             </Button>
           ) : null}
-          {preview.data?.status === "pending" && session.data ? (
+          {preview.data?.status === "pending" && sessionReady && signedInUser && !wrongEmail ? (
             <Button
               disabled={accept.isPending}
               onClick={() =>
                 accept.mutate(undefined, {
-                  onSuccess: (result) => {
+                  onSuccess: () => {
                     toast.success("You joined the project");
-                    router.push(`/projects/${result.projectId}`);
                   },
                   onError: (error) => toast.error(error.message),
                 })
@@ -94,7 +103,20 @@ export function InviteAccept({ token }: { token: string; }) {
               Accept invitation
             </Button>
           ) : null}
-          {preview.data?.status === "accepted" ? (
+          {sessionReady && wrongEmail && <Button variant="outline" disabled={switching} onClick={async () => {
+            setSwitching(true);
+            try {
+              const result = await authClient.signOut();
+              if (result.error) throw new Error(result.error.message ?? "Could not sign out");
+              client.clear();
+              router.replace(`/login?callbackUrl=${encodeURIComponent(callback)}`);
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Could not switch accounts");
+              setSwitching(false);
+            }
+          }}>{switching ? <Spinner /> : null}Use the invited account</Button>}
+          {accept.isError && <p role="alert" className="text-sm text-destructive">{accept.error.message}</p>}
+          {preview.data?.status === "accepted" && sessionReady && signedInUser && !wrongEmail ? (
             <Button asChild variant="outline">
               <Link href={`/projects/${preview.data.projectId}`}>Open project</Link>
             </Button>

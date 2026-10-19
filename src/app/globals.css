@@ -107,11 +107,11 @@
   --sidebar-accent-foreground: #252831;
   --sidebar-border: #dfe2e9;
   --sidebar-ring: #b58c13;
-  --surface-highlight: rgb(255 255 255 / 70%);
+  --surface-highlight: rgb(255 255 255 / 20%);
   --surface-gradient:
-    radial-gradient(ellipse at top left, color-mix(in srgb, var(--primary) 5%, transparent), transparent 65%),
+    radial-gradient(ellipse at top left, color-mix(in srgb, var(--primary) 1.5%, transparent), transparent 65%),
     linear-gradient(165deg, var(--surface-highlight), transparent 65%);
-  --accent-gradient: linear-gradient(165deg, rgb(255 255 255 / 22%), rgb(255 255 255 / 3%) 48%, rgb(152 99 21 / 4%));
+  --accent-gradient: linear-gradient(165deg, rgb(255 255 255 / 8%), rgb(255 255 255 / 1%) 48%, rgb(152 99 21 / 1%));
 }
 
 .dark {
@@ -160,7 +160,7 @@
   --sidebar-accent-foreground: #f2f3f5;
   --sidebar-border: #383b43;
   --sidebar-ring: #f5cd47;
-  --surface-highlight: rgb(255 255 255 / 4%);
+  --surface-highlight: rgb(255 255 255 / 1.5%);
 }
 
 @layer base {
@@ -229,8 +229,8 @@
   .lumen-section { border: 1px solid var(--border); border-radius: 1.25rem; background: var(--card); padding: clamp(1rem, 2vw, 1.75rem); box-shadow: 0 2px 5px #00000003; }
   .lumen-inset { border: 1px solid var(--border); border-radius: .75rem; background: var(--background); }
   .lumen-response { background-color: var(--card); background-image: var(--surface-gradient); }
-  .auth-brand-panel { background: linear-gradient(145deg, color-mix(in srgb, var(--primary) 4%, var(--sidebar)), var(--sidebar) 60%); }
-  .auth-form-panel { background-image: radial-gradient(ellipse at 75% 0%, color-mix(in srgb, var(--primary) 3%, transparent), transparent 65%); }
+  .auth-brand-panel { background: linear-gradient(145deg, color-mix(in srgb, var(--primary) 1.5%, var(--sidebar)), var(--sidebar) 60%); }
+  .auth-form-panel { background-image: radial-gradient(ellipse at 75% 0%, color-mix(in srgb, var(--primary) 1%, transparent), transparent 65%); }
   .auth-card, .auth-doc-preview { background-image: var(--surface-gradient); }
   .eyebrow { font-size: .6875rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); }
   .brand-mark { display: flex; width: 2.5rem; height: 2.5rem; flex-shrink: 0; align-items: center; justify-content: center; border-radius: .8rem; background: var(--primary); color: var(--primary-foreground); box-shadow: inset 0 1px 1px #ffffff70, 0 3px 8px #1717170a; }
@@ -246,7 +246,7 @@
     background-image: var(--accent-gradient);
   }
   .create-tile {
-    background-image: radial-gradient(ellipse at top left, color-mix(in srgb, var(--primary) 3%, transparent), transparent 70%);
+    background-image: radial-gradient(ellipse at top left, color-mix(in srgb, var(--primary) 1%, transparent), transparent 70%);
   }
   .workspace [data-slot="breadcrumb"] { font-size: .75rem; }
   [data-slot="sidebar-header"] { padding: 1.25rem .75rem 1rem; }

@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api";
 import {
   createProject,
   deleteProject,
@@ -22,6 +23,7 @@ export function useProjects() {
   return useQuery({
     queryKey: projectKeys.all,
     queryFn: fetchProjects,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -30,6 +32,9 @@ export function useProject(projectId: string) {
     queryKey: projectKeys.detail(projectId),
     queryFn: () => fetchProject(projectId),
     enabled: projectId.length > 0,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    retry: (count, error) => count < 1 && (!(error instanceof ApiError) || error.status >= 500),
   });
 }
 

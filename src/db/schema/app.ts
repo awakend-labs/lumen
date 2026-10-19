@@ -1,6 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
   boolean,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -99,6 +100,16 @@ export const stashes = pgTable(
   (table) => [index("stashes_project_order_idx").on(table.projectId, table.order)],
 );
 
+export const apiGroups = pgTable("api_groups", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  stashId: uuid("stash_id").notNull().references(() => stashes.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  ...timestamps,
+}, (table) => [
+  uniqueIndex("api_groups_id_stash_uidx").on(table.id, table.stashId),
+  uniqueIndex("api_groups_stash_name_uidx").on(table.stashId, sql`lower(${table.name})`),
+]);
+
 export const endpoints = pgTable(
   "endpoints",
   {
@@ -106,6 +117,7 @@ export const endpoints = pgTable(
     stashId: uuid("stash_id")
       .notNull()
       .references(() => stashes.id, { onDelete: "cascade" }),
+    groupId: uuid("group_id").references(() => apiGroups.id, { onDelete: "set null" }),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
@@ -127,6 +139,7 @@ export const endpoints = pgTable(
     ...timestamps,
   },
   (table) => [
+    foreignKey({ columns: [table.groupId, table.stashId], foreignColumns: [apiGroups.id, apiGroups.stashId], name: "endpoints_group_stash_fk" }),
     uniqueIndex("endpoints_project_version_name_uidx").on(table.projectId, table.version, sql`lower(${table.name})`),
     uniqueIndex("endpoints_project_version_route_uidx").on(table.projectId, table.version, table.method, sql`regexp_replace(${table.path}, '[{][A-Za-z_][A-Za-z0-9_]*[}]|:[A-Za-z_][A-Za-z0-9_]*', '{}', 'g')`),
     index("endpoints_stash_id_idx").on(table.stashId),

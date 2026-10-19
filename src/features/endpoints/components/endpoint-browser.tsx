@@ -63,6 +63,7 @@ import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useDeleteEndpoint, useReorderEndpoints } from "@/features/endpoints/queries";
 import { StashDialog } from "@/features/stashes/components/stash-dialog";
+import { ApiGroupControl, ApiGroupSection } from "@/features/stashes/components/api-group-section";
 import {
   useDeleteStash,
   useReorderStashes,
@@ -113,15 +114,15 @@ export function EndpointBrowser({
       return [
         {
           stash,
-          endpoints: stash.endpoints.filter((endpoint) => matchesEndpoint(endpoint, normalized)),
+          endpoints: stash.endpoints.filter((endpoint) => matchesEndpoint(endpoint, normalized) || stash.groups.some(group => group.id === endpoint.groupId && group.name.toLowerCase().includes(normalized))),
         },
       ];
     }
     const stashMatch = stash.name.toLowerCase().includes(normalized);
     const endpoints = stash.endpoints.filter(
-      (endpoint) => stashMatch || matchesEndpoint(endpoint, normalized),
+      (endpoint) => stashMatch || matchesEndpoint(endpoint, normalized) || stash.groups.some(group => group.id === endpoint.groupId && group.name.toLowerCase().includes(normalized)),
     );
-    return stashMatch || endpoints.length > 0 ? [{ stash, endpoints }] : [];
+    return stashMatch || endpoints.length > 0 || stash.groups.some(group => group.name.toLowerCase().includes(normalized)) ? [{ stash, endpoints }] : [];
   });
 
   function onDragEnd(event: DragEndEvent) {
@@ -177,6 +178,7 @@ export function EndpointBrowser({
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {editable && stashId && <ApiGroupControl projectId={project.id} stashId={stashId} />}
           {editable && <Button asChild variant="outline" size="sm"><Link href={`/projects/${project.id}/endpoints/new?import=curl${stashId ? `&stash=${stashId}` : ""}`}><TerminalSquare className="size-4" />Import cURL</Link></Button>}
           <span className="text-xs text-muted-foreground">View</span>
           <ToggleGroup
@@ -227,6 +229,7 @@ export function EndpointBrowser({
                   editable={editable}
                   canReorder={canReorder}
                   filtering={isFiltering}
+                  groupQuery={normalized}
                   mode={mode}
                   showStashLink={!stashId}
                   bare={Boolean(stashId)}
@@ -273,6 +276,7 @@ function StashSection({
   editable,
   canReorder,
   filtering,
+  groupQuery,
   mode,
   showStashLink,
   bare = false,
@@ -283,6 +287,7 @@ function StashSection({
   editable: boolean;
   canReorder: boolean;
   filtering: boolean;
+  groupQuery: string;
   mode: "grid" | "list";
   showStashLink: boolean;
   bare?: boolean;
@@ -316,7 +321,7 @@ function StashSection({
     reorderEndpoints.mutate({ stashId: stash.id, ids: arrayMove(ids, oldIndex, newIndex) });
   }
 
-  const endpointNodes = endpoints.map((endpoint) => (
+  const renderEndpoints = (items: EndpointRecord[]) => items.map((endpoint) => (
     <EndpointItem
       key={endpoint.id}
       projectId={projectId}
@@ -327,8 +332,21 @@ function StashSection({
     />
   ));
 
+  const groupedBody = stash.groups.length ? <div className="flex flex-col gap-4">
+    {stash.groups.filter(group => !filtering || group.name.toLowerCase().includes(groupQuery) || endpoints.some(endpoint => endpoint.groupId === group.id)).map(group => {
+      const items = endpoints.filter(endpoint => endpoint.groupId === group.id);
+      return <ApiGroupSection key={group.id} id={`api-group-${group.id}`} name={group.name} count={items.length} filtering={filtering}
+        actions={editable ? <ApiGroupControl projectId={projectId} stashId={stash.id} group={group} /> : undefined}>
+        {items.length ? <EndpointLayout mode={mode}>{renderEndpoints(items)}</EndpointLayout> : <p className="text-sm text-muted-foreground">{filtering ? "No matching endpoints." : "No endpoints yet. Choose this group when creating or editing an endpoint."}</p>}
+      </ApiGroupSection>;
+    })}
+    {endpoints.some(endpoint => !endpoint.groupId) && <ApiGroupSection name="Ungrouped APIs" count={endpoints.filter(endpoint => !endpoint.groupId).length} filtering={filtering}>
+      <EndpointLayout mode={mode}>{renderEndpoints(endpoints.filter(endpoint => !endpoint.groupId))}</EndpointLayout>
+    </ApiGroupSection>}
+  </div> : <EndpointLayout mode={mode}>{renderEndpoints(endpoints)}</EndpointLayout>;
+
   const endpointBody =
-    endpoints.length === 0 ? (
+    endpoints.length === 0 && (stash.groups.length === 0 || (filtering && !stash.groups.some(group => group.name.toLowerCase().includes(groupQuery)))) ? (
       filtering ? (
         <p className="text-sm text-muted-foreground">No matching endpoints in this stash.</p>
       ) : editable ? (
@@ -342,11 +360,11 @@ function StashSection({
           items={endpoints.map((endpoint) => endpoint.id)}
           strategy={verticalListSortingStrategy}
         >
-          <EndpointLayout mode={mode}>{endpointNodes}</EndpointLayout>
+          {groupedBody}
         </SortableContext>
       </DndContext>
     ) : (
-      <EndpointLayout mode={mode}>{endpointNodes}</EndpointLayout>
+      groupedBody
     );
 
   if (bare) {
@@ -405,6 +423,7 @@ function StashSection({
             ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            {editable && <ApiGroupControl projectId={projectId} stashId={stash.id} />}
             {editable ? (
               <Button
                 asChild
@@ -559,9 +578,9 @@ function EndpointItem({
       {mode === "grid" ? (
         <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
           <Card
-            className="h-full border-border bg-card shadow-none transition-[border-color,box-shadow] hover:border-foreground/25 hover:shadow-sm"
+            className="h-full gap-3 border-border bg-card py-4 shadow-none transition-[border-color,box-shadow] hover:border-foreground/25 hover:shadow-sm"
           >
-            <CardHeader className="gap-3">
+            <CardHeader className="gap-2 px-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <MethodBadge method={endpoint.method} />
@@ -597,7 +616,7 @@ function EndpointItem({
                 </Link>
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3">
+            <CardContent className="flex flex-col gap-2 px-4">
               <p className="truncate font-mono text-xs text-muted-foreground">{endpoint.path}</p>
               <p className="line-clamp-2 text-sm text-muted-foreground">
                 <ReactMarkdown allowedElements={["p", "strong", "em", "code"]} unwrapDisallowed components={{ p: ({ children }) => <span>{children}</span> }}>{endpoint.description || "No description"}</ReactMarkdown>

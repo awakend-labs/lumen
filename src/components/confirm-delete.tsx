@@ -19,12 +19,14 @@ export function ConfirmDelete({
   onConfirm,
   pending,
   trigger,
+  confirmLabel = "Delete",
 }: {
   title: string;
   description: string;
   onConfirm: () => void;
   pending?: boolean;
   trigger: React.ReactNode;
+  confirmLabel?: string;
 }) {
   return (
     <AlertDialog>
@@ -42,7 +44,7 @@ export function ConfirmDelete({
             onClick={onConfirm}
           >
             {pending ? <Spinner data-icon="inline-start" /> : null}
-            Delete
+            {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

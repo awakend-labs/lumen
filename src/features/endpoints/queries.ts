@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api";
 import {
   deleteEndpoint,
   fetchEndpoint,
@@ -21,6 +22,9 @@ export function useEndpoint(projectId: string, endpointId: string) {
   return useQuery({
     queryKey: endpointKeys.detail(projectId, endpointId),
     queryFn: () => fetchEndpoint(projectId, endpointId),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    retry: (count, error) => count < 1 && (!(error instanceof ApiError) || error.status >= 500),
   });
 }
 

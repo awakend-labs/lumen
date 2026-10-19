@@ -78,6 +78,7 @@ export type ResponseDoc = {
 };
 
 export type EndpointRecord = {
+  groupId: string | null;
   access: typeof ACCESS_LEVELS[number];
   id: string;
   stashId: string;
@@ -101,6 +102,7 @@ export type EndpointRecord = {
 };
 
 export type StashRecord = {
+  groups: ApiGroupRecord[];
   id: string;
   projectId: string;
   name: string;
@@ -112,6 +114,8 @@ export type StashRecord = {
   updatedAt: string;
   endpoints: EndpointRecord[];
 };
+
+export type ApiGroupRecord = { id: string; stashId: string; name: string };
 
 export type ProjectDetail = {
   auth: ProjectAuth;

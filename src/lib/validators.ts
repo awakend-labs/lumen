@@ -48,6 +48,10 @@ export const stashStatusSchema = z.object({
   status: z.enum(STASH_STATUSES),
 });
 
+export const apiGroupInputSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(80),
+});
+
 export const routeVersionSchema = z
   .string()
   .trim()
@@ -101,6 +105,7 @@ export const baseUrlSchema = z.string().trim().max(2000).refine(value => {
 }, "Use a server URL like https://api.example.com; put the route in Path.").transform(value => value.replace(/\/$/, ""));
 
 export const endpointInputSchema = z.object({
+  groupId: z.uuid().nullable().optional(),
   baseUrl: baseUrlSchema.default(""),
   access: z.enum(ACCESS_LEVELS).default("public"),
   stashId: z.uuid(),
@@ -136,7 +141,7 @@ export const endpointInputSchema = z.object({
 });
 
 export const invitationInputSchema = z.object({
-  email: z.email("Enter a valid email"),
+  email: z.string().trim().pipe(z.email("Enter a valid email")).transform(email => email.toLowerCase()),
   role: z.enum(INVITE_ROLES),
 });
 

@@ -22,6 +22,8 @@ export function useMembers(projectId: string) {
   return useQuery({
     queryKey: memberKeys.list(projectId),
     queryFn: () => fetchMembers(projectId),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -30,6 +32,8 @@ export function useInvitations(projectId: string, enabled: boolean) {
     queryKey: memberKeys.invites(projectId),
     queryFn: () => fetchInvitations(projectId),
     enabled,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -37,10 +41,13 @@ export function useInviteMember(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: InvitationInput) => createInvitation(projectId, input),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: memberKeys.invites(projectId) });
+    },
     onSuccess: async (invitation) => {
       await queryClient.cancelQueries({ queryKey: memberKeys.invites(projectId) });
       queryClient.setQueryData<InvitationRecord[]>(memberKeys.invites(projectId), current => [invitation, ...(current ?? []).filter(item => item.id !== invitation.id)]);
-      queryClient.invalidateQueries({ queryKey: memberKeys.invites(projectId) });
+      await queryClient.invalidateQueries({ queryKey: memberKeys.invites(projectId) });
       toast.success("Invitation ready to share");
     },
     onError: (error: Error) => toast.error(error.message),

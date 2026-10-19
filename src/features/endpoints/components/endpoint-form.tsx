@@ -109,6 +109,7 @@ const endpointFormSchema = z.object({
   access: z.enum(ACCESS_LEVELS),
   bodyFields: z.array(paramFormSchema),
   stashId: z.string().min(1, "Choose a stash"),
+  groupId: z.string(),
   name: z.string().trim().min(1, "Name is required").max(120),
   method: z.enum(HTTP_METHODS),
   path: z
@@ -168,6 +169,7 @@ function toFormValues(
     access: endpoint?.access ?? "public",
     bodyFields: (endpoint?.requestBody?.fields ?? []).map(fieldToForm),
     stashId: endpoint?.stashId ?? stashId,
+    groupId: endpoint?.groupId ?? "ungrouped",
     name: endpoint?.name ?? "",
     method: endpoint?.method ?? "GET",
     path: endpoint?.path ?? "/",
@@ -272,7 +274,7 @@ export function EndpointForm({
   const allowLeave = useRef(false);
   const dirty = form.formState.isDirty || Boolean(duplicateFrom) || imported;
   function importRequest(draft: CurlDraft) {
-    form.reset(toFormValues(draft, form.getValues("stashId")));
+    form.reset({ ...toFormValues(draft, form.getValues("stashId")), groupId: form.getValues("groupId") });
     setImported(true);
     toast.success("Request imported. Review the fields and save your endpoint.");
   }
@@ -329,6 +331,7 @@ export function EndpointForm({
       baseUrl: values.baseUrl,
       access: values.access,
       stashId: fixedStashId,
+      ...(!endpoint || values.groupId !== (endpoint.groupId ?? "ungrouped") ? { groupId: values.groupId === "ungrouped" ? null : values.groupId } : {}),
       name: values.name.trim(),
       method: values.method,
       path: values.path.trim(),
@@ -433,6 +436,15 @@ export function EndpointForm({
         description="Define the endpoint name, method, and route."
       >
         <FieldGroup>
+          {(stashes.find(stash => stash.id === fixedStashId)?.groups.length ?? 0) > 0 && <Field>
+            <FieldLabel htmlFor="endpoint-group">API group <span className="text-muted-foreground">(optional)</span></FieldLabel>
+            <Select value={form.watch("groupId")} onValueChange={value => form.setValue("groupId", value, { shouldDirty: true })}>
+              <SelectTrigger id="endpoint-group" className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectGroup><SelectItem value="ungrouped">Ungrouped APIs</SelectItem>
+                {stashes.find(stash => stash.id === fixedStashId)?.groups.map(group => <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>)}
+              </SelectGroup></SelectContent>
+            </Select>
+          </Field>}
           <Field data-invalid={Boolean(form.formState.errors.baseUrl) || undefined}><FieldLabel htmlFor="endpoint-base-url">Base URL</FieldLabel><Input id="endpoint-base-url" placeholder="https://api.example.com" aria-invalid={Boolean(form.formState.errors.baseUrl)} {...form.register("baseUrl")} /><FieldError errors={[form.formState.errors.baseUrl]} /></Field>
           <div className="grid gap-4 md:grid-cols-2">
             <Field

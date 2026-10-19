@@ -7,8 +7,11 @@ import { stashDotClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useProject, useProjects } from "@/features/projects/queries";
 import {
+  ChevronRight,
   ChevronsUpDown,
+  FolderClosed,
   FolderOpen,
+  Layers2,
   LayoutDashboard,
   LogOutIcon,
   MonitorIcon,
@@ -17,7 +20,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import type { ProjectListItem, StashRecord } from "@/lib/types";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useTheme } from "next-themes";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,7 +44,6 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSkeleton,
@@ -64,9 +68,7 @@ function projectIdFromPath(pathname: string) {
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const projectId = projectIdFromPath(pathname);
   const projects = useProjects();
-  const current = useProject(projectId);
   const { isMobile, setOpenMobile } = useSidebar();
 
   useEffect(() => {
@@ -122,65 +124,9 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 ))
                 : null}
-              {projects.data?.map((project) => {
-                const href = `/projects/${project.id}`;
-                const onStash = pathname.startsWith(`${href}/stashes/`);
-                const active =
-                  pathname === href || (pathname.startsWith(`${href}/`) && !onStash);
-                const showTree = project.id === projectId && pathname.startsWith(href);
-                return (
-                  <SidebarMenuItem key={project.id}>
-                    <SidebarMenuButton asChild isActive={active} tooltip={project.name}>
-                      <Link href={href}>
-                        <FolderOpen />
-                        <span>{project.name}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                    {project.stashCount > 0 ? (
-                      <SidebarMenuBadge>{project.stashCount}</SidebarMenuBadge>
-                    ) : null}
-                    {showTree ? (
-                      <SidebarMenuSub>
-                        {current.isLoading
-                          ? Array.from({ length: 2 }).map((_, index) => (
-                            <SidebarMenuSubItem key={index}>
-                              <SidebarMenuSkeleton />
-                            </SidebarMenuSubItem>
-                          ))
-                          : null}
-                        {current.data && current.data.stashes.length === 0 ? (
-                          <SidebarMenuSubItem>
-                            <p className="px-2 py-1 text-xs text-muted-foreground">No stashes yet</p>
-                          </SidebarMenuSubItem>
-                        ) : null}
-                        {current.data?.stashes.map((stash) => {
-                          const stashHref = `${href}/stashes/${stash.id}`;
-                          return (
-                            <SidebarMenuSubItem key={stash.id}>
-                              <SidebarMenuSubButton
-                                asChild
-                                isActive={
-                                  pathname === stashHref || pathname.startsWith(`${stashHref}/`)
-                                }
-                              >
-                                <Link href={stashHref}>
-                                  <span
-                                    className={cn(
-                                      "size-2 shrink-0 rounded-full",
-                                      stashDotClass(stash.color),
-                                    )}
-                                  />
-                                  <span>{stash.name}</span>
-                                </Link>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          );
-                        })}
-                      </SidebarMenuSub>
-                    ) : null}
-                  </SidebarMenuItem>
-                );
-              })}
+              {projects.data?.map((project) => (
+                <ProjectTree key={project.id} project={project} pathname={pathname} />
+              ))}
               {projects.data && projects.data.length === 0 ? (
                 <SidebarMenuItem>
                   <p className="px-2 py-1.5 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
@@ -199,6 +145,87 @@ export function AppSidebar() {
       <SidebarRail />
     </Sidebar>
   );
+}
+
+const treeToggleClass = "absolute top-0 left-0 z-10 flex size-8 items-center justify-center rounded-md text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:outline-2 focus-visible:outline-sidebar-ring group-data-[collapsible=icon]:hidden";
+
+function useTreeOpen(pathname: string, defaultOpen: boolean) {
+  const [choice, setChoice] = useState<{ path: string; open: boolean } | null>(null);
+  return [choice?.path === pathname ? choice.open : defaultOpen,
+    (open: boolean) => setChoice({ path: pathname, open })] as const;
+}
+
+function ProjectTree({ project, pathname }: { project: ProjectListItem; pathname: string }) {
+  const current = projectIdFromPath(pathname) === project.id;
+  const [open, setOpen] = useTreeOpen(pathname, current);
+  const href = `/projects/${project.id}`;
+  return <Collapsible asChild open={open} onOpenChange={setOpen}>
+    <SidebarMenuItem>
+      <div className="relative">
+        <CollapsibleTrigger asChild>
+          <button type="button" className={treeToggleClass} aria-label={`${open ? "Collapse" : "Expand"} project ${project.name}`}>
+            <ChevronRight className={cn("size-3.5 transition-transform motion-reduce:transition-none", open && "rotate-90")} />
+          </button>
+        </CollapsibleTrigger>
+        <SidebarMenuButton asChild isActive={current} tooltip={project.name} className="pl-8 font-medium data-active:bg-transparent data-active:shadow-none">
+          <Link href={href} aria-current={pathname === href ? "page" : undefined}>
+            {open ? <FolderOpen className="text-primary" /> : <FolderClosed />}
+            <span>{project.name}</span>
+            <span className="ml-auto px-1.5 text-[10px] font-normal text-sidebar-foreground/60 tabular-nums group-data-[collapsible=icon]:hidden">{project.stashCount}</span>
+          </Link>
+        </SidebarMenuButton>
+      </div>
+      <CollapsibleContent>
+        {open && <ProjectStashes projectId={project.id} pathname={pathname} />}
+      </CollapsibleContent>
+    </SidebarMenuItem>
+  </Collapsible>;
+}
+
+function ProjectStashes({ projectId, pathname }: { projectId: string; pathname: string }) {
+  const project = useProject(projectId);
+  return <SidebarMenuSub className="mr-0 ml-4 gap-1 border-sidebar-border/70 pr-0 pl-2">
+    {project.isLoading && <SidebarMenuSubItem><SidebarMenuSkeleton /></SidebarMenuSubItem>}
+    {project.isError && <SidebarMenuSubItem><p role="status" className="px-2 py-1 text-xs text-muted-foreground">Could not load stashes.</p></SidebarMenuSubItem>}
+    {project.data?.stashes.length === 0 && <SidebarMenuSubItem><p className="px-2 py-1 text-xs text-muted-foreground">No stashes yet</p></SidebarMenuSubItem>}
+    {project.data?.stashes.map(stash => <StashTree key={stash.id} stash={stash} projectId={projectId} pathname={pathname} />)}
+  </SidebarMenuSub>;
+}
+
+function StashTree({ stash, projectId, pathname }: { stash: StashRecord; projectId: string; pathname: string }) {
+  const href = `/projects/${projectId}/stashes/${stash.id}`;
+  const active = pathname === href || pathname.startsWith(`${href}/`);
+  const [open, setOpen] = useTreeOpen(pathname, active);
+  const groups = stash.groups;
+  return <Collapsible asChild open={open} onOpenChange={setOpen}>
+    <SidebarMenuSubItem>
+      <div className="relative">
+        {groups.length > 0 && <CollapsibleTrigger asChild>
+          <button type="button" className={cn(treeToggleClass, "size-7")} aria-label={`${open ? "Collapse" : "Expand"} stash ${stash.name}`}>
+            <ChevronRight className={cn("size-3 transition-transform motion-reduce:transition-none", open && "rotate-90")} />
+          </button>
+        </CollapsibleTrigger>}
+        <SidebarMenuSubButton asChild isActive={active} className="h-8 pl-7 text-[13px] data-active:bg-transparent data-active:font-medium" aria-current={active ? "page" : undefined}>
+          <Link href={href} title={stash.name}>
+            <span className={cn("size-1.5 shrink-0 rounded-full", stashDotClass(stash.color))} />
+            <span>{stash.name}</span>
+          </Link>
+        </SidebarMenuSubButton>
+      </div>
+      {groups.length > 0 && <CollapsibleContent>
+        <SidebarMenuSub className="mr-0 ml-3.5 gap-0.5 border-sidebar-border/60 pr-0 pl-2">
+          {groups.map(group => <SidebarMenuSubItem key={group.id}>
+            <SidebarMenuSubButton asChild size="sm" className="h-8 gap-2 text-sidebar-foreground/75 hover:text-sidebar-foreground">
+              <Link href={`${href}#api-group-${group.id}`} title={group.name}>
+                <Layers2 className="size-3.5! text-sidebar-foreground/50!" />
+                <span>{group.name}</span>
+              </Link>
+            </SidebarMenuSubButton>
+          </SidebarMenuSubItem>)}
+        </SidebarMenuSub>
+      </CollapsibleContent>}
+    </SidebarMenuSubItem>
+  </Collapsible>;
 }
 
 function AccountMenu() {

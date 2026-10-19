@@ -14,11 +14,8 @@ function inviteLink(token: string) {
 }
 
 async function expireIfNeeded(invite: typeof invitations.$inferSelect) {
-  if (invite.status === "pending" && invite.expiresAt.getTime() < Date.now()) {
-    await db
-      .update(invitations)
-      .set({ status: "expired" })
-      .where(eq(invitations.id, invite.id));
+  if (invite.status === "pending" && invite.expiresAt.getTime() <= Date.now()) {
+    // Derive expiration without a preview request racing an acceptance update.
     return { ...invite, status: "expired" as const };
   }
   return invite;
@@ -131,7 +128,7 @@ export async function createInvitation(
   input: InvitationInput,
 ) {
   await requireOwner(userId, projectId);
-  const email = input.email.toLowerCase();
+  const email = input.email.trim().toLowerCase();
 
   const [existingUser] = await db
     .select({ id: user.id })
@@ -265,43 +262,43 @@ export async function acceptInvitation(
     .limit(1);
   if (!invite) throw new HttpError(404, "Invitation not found");
   const current = await expireIfNeeded(invite);
-  if (current.status === "accepted") {
-    throw new HttpError(400, "This invitation has already been accepted");
-  }
-  if (current.status === "expired") {
-    throw new HttpError(400, "This invitation has expired");
-  }
-  if (current.email.toLowerCase() !== user.email.toLowerCase()) {
+  if (current.email.trim().toLowerCase() !== user.email.trim().toLowerCase()) {
     throw new HttpError(
       403,
       "This invitation was sent to a different email address",
     );
   }
-
-  const [existing] = await db
-    .select({ id: projectMembers.id })
-    .from(projectMembers)
-    .where(
-      and(
-        eq(projectMembers.projectId, current.projectId),
-        eq(projectMembers.userId, user.id),
-      ),
-    )
-    .limit(1);
-
-  if (!existing) {
-    await db.insert(projectMembers).values({
-      projectId: current.projectId,
-      userId: user.id,
-      role: current.role,
-      invitedBy: null,
-    });
+  if (current.status === "expired") {
+    throw new HttpError(400, "This invitation has expired");
   }
-
-  await db
-    .update(invitations)
-    .set({ status: "accepted" })
-    .where(eq(invitations.id, current.id));
-
-  return { projectId: current.projectId };
+  if (current.status === "pending") {
+    // Claim the current token and insert membership in one atomic SQL statement.
+    // Revoked, replaced, expired, or concurrently accepted tokens cannot grant access.
+    const result = await db.execute(sql`
+      with claimed as (
+        update invitations set status = 'accepted'
+        where id = ${current.id} and token = ${token} and status = 'pending'
+          and expires_at > now() and lower(email) = ${user.email.trim().toLowerCase()}
+        returning project_id, role
+      ), membership as (
+        insert into project_members (project_id, user_id, role, invited_by)
+        select project_id, ${user.id}, role, null from claimed
+        on conflict (project_id, user_id) do nothing
+        returning project_id
+      )
+      select project_id as "projectId" from claimed
+    `);
+    const joined = result.rows[0];
+    if (joined && typeof joined.projectId === "string") return { projectId: joined.projectId };
+  }
+  // A retried accept succeeds for an existing member, but never re-adds a removed one.
+  const [latest] = await db.select().from(invitations).where(eq(invitations.token, token)).limit(1);
+  if (!latest) throw new HttpError(404, "Invitation not found");
+  if (latest.status === "accepted") {
+    const [member] = await db.select({ id: projectMembers.id }).from(projectMembers)
+      .where(and(eq(projectMembers.projectId, latest.projectId), eq(projectMembers.userId, user.id))).limit(1);
+    if (member) return { projectId: latest.projectId };
+    throw new HttpError(403, "This invitation has already been used. Ask the project owner for a new link.");
+  }
+  throw new HttpError(409, "This invitation changed or expired. Reload the page before trying again.");
 }
