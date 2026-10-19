@@ -125,7 +125,7 @@ export const endpointInputSchema = z.object({
   pathParams: z.array(paramFieldSchema).optional().default([]),
   requestBody: requestBodySchema,
   responses: z.array(responseDocSchema).optional().default([]),
-  tags: z.array(z.string().trim().min(1).max(40)).max(12).optional().default([]),
+  tags: z.array(z.string().trim().min(1).max(40)).max(5).optional().default([]),
   version: routeVersionSchema.optional().default("v1"),
   isDeprecated: z.boolean().optional().default(false),
 }).superRefine((value, ctx) => {

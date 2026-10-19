@@ -8,6 +8,7 @@ import {
   ListTreeIcon,
   PencilIcon,
   SearchIcon,
+  TagIcon,
   VariableIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -18,6 +19,7 @@ import { FieldTable, requestBodyFields, schemaFields } from "./field-table";
 import { authLabels } from "@/features/projects/components/project-auth-settings";
 import { useProject } from "@/features/projects/queries";
 import { SectionNav, sectionId } from "@/components/section-nav";
+import { EndpointPathBar } from "./endpoint-path-bar";
 import { CopyButton } from "@/components/copy-button";
 import { MarkdownView } from "@/components/markdown-view";
 import { MethodBadge, statusClass } from "@/components/method-badge";
@@ -29,10 +31,9 @@ import { cn } from "@/lib/utils";
 import { DeleteEndpointButton } from "./delete-endpoint-button";
 
 const sectionSurfaceClass =
-  "border-b border-border py-7 first:pt-0 last:border-b-0";
+  "border-b border-border/80 py-8 first:pt-0 last:border-b-0";
 
-const insetSurfaceClass =
-  "lumen-inset";
+const insetSurfaceClass = "lumen-inset";
 
 export function EndpointDetail({
   projectId,
@@ -49,13 +50,34 @@ export function EndpointDetail({
   const auth = project.data?.auth;
   return (
     <div className="grid min-w-0 gap-7 lg:grid-cols-[155px_minmax(0,1fr)] lg:gap-10">
-      <SectionNav sections={["Overview", "Authentication", "Description", "Headers", "Query parameters", "Path parameters", "Request body", "Responses", "cURL"]} />
-      <div className="flex min-w-0 flex-col gap-6">
-        <section id="overview" className={cn("scroll-mt-24 flex flex-col gap-4", sectionSurfaceClass)}>
+      <SectionNav
+        sections={[
+          "Overview",
+          "Authentication",
+          "Description",
+          "Headers",
+          "Query parameters",
+          "Path parameters",
+          "Request body",
+          "Responses",
+          "cURL",
+        ]}
+      />
+      <div className="flex min-w-0 flex-col gap-2">
+        <section
+          id="overview"
+          className={cn(
+            "scroll-mt-24 flex flex-col gap-4",
+            sectionSurfaceClass,
+          )}
+        >
           <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
             <div className="flex min-w-0 flex-col gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <MethodBadge method={endpoint.method} className="h-6 min-w-16" />
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+                <MethodBadge
+                  method={endpoint.method}
+                  className="h-6 min-w-16"
+                />
                 <Badge variant="outline" className="font-mono font-medium">
                   {endpoint.version}
                 </Badge>
@@ -64,43 +86,70 @@ export function EndpointDetail({
                     {stashName}
                   </Badge>
                 ) : null}
-                {endpoint.isDeprecated ? <Badge variant="outline">Deprecated</Badge> : null}
-                {endpoint.tags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="font-normal">
-                    {tag}
-                  </Badge>
-                ))}
+                {endpoint.isDeprecated ? (
+                  <Badge variant="outline">Deprecated</Badge>
+                ) : null}
+                {endpoint.tags.length > 0 ? (
+                  <div
+                    className="flex min-w-0 flex-wrap items-center gap-1.5 border-l border-border pl-2 sm:pl-2.5"
+                    aria-label="Tags"
+                  >
+                    <TagIcon
+                      className="size-3.5 shrink-0 text-muted-foreground"
+                      aria-hidden
+                    />
+                    {endpoint.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="border border-primary/30 bg-primary/10 font-normal text-primary dark:border-primary/25 dark:bg-primary/15"
+                      >
+                        <span
+                          className="font-mono text-[11px] text-primary/70"
+                          aria-hidden
+                        >
+                          #
+                        </span>
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : null}
               </div>
-              <div className="flex min-w-0 items-center gap-2"><h1 className="min-w-0 break-words text-3xl font-semibold tracking-[-0.04em]">{endpoint.name}</h1></div>
-              <div
-                className="mt-2 flex min-w-0 items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1"
-                style={{ backgroundImage: "var(--surface-gradient)" }}
-              >
-                <Code2Icon aria-hidden className="hidden size-4 shrink-0 text-muted-foreground/70 sm:block" />
-                <div className="flex min-w-0 flex-1 items-baseline gap-2">
-                  <span className="shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    Path
-                  </span>
-                  <code className="min-w-0 overflow-x-auto font-mono text-sm font-medium leading-snug whitespace-nowrap [scrollbar-width:thin]">
-                    {endpoint.path}
-                  </code>
-                </div>
-                <div className="flex shrink-0 items-center border-l border-border pl-1">
-                  <CopyButton value={endpoint.path} label="Copy path" />
-                </div>
+              <div className="mt-2 flex min-w-0 items-center gap-2">
+                <h1 className="min-w-0 break-words text-3xl font-semibold tracking-[-0.04em]">
+                  {endpoint.name}
+                </h1>
               </div>
+              <EndpointPathBar method={endpoint.method} endpoint={endpoint} />
             </div>
             {canEditContent(role) ? (
-              <div className="flex flex-wrap items-center gap-2 xl:justify-end xl:pt-9">
-                <DeleteEndpointButton projectId={projectId} endpoint={endpoint} />
-                <Button asChild variant="outline" size="sm" className="h-8 px-3 text-xs">
-                  <Link href={`/projects/${projectId}/endpoints/new?duplicate=${endpoint.id}`}>
+              <div className="flex flex-wrap items-center gap-2 xl:justify-end xl:pt-11">
+                <DeleteEndpointButton
+                  projectId={projectId}
+                  endpoint={endpoint}
+                />
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-3 text-xs"
+                >
+                  <Link
+                    href={`/projects/${projectId}/endpoints/new?duplicate=${endpoint.id}`}
+                  >
                     <Copy data-icon="inline-start" />
                     Duplicate endpoint
                   </Link>
                 </Button>
-                <Button asChild size="sm" className="h-8 px-3 text-xs shadow-sm">
-                  <Link href={`/projects/${projectId}/endpoints/${endpoint.id}/edit`}>
+                <Button
+                  asChild
+                  size="sm"
+                  className="h-8 px-3 text-xs shadow-sm"
+                >
+                  <Link
+                    href={`/projects/${projectId}/endpoints/${endpoint.id}/edit`}
+                  >
                     <PencilIcon data-icon="inline-start" />
                     Edit endpoint
                   </Link>
@@ -110,17 +159,45 @@ export function EndpointDetail({
           </div>
         </section>
 
-        <DetailSection icon={Shield} title="Authentication">
-          <p className="text-sm font-medium">{endpoint.access === "public" ? "Public · no authentication required" : endpoint.access === "admin_only" ? "Admin-only · administrator privileges required" : "Authenticated"}</p>
-          {endpoint.access !== "public" && <div className="space-y-2 text-sm text-muted-foreground">
-            <p>{auth ? authLabels[auth.scheme] : "Loading project authentication…"}</p>
-            {auth?.scheme === "bearer" && <code>Authorization: Bearer &lt;token&gt;</code>}
-            {auth?.scheme === "basic" && <code>Authorization: Basic &lt;base64(username:password)&gt;</code>}
-            {auth?.scheme === "api_key" && <p>{auth.location === "header" ? "Header" : "Query parameter"}: <code>{auth.headerName}: &lt;api-key&gt;</code>
-            </p>}
-            {auth?.description && <MarkdownView content={auth.description} />}
-            {auth?.scheme === "none" && <p>Configure the authentication scheme in project settings.</p>}
-          </div>}
+        <DetailSection
+          icon={Shield}
+          title="Authentication"
+          description="Who may call this endpoint and how credentials are sent."
+        >
+          <p className="text-sm font-medium">
+            {endpoint.access === "public"
+              ? "Public · no authentication required"
+              : endpoint.access === "admin_only"
+                ? "Admin-only · administrator privileges required"
+                : "Authenticated"}
+          </p>
+          {endpoint.access !== "public" && (
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>
+                {auth
+                  ? authLabels[auth.scheme]
+                  : "Loading project authentication…"}
+              </p>
+              {auth?.scheme === "bearer" && (
+                <AuthCode>Authorization: Bearer &lt;token&gt;</AuthCode>
+              )}
+              {auth?.scheme === "basic" && (
+                <AuthCode>
+                  Authorization: Basic &lt;base64(username:password)&gt;
+                </AuthCode>
+              )}
+              {auth?.scheme === "api_key" && (
+                <p>
+                  {auth.location === "header" ? "Header" : "Query parameter"}:{" "}
+                  <code>{auth.headerName}: &lt;api-key&gt;</code>
+                </p>
+              )}
+              {auth?.description && <MarkdownView content={auth.description} />}
+              {auth?.scheme === "none" && (
+                <p>Configure the authentication scheme in project settings.</p>
+              )}
+            </div>
+          )}
         </DetailSection>
         <DetailSection
           icon={FileTextIcon}
@@ -128,7 +205,7 @@ export function EndpointDetail({
           description="What this endpoint does."
         >
           {endpoint.description.trim() ? (
-            <div className={cn("px-4 py-3", insetSurfaceClass)}>
+            <div className="rounded-sm border border-input bg-muted/50 px-4 py-3 dark:bg-muted">
               <MarkdownView content={endpoint.description} />
             </div>
           ) : (
@@ -162,9 +239,25 @@ export function EndpointDetail({
         >
           {endpoint.requestBody ? (
             <div className="grid min-w-0 gap-3">
-              {endpoint.requestBody.contentType && <p className="font-mono text-xs text-muted-foreground">{endpoint.requestBody.contentType}</p>}
-              {endpoint.requestBody.raw !== undefined && <pre className="lumen-inset overflow-auto p-4 font-mono text-xs">{endpoint.requestBody.raw}</pre>}
-              <FieldTable fields={requestBodyFields(endpoint.requestBody.fields, endpoint.requestBody.schema)} />
+              {endpoint.requestBody.contentType && (
+                <Badge
+                  variant="outline"
+                  className="w-fit font-mono font-normal"
+                >
+                  {endpoint.requestBody.contentType}
+                </Badge>
+              )}
+              {endpoint.requestBody.raw !== undefined && (
+                <pre className="lumen-inset overflow-auto p-4 font-mono text-xs">
+                  {endpoint.requestBody.raw}
+                </pre>
+              )}
+              <FieldTable
+                fields={requestBodyFields(
+                  endpoint.requestBody.fields,
+                  endpoint.requestBody.schema,
+                )}
+              />
               <JsonBlock title="Schema" value={endpoint.requestBody.schema} />
               <JsonBlock title="Example" value={endpoint.requestBody.example} />
             </div>
@@ -187,7 +280,7 @@ export function EndpointDetail({
                 return (
                   <div
                     key={`${response.statusCode}-${index}`}
-                    className={cn("lumen-response flex flex-col gap-4 p-4", insetSurfaceClass)}
+                    className="flex flex-col gap-4 rounded-sm border border-border bg-background/60 p-4 dark:bg-black/15"
                   >
                     <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                       <span
@@ -208,7 +301,9 @@ export function EndpointDetail({
                     </div>
                     {fields.length > 0 ? (
                       <div className="flex min-w-0 flex-col gap-2">
-                        <p className="text-xs font-medium text-muted-foreground">Fields</p>
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Fields
+                        </p>
                         <FieldTable fields={fields} />
                       </div>
                     ) : null}
@@ -237,19 +332,33 @@ function DetailSection({
   children: React.ReactNode;
 }) {
   return (
-    <section id={sectionId(title)} className={cn("scroll-mt-24 flex flex-col gap-4", sectionSurfaceClass)}>
-      <div className="flex min-w-0 items-start gap-3">
+    <section
+      id={sectionId(title)}
+      className={cn("scroll-mt-24 flex flex-col gap-4", sectionSurfaceClass)}
+    >
+      <div
+        className={cn(
+          "flex min-w-0 gap-3",
+          description ? "items-start" : "items-center",
+        )}
+      >
         {Icon ? (
           <div
-            className="flex size-6 shrink-0 items-center justify-center text-muted-foreground"
+            className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"
             aria-hidden
           >
             <Icon className="size-4" />
           </div>
         ) : null}
-        <div className="flex flex-col gap-0.5">
-          <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-          {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+        <div className="flex min-w-0 flex-col gap-0.5 pt-0.5">
+          <h2 className="text-base font-semibold leading-tight tracking-tight">
+            {title}
+          </h2>
+          {description ? (
+            <p className="text-xs leading-snug text-muted-foreground">
+              {description}
+            </p>
+          ) : null}
         </div>
       </div>
       {children}
@@ -257,13 +366,23 @@ function DetailSection({
   );
 }
 
-function EmptyNote({ children }: { children: React.ReactNode; }) {
+function EmptyNote({ children }: { children: React.ReactNode }) {
   return (
     <p
-      className="text-sm text-muted-foreground"
+      className={cn(
+        "rounded-sm border border-dashed border-border/70 px-3 py-4 text-sm text-muted-foreground dark:border-white/10 dark:bg-black/10",
+      )}
     >
       {children}
     </p>
+  );
+}
+
+function AuthCode({ children }: { children: React.ReactNode }) {
+  return (
+    <code className="block w-fit max-w-full overflow-x-auto rounded-sm border border-border bg-muted/40 px-3 py-2 font-mono text-xs dark:bg-muted/50">
+      {children}
+    </code>
   );
 }
 
@@ -289,7 +408,7 @@ function ParamSection({
   );
 }
 
-function JsonBlock({ title, value }: { title: string; value: unknown; }) {
+function JsonBlock({ title, value }: { title: string; value: unknown }) {
   const text =
     value === undefined || value === null || value === ""
       ? ""
@@ -305,7 +424,12 @@ function JsonBlock({ title, value }: { title: string; value: unknown; }) {
         {text ? <CopyButton value={text} label={`Copy ${title}`} /> : null}
       </div>
       {text ? (
-        <pre className={cn("overflow-auto p-3 font-mono text-xs leading-5", insetSurfaceClass)}>
+        <pre
+          className={cn(
+            "overflow-auto p-3 font-mono text-xs leading-5",
+            insetSurfaceClass,
+          )}
+        >
           {text}
         </pre>
       ) : (

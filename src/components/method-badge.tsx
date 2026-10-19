@@ -1,14 +1,35 @@
 import { cn } from "@/lib/utils";
 import type { HttpMethod } from "@/lib/types";
 
+/** Left accent for route / URL bars on endpoint detail. */
+export const methodRouteAccentClass: Record<HttpMethod, string> = {
+  GET: "border-l-method-get",
+  POST: "border-l-method-post",
+  PUT: "border-l-method-put",
+  PATCH: "border-l-method-put",
+  DELETE: "border-l-method-delete",
+  OPTIONS: "border-l-muted-foreground/40",
+  HEAD: "border-l-muted-foreground/40",
+};
+
+export const methodTextClass: Record<HttpMethod, string> = {
+  GET: "text-method-get",
+  POST: "text-method-post",
+  PUT: "text-method-put",
+  PATCH: "text-method-put",
+  DELETE: "text-method-delete",
+  OPTIONS: "text-muted-foreground",
+  HEAD: "text-muted-foreground",
+};
+
 const methodClass: Record<HttpMethod, string> = {
-  GET: "bg-method-get/12 text-method-get",
-  POST: "bg-method-post/12 text-method-post",
-  PUT: "bg-method-put/15 text-method-put",
-  PATCH: "bg-method-put/15 text-method-put",
-  DELETE: "bg-method-delete/12 text-method-delete",
-  OPTIONS: "bg-muted text-muted-foreground",
-  HEAD: "bg-muted text-muted-foreground",
+  GET: `bg-method-get/12 ${methodTextClass.GET}`,
+  POST: `bg-method-post/12 ${methodTextClass.POST}`,
+  PUT: `bg-method-put/15 ${methodTextClass.PUT}`,
+  PATCH: `bg-method-put/15 ${methodTextClass.PATCH}`,
+  DELETE: `bg-method-delete/12 ${methodTextClass.DELETE}`,
+  OPTIONS: `bg-muted ${methodTextClass.OPTIONS}`,
+  HEAD: `bg-muted ${methodTextClass.HEAD}`,
 };
 
 export function MethodBadge({

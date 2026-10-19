@@ -339,13 +339,20 @@
   }
   /* Static, low-contrast lighting adds depth without competing with content. */
   :is(
-    .lumen-section,
+    .lumen-section:not(.endpoint-editor-section),
     .project-card,
     [data-slot="card"],
     [data-slot="dialog-content"],
     [data-slot="alert-dialog-content"]
   ) {
     background-image: var(--surface-gradient);
+  }
+  .lumen-section.endpoint-editor-section {
+    background-image: linear-gradient(
+      168deg,
+      color-mix(in srgb, var(--surface-highlight) 40%, transparent),
+      transparent 72%
+    );
   }
   :is(.brand-mark, [data-slot="button"][data-variant="default"]) {
     background-image: var(--accent-gradient);

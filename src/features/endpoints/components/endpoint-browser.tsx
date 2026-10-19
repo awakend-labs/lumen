@@ -505,11 +505,11 @@ function StashSection({
     >
       <Collapsible open={open} onOpenChange={setOpen}>
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-          <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
             {canReorder && showStashLink ? (
               <button
                 type="button"
-                className="text-muted-foreground"
+                className="shrink-0 text-muted-foreground"
                 aria-label="Reorder stash"
                 {...sortable.attributes}
                 {...sortable.listeners}
@@ -526,12 +526,12 @@ function StashSection({
             {showStashLink ? (
               <Link
                 href={`/projects/${projectId}/stashes/${stash.id}`}
-                className="truncate font-semibold hover:underline"
+                className="shrink-0 font-semibold hover:underline"
               >
                 {stash.name}
               </Link>
             ) : (
-              <h2 className="truncate font-semibold">{stash.name}</h2>
+              <h2 className="shrink-0 font-semibold">{stash.name}</h2>
             )}
             <span className="shrink-0 rounded-sm bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">
               {endpoints.length}
@@ -545,7 +545,7 @@ function StashSection({
               {STASH_STATUS_LABEL[stash.status]}
             </span>
             {stash.description ? (
-              <span className="hidden truncate text-sm text-muted-foreground md:block">
+              <span className="hidden min-w-0 flex-1 basis-0 truncate text-sm text-muted-foreground md:block">
                 &mdash; {stash.description}
               </span>
             ) : null}

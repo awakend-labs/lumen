@@ -15,6 +15,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Use yellow as the primary accent on soft charcoal surfaces in dark mode and white surfaces in light mode (avoid pure black backgrounds).
 - Prefer modern, polished UI with icons and accent colors wherever they fit.
 - Prefer default browser text selection styling; do not add custom `::selection` highlight colors.
+- Use only `rounded-sm` and `rounded-md` for border radius across the whole app (inputs, cards, buttons, dialogs); avoid larger radius utilities.
+- Keep UI tweaks scoped to what the user asked for; do not restyle, shrink, or re-layout surrounding areas when only a small change (e.g. a gradient or spacing) is requested.
 
 ## Learned Workspace Facts
 

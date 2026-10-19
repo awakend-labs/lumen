@@ -23,7 +23,7 @@ export function ResponseStatusField({ id, value, usedCodes, onChange, error }: {
       Status
     </FieldLabel>
     <Input id={id} type="number" min={100} max={599}
-      className="bg-background font-mono dark:bg-background" value={value}
+      className="font-mono tabular-nums" value={value}
       aria-invalid={Boolean(message)} aria-describedby={message ? errorId : undefined}
       onChange={event => onChange(event.target.value === "" ? "" : Number(event.target.value))} />
   </Field>

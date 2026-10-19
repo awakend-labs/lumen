@@ -316,11 +316,15 @@ function AccountMenu() {
   return (
     <SidebarMenu className="group-data-[collapsible=icon]:gap-4">
       <SidebarMenuItem className="group-data-[collapsible=icon]:hidden">
-        <div className="flex items-center justify-between px-2 pb-1 pt-0.5">
+        <div className="mb-2 flex h-8 items-center gap-2 px-2 pb-1 pt-0.5">
           <span className="text-[11px] font-medium tracking-wide text-sidebar-foreground/60 uppercase">
             Account
           </span>
-          <ThemeToggle />
+          <div className="ml-auto flex w-8 shrink-0 items-center justify-center">
+            <ThemeToggle
+              className="size-8 shrink-0 border-0 bg-transparent shadow-none hover:bg-sidebar-accent"
+            />
+          </div>
         </div>
       </SidebarMenuItem>
       <SidebarMenuItem className="hidden group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
@@ -350,10 +354,12 @@ function AccountMenu() {
                 <span className="truncate font-semibold">{name}</span>
                 <span className="truncate text-xs text-sidebar-foreground/60">{email}</span>
               </span>
-              <ChevronsUpDown
-                className="ml-auto size-4 shrink-0 text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden"
+              <span
+                className="ml-auto flex w-8 shrink-0 items-center justify-center group-data-[collapsible=icon]:hidden"
                 aria-hidden
-              />
+              >
+                <ChevronsUpDown className="size-4 text-sidebar-foreground/50" />
+              </span>
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
