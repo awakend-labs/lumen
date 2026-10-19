@@ -71,6 +71,7 @@ import { EnumValuesEditor } from "./enum-values-editor";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { nextResponseStatus } from "@/lib/response-status";
+import { ResponseStatusField } from "./response-status-field";
 
 const sectionSurfaceClass =
   "lumen-section";
@@ -437,6 +438,7 @@ export function EndpointForm({
       <div className="flex flex-wrap items-center justify-between gap-2"><p role={draft.error ? "alert" : "status"} className={cn("text-xs", draft.error ? "text-destructive" : "text-muted-foreground")}>{draft.status}</p>
         <Button type="button" size="sm" variant="ghost" disabled={draft.loading} onClick={() => { if (window.confirm("Discard this saved draft and reset the form?")) void draft.discard(toFormValues(endpoint ?? duplicateFrom, fixedStashId, projectBaseUrl)).catch(() => toast.error("Could not discard the draft. Please try again.")); }}>Discard draft</Button></div>
       {draft.hasRecoveredDraft && <div className="flex flex-wrap gap-2 rounded-lg border border-border bg-muted/30 p-3">
+        <p className="w-full text-xs text-muted-foreground">Saving is paused until you choose which draft to keep.</p>
         <Button type="button" size="sm" variant="outline" onClick={() => {
           if (window.confirm("Replace your current edits with the saved draft?")) draft.restore();
         }}>Restore saved draft</Button>
@@ -848,23 +850,14 @@ export function EndpointForm({
               className={cn("lumen-response flex flex-col gap-3 p-4", insetSurfaceClass)}
             >
               <div className="grid gap-3 md:grid-cols-[120px_1fr_auto] md:items-end">
-                <Field data-invalid={Boolean(form.formState.errors.responses?.[index]?.statusCode) || undefined}>
-                  <FieldLabel htmlFor={`status-${field.id}`}>Status</FieldLabel>
-                  <Input
-                    id={`status-${field.id}`}
-                    type="number"
-                    className="bg-background font-mono dark:bg-background"
-                    value={form.watch(`responses.${index}.statusCode`)}
-                    onChange={(event) =>
-                      form.setValue(
-                        `responses.${index}.statusCode`,
-                        Number(event.target.value),
-                        { shouldValidate: true, shouldDirty: true },
-                      )
-                    }
-                  />
-                  <FieldError errors={[form.formState.errors.responses?.[index]?.statusCode]} />
-                </Field>
+                <ResponseStatusField id={`status-${field.id}`}
+                  value={form.watch(`responses.${index}.statusCode`)}
+                  usedCodes={form.watch("responses").filter((_, responseIndex) => responseIndex !== index).map(response => response.statusCode)}
+                  error={form.formState.errors.responses?.[index]?.statusCode}
+                  onChange={statusCode => {
+                    form.setValue(`responses.${index}.statusCode`, statusCode, { shouldDirty: true });
+                    void form.trigger("responses");
+                  }} />
                 <Field>
                   <FieldLabel htmlFor={`response-desc-${field.id}`}>
                     Description
@@ -929,11 +922,14 @@ export function EndpointForm({
 
       <div
         className={cn(
-          "sticky bottom-4 z-20 flex items-center justify-end gap-2 p-3 shadow-lg backdrop-blur-md",
+          "sticky bottom-4 z-20 flex flex-wrap items-center justify-end gap-2 p-3 shadow-lg backdrop-blur-md",
           sectionSurfaceClass,
           "bg-card",
         )}
       >
+        {(draft.loading || draft.hasRecoveredDraft) && <p id="endpoint-save-hint" role="status" className="mr-auto text-xs text-muted-foreground">
+          {draft.hasRecoveredDraft ? "Choose Restore saved draft or Keep current edits above to enable Save." : "Save will be available when the saved-draft check finishes."}
+        </p>}
         <Button
           type="button"
           variant="outline"
@@ -947,7 +943,8 @@ export function EndpointForm({
           <XIcon data-icon="inline-start" />
           Cancel
         </Button>
-        <Button type="submit" disabled={save.isPending || draft.loading || draft.hasRecoveredDraft}>
+        <Button type="submit" disabled={save.isPending || draft.loading || draft.hasRecoveredDraft}
+          aria-describedby={draft.loading || draft.hasRecoveredDraft ? "endpoint-save-hint" : undefined}>
           {save.isPending ? (
             <Spinner data-icon="inline-start" />
           ) : (
