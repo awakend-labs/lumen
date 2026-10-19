@@ -10,7 +10,7 @@ import {
   setStashStatusRequest,
   updateStash,
 } from "@/features/stashes/api";
-import type { ProjectDetail, StashRecord, StashStatus } from "@/lib/types";
+import type { ProjectDetail, StashStatus } from "@/lib/types";
 import type { StashInput } from "@/lib/validators";
 
 export function useCreateStash(projectId: string) {
@@ -19,7 +19,7 @@ export function useCreateStash(projectId: string) {
     mutationFn: (input: StashInput) => createStash(projectId, input),
     onSuccess: async (stash) => {
       await queryClient.cancelQueries({ queryKey: projectKeys.detail(projectId) });
-      queryClient.setQueryData<ProjectDetail>(projectKeys.detail(projectId), current => current ? { ...current, stashes: [...current.stashes, { ...(stash as StashRecord), endpoints: [] }] } : current);
+      queryClient.setQueryData<ProjectDetail>(projectKeys.detail(projectId), current => current ? { ...current, stashes: [...current.stashes, { ...stash, groups: [], endpoints: [] }] } : current);
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
       toast.success("Stash created");
     },

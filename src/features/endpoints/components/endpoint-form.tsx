@@ -65,6 +65,7 @@ import {
 } from "@/lib/types";
 import type { EndpointInput } from "@/lib/validators";
 import { cn } from "@/lib/utils";
+import { registerSignOutGuard } from "@/lib/unsaved-changes";
 
 const sectionSurfaceClass =
   "lumen-section";
@@ -110,7 +111,7 @@ const endpointFormSchema = z.object({
   bodyFields: z.array(paramFormSchema),
   stashId: z.string().min(1, "Choose a stash"),
   groupId: z.string(),
-  name: z.string().trim().min(1, "Name is required").max(120),
+  name: z.string().trim().min(1, "Name is required").max(120, "Name must be 120 characters or fewer."),
   method: z.enum(HTTP_METHODS),
   path: z
     .string()
@@ -303,7 +304,9 @@ export function EndpointForm({
     };
     window.addEventListener("beforeunload", beforeUnload);
     document.addEventListener("click", click, true);
+    const removeSignOutGuard = registerSignOutGuard(() => allowLeave.current || window.confirm("Sign out and discard unsaved endpoint changes?"));
     return () => {
+      removeSignOutGuard();
       window.removeEventListener("beforeunload", beforeUnload);
       document.removeEventListener("click", click, true);
     };
@@ -512,11 +515,12 @@ export function EndpointForm({
               <Input
                 id="endpoint-path"
                 className="font-mono"
-                placeholder="/api/v1/auth/logout"
+                placeholder="/auth/logout"
                 aria-invalid={Boolean(form.formState.errors.path)}
                 {...form.register("path")}
               />
               <FieldError errors={[form.formState.errors.path]} />
+              <p className="text-xs leading-5 text-muted-foreground">Enter the resource path. The selected version is included once in the generated request URL.</p>
             </Field>
             <Field
               data-invalid={Boolean(form.formState.errors.version) || undefined}
@@ -835,8 +839,9 @@ export function EndpointForm({
                     undefined
                   }
                 >
-                  <FieldLabel>Example body</FieldLabel>
+                  <FieldLabel htmlFor={`response-body-${field.id}`}>Example body</FieldLabel>
                   <Textarea
+                    id={`response-body-${field.id}`}
                     rows={6}
                     className={cn("bg-background font-mono text-xs dark:bg-background", insetSurfaceClass)}
                     {...form.register(`responses.${index}.body`)}
@@ -851,8 +856,9 @@ export function EndpointForm({
                     undefined
                   }
                 >
-                  <FieldLabel>Schema</FieldLabel>
+                  <FieldLabel htmlFor={`response-schema-${field.id}`}>Schema</FieldLabel>
                   <Textarea
+                    id={`response-schema-${field.id}`}
                     rows={6}
                     className={cn("bg-background font-mono text-xs dark:bg-background", insetSurfaceClass)}
                     {...form.register(`responses.${index}.schema`)}

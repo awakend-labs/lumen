@@ -3,6 +3,7 @@
 import { LumenMark } from "@/components/lumen-mark";
 
 import { authClient } from "@/lib/auth-client";
+import { confirmSignOut } from "@/lib/unsaved-changes";
 import { stashDotClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useProject, useProjects } from "@/features/projects/queries";
@@ -168,7 +169,7 @@ function ProjectTree({ project, pathname }: { project: ProjectListItem; pathname
           </button>
         </CollapsibleTrigger>
         <SidebarMenuButton asChild isActive={current} tooltip={project.name} className="pl-8 font-medium data-active:bg-transparent data-active:shadow-none">
-          <Link href={href} aria-current={pathname === href ? "page" : undefined}>
+          <Link href={href} prefetch={false} aria-current={pathname === href ? "page" : undefined}>
             {open ? <FolderOpen className="text-primary" /> : <FolderClosed />}
             <span>{project.name}</span>
             <span className="ml-auto px-1.5 text-[10px] font-normal text-sidebar-foreground/60 tabular-nums group-data-[collapsible=icon]:hidden">{project.stashCount}</span>
@@ -206,7 +207,7 @@ function StashTree({ stash, projectId, pathname }: { stash: StashRecord; project
           </button>
         </CollapsibleTrigger>}
         <SidebarMenuSubButton asChild isActive={active} className="h-8 pl-7 text-[13px] data-active:bg-transparent data-active:font-medium" aria-current={active ? "page" : undefined}>
-          <Link href={href} title={stash.name}>
+          <Link href={href} prefetch={false} title={stash.name}>
             <span className={cn("size-1.5 shrink-0 rounded-full", stashDotClass(stash.color))} />
             <span>{stash.name}</span>
           </Link>
@@ -216,7 +217,7 @@ function StashTree({ stash, projectId, pathname }: { stash: StashRecord; project
         <SidebarMenuSub className="mr-0 ml-3.5 gap-0.5 border-sidebar-border/60 pr-0 pl-2">
           {groups.map(group => <SidebarMenuSubItem key={group.id}>
             <SidebarMenuSubButton asChild size="sm" className="h-8 gap-2 text-sidebar-foreground/75 hover:text-sidebar-foreground">
-              <Link href={`${href}#api-group-${group.id}`} title={group.name}>
+              <Link href={`${href}#api-group-${group.id}`} prefetch={false} title={group.name}>
                 <Layers2 className="size-3.5! text-sidebar-foreground/50!" />
                 <span>{group.name}</span>
               </Link>
@@ -314,13 +315,14 @@ function AccountMenu() {
               <DropdownMenuGroup>
                 <DropdownMenuItem
                   variant="destructive"
-                  onClick={() =>
-                    authClient.signOut({
+                  onClick={() => {
+                    if (!confirmSignOut()) return;
+                    return authClient.signOut({
                       fetchOptions: {
                         onSuccess: () => router.push("/login"),
                       },
-                    })
-                  }
+                    });
+                  }}
                 >
                   <LogOutIcon data-icon="inline-start" />
                   Sign out

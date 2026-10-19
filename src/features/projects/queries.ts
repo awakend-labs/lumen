@@ -32,8 +32,8 @@ export function useProject(projectId: string) {
     queryKey: projectKeys.detail(projectId),
     queryFn: () => fetchProject(projectId),
     enabled: projectId.length > 0,
-    staleTime: 0,
-    refetchOnWindowFocus: true,
+    staleTime: 30_000,
+    refetchOnWindowFocus: "always",
     retry: (count, error) => count < 1 && (!(error instanceof ApiError) || error.status >= 500),
   });
 }

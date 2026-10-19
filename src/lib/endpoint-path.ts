@@ -9,3 +9,28 @@ export function validEndpointPath(path: string): boolean {
     /^\/(?:[A-Za-z0-9._~!$&'()*+,;=@%/-]|\{[A-Za-z_][A-Za-z0-9_]*\}|:[A-Za-z_][A-Za-z0-9_]*)*$/.test(path) &&
     !/%(?![0-9a-fA-F]{2})/.test(path);
 }
+
+/** Separate a URL's version segment from its prefix and resource path. */
+export function splitVersionPath(path: string) {
+  const match = path.match(/^(.*?)\/(v\d+)(?=\/|$)(.*)$/i);
+  return match ? { prefix: match[1], version: match[2].toLowerCase(), path: match[3] || "/" } : null;
+}
+
+/** Compose older embedded versions and separate version fields without duplication. */
+export function endpointUrl(baseUrl: string, path: string, version = "v1") {
+  const url = new URL(baseUrl || "https://api.example.com");
+  let base = url.pathname.replace(/\/+$/, "");
+  const embedded = splitVersionPath(path);
+  const resource = embedded?.path ?? path;
+  const prefix = embedded?.prefix ?? "";
+  const baseVersion = splitVersionPath(base);
+  if (baseVersion) {
+    base = `${baseVersion.prefix}/${version}${baseVersion.path === "/" ? "" : baseVersion.path}`;
+    if (prefix && !baseVersion.prefix.endsWith(prefix)) base += prefix;
+  } else {
+    if (prefix && !base.endsWith(prefix)) base += prefix;
+    base += `/${version}`;
+  }
+  url.pathname = base + (resource.startsWith("/") ? resource : `/${resource}`);
+  return url;
+}

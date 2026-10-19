@@ -22,13 +22,13 @@ export const signInSchema = z.object({
 });
 
 export const signUpSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(80),
+  name: z.string().trim().min(1, "Name is required").max(80, "Name must be 80 characters or fewer."),
   email: z.email("Enter a valid email"),
   password: z.string().min(8, "Use at least 8 characters").max(128),
 });
 
 export const projectInputSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(80),
+  name: z.string().trim().min(1, "Name is required").max(80, "Name must be 80 characters or fewer."),
   description: z.string().trim().max(500).optional().default(""),
   status: z.enum(PROJECT_STATUSES).optional(),
 });
@@ -38,7 +38,7 @@ export const projectStatusSchema = z.object({
 });
 
 export const stashInputSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(80),
+  name: z.string().trim().min(1, "Name is required").max(80, "Name must be 80 characters or fewer."),
   description: z.string().trim().max(500).optional().default(""),
   color: z.enum(STASH_COLORS).default("blue"),
   status: z.enum(STASH_STATUSES).optional(),
@@ -49,7 +49,7 @@ export const stashStatusSchema = z.object({
 });
 
 export const apiGroupInputSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(80),
+  name: z.string().trim().min(1, "Name is required").max(80, "Name must be 80 characters or fewer."),
 });
 
 export const routeVersionSchema = z
@@ -71,7 +71,7 @@ export const paramFieldSchema = z.object({
   format: z.string().max(120).optional(),
   min: z.number().finite().optional(),
   max: z.number().finite().optional(),
-  key: z.string().trim().min(1, "Name is required").max(120),
+  key: z.string().trim().min(1, "Name is required").max(120, "Name must be 120 characters or fewer."),
   value: z.string().max(2000).optional().default(""),
   required: z.boolean().optional().default(false),
   description: z.string().max(500).optional().default(""),
@@ -100,16 +100,16 @@ export const baseUrlSchema = z.string().trim().max(2000).refine(value => {
   try {
     const url = new URL(value);
     return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password &&
-      !url.search && !url.hash && url.pathname === "/";
+      !url.search && !url.hash;
   } catch { return false; }
-}, "Use a server URL like https://api.example.com; put the route in Path.").transform(value => value.replace(/\/$/, ""));
+}, "Use an HTTP or HTTPS base URL without credentials, query parameters, or fragments.").transform(value => value.replace(/\/+$/, ""));
 
 export const endpointInputSchema = z.object({
   groupId: z.uuid().nullable().optional(),
   baseUrl: baseUrlSchema.default(""),
   access: z.enum(ACCESS_LEVELS).default("public"),
   stashId: z.uuid(),
-  name: z.string().trim().min(1, "Name is required").max(120),
+  name: z.string().trim().min(1, "Name is required").max(120, "Name must be 120 characters or fewer."),
   method: z.enum(HTTP_METHODS),
   path: z
     .string()

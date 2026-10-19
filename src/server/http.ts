@@ -15,8 +15,12 @@ export function toErrorResponse(error: unknown) {
     return NextResponse.json({ error: error.message }, { status: error.status });
   }
   if (error instanceof ZodError) {
+    const issue = error.issues[0];
+    const message = issue?.code === "too_big" && issue.origin === "string"
+      ? `${issue.path.includes("name") ? "Name" : "This field"} must be ${issue.maximum} characters or fewer.`
+      : issue?.message ?? "Invalid input";
     return NextResponse.json(
-      { error: error.issues[0]?.message ?? "Invalid input" },
+      { error: message },
       { status: 400 },
     );
   }

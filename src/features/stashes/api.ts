@@ -1,9 +1,9 @@
 import { api } from "@/lib/api";
-import type { StashStatus } from "@/lib/types";
+import type { StashRecord, StashStatus } from "@/lib/types";
 import type { StashInput } from "@/lib/validators";
 
 export function createStash(projectId: string, input: StashInput) {
-  return api(`/api/projects/${projectId}/stashes`, {
+  return api<Omit<StashRecord, "groups" | "endpoints">>(`/api/projects/${projectId}/stashes`, {
     method: "POST",
     body: JSON.stringify(input),
   });

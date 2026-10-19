@@ -268,6 +268,10 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   await assert.rejects(collaboration.acceptInvitation({ id: 'invitee', email: 'invitee@example.com' }, expiredInvite.link.split('/').pop()), /expired/);
   assert.equal((await collaboration.listMembers('owner', inviteProject.id)).length, 1);
   // Invalid projects produce a 404; signed-out users are redirected to sign in.
+  const LoginPage = require('../src/app/login/page.tsx').default;
+  const SignupPage = require('../src/app/signup/page.tsx').default;
+  testUser = { id: 'owner', email: 'owner@example.com' };
+  for (const page of [LoginPage, SignupPage]) await assert.rejects(page(), error => error.digest?.startsWith('NEXT_REDIRECT;') && error.digest.includes('/dashboard'));
   await assert.rejects(ProjectLayout({ ...pageProps, params: Promise.resolve({ projectId: 'invalid' }) }), is404);
   testUser = null;
   await assert.rejects(ProjectLayout(pageProps), error => error.digest?.startsWith('NEXT_REDIRECT;') && error.digest.includes('/login?callbackUrl='));

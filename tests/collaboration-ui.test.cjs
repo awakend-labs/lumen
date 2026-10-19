@@ -23,7 +23,7 @@ Module._load = function(request, parent, isMain) {
   if (request === 'next/link') return function TestLink({ children, ...props }) { return React.createElement('a', props, children); };
   if (request === 'sonner') return { toast: { success() {}, error() {} } };
   if (request === '@/lib/auth-client') return { authClient: { useSession: () => session } };
-  if (request === '@/features/projects/queries') return { useProject: () => project };
+  if (request === '@/features/projects/queries') return { useProject: () => project, projectKeys: { all: ['projects'], detail: id => ['projects', id] } };
   if (request === '@/features/invitations/queries') return { useInvitationPreview: () => preview, useAcceptInvitation: () => mutationState };
   if (request === '@tanstack/react-query') return {
     useQueryClient: () => client,
@@ -38,6 +38,8 @@ const { ProjectFrame } = require('../src/features/projects/components/project-fr
 const { ProjectSettings } = require('../src/features/members/components/project-settings.tsx');
 const { useInviteMember } = require('../src/features/members/queries.ts');
 const { useAcceptInvitation } = require('../src/features/invitations/queries.ts');
+const { useCreateStash } = require('../src/features/stashes/queries.ts');
+const { EndpointForm } = require('../src/features/endpoints/components/endpoint-form.tsx');
 const renderInvite = () => renderToStaticMarkup(React.createElement(InviteAccept, { token: 'fixture' }));
 
 test('invite UI hides Accept for another email, during session loading, and on session errors', () => {
@@ -118,4 +120,23 @@ test('creating an invitation cancels a stale list request before updating the ca
   assert.deepEqual(client.getQueryData(['invitations', 'p']), [created]);
   await mutation.onSuccess({ ...created, role: 'editor' });
   assert.deepEqual(client.getQueryData(['invitations', 'p']), [{ ...created, role: 'editor' }]);
+});
+
+test('creating a second stash caches complete empty groups and endpoints without crashing', async () => {
+  reset(); client.setQueryData(['projects', 'p'], { id: 'p', stashes: [{ id: 'existing', groups: [], endpoints: [] }] });
+  useCreateStash('p'); await mutations.at(-1).onSuccess({ id: 'new', projectId: 'p', name: 'New stash' });
+  const stashes = client.getQueryData(['projects', 'p']).stashes;
+  assert.equal(stashes.length, 2);
+  assert.deepEqual(stashes[1].groups, []); assert.deepEqual(stashes[1].endpoints, []);
+  assert.equal(stashes.reduce((sum, stash) => sum + stash.groups.length + stash.endpoints.length, 0), 0);
+});
+
+test('response example and schema inputs have connected screen-reader labels', () => {
+  reset(); const stashId = '11111111-1111-4111-8111-111111111111';
+  const html = renderToStaticMarkup(React.createElement(EndpointForm, { projectId: 'p', stashes: [{ id: stashId, groups: [], endpoints: [] }], initialStashId: stashId }));
+  for (const type of ['body', 'schema']) {
+    const id = html.match(new RegExp(`for="(response-${type}-[^\"]+)"`))?.[1];
+    assert.ok(id, `response ${type} label`);
+    assert.ok((html.match(/<textarea\b[^>]*>/g) ?? []).some(tag => tag.includes(`id="${id}"`)), `response ${type} input`);
+  }
 });

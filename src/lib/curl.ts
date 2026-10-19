@@ -1,5 +1,5 @@
 import { HTTP_METHODS, type EndpointRecord, type HttpMethod, type ParamField, type ProjectAuth, type RequestBodyDoc } from "./types";
-import { pathParameterNames, validEndpointPath } from "./endpoint-path";
+import { endpointUrl, pathParameterNames, splitVersionPath, validEndpointPath } from "./endpoint-path";
 
 export type CurlDraft = Pick<EndpointRecord, "name" | "method" | "baseUrl" | "path" | "headers" | "queryParams" | "pathParams" | "requestBody" | "access" | "version">;
 
@@ -123,7 +123,9 @@ export function parseCurl(command: string): CurlDraft {
   if (!HTTP_METHODS.includes(method as HttpMethod)) throw new Error("Choose a supported HTTP method, such as GET, POST, PUT, PATCH, or DELETE.");
   const raw = data.join(json ? "" : "&");
   if (get && hasData) for (const [key, value] of new URLSearchParams(raw)) url.searchParams.append(key, value);
-  const path = url.pathname.replace(/%7B([A-Za-z_][A-Za-z0-9_]*)%7D/gi, "{$1}");
+  const fullPath = url.pathname.replace(/%7B([A-Za-z_][A-Za-z0-9_]*)%7D/gi, "{$1}");
+  const versioned = splitVersionPath(fullPath);
+  const path = versioned?.path ?? fullPath;
   if (!validEndpointPath(path)) throw new Error("The URL path cannot be documented. Use a single route without URL globbing.");
   let requestBody: RequestBodyDoc = null;
   const contentHeader = headers.find(header => header.key.toLowerCase() === "content-type");
@@ -144,8 +146,8 @@ export function parseCurl(command: string): CurlDraft {
   const authenticated = headers.some(header => sensitiveKey.test(header.key)) || [...url.searchParams.keys()].some(key => sensitiveKey.test(key));
   return {
     name: `${method} ${path}`.slice(0, 120), method: method as HttpMethod,
-    version: path.match(/(?:^|\/)(v\d+)(?:\/|$)/i)?.[1].toLowerCase() ?? "v1",
-    baseUrl: address.startsWith("/") ? "" : url.origin,
+    version: versioned?.version ?? "v1",
+    baseUrl: (address.startsWith("/") ? (versioned?.prefix ? "https://api.example.com" : "") : url.origin) + (versioned?.prefix ?? ""),
     path, headers, queryParams: parameters(url.searchParams),
     pathParams: pathParameterNames(path).map(key => ({ key, value: "", type: "string", required: true, description: "" })),
     requestBody, access: authenticated ? "authenticated" : "public",
@@ -182,12 +184,12 @@ function schemaExample(schema: unknown, depth = 0): unknown {
   return sampleValue({ key: "", value: "", required: false, description: "", type: value.type as ParamField["type"], format: value.format as string });
 }
 
-export function generateCurl(endpoint: Pick<EndpointRecord, "method" | "path" | "baseUrl" | "headers" | "queryParams" | "pathParams" | "requestBody" | "access">, auth?: ProjectAuth): string {
+export function generateCurl(endpoint: Pick<EndpointRecord, "method" | "path" | "baseUrl" | "headers" | "queryParams" | "pathParams" | "requestBody" | "access"> & { version?: string }, auth?: ProjectAuth): string {
   const path = endpoint.path.replace(/\{([A-Za-z_][A-Za-z0-9_]*)\}|:([A-Za-z_][A-Za-z0-9_]*)/g, (_, brace, colon) => {
     const key = brace ?? colon, field = endpoint.pathParams.find(item => item.key === key);
     return encodeURIComponent(field?.value || field?.default || placeholder(key));
   });
-  const url = new URL((endpoint.baseUrl || "https://api.example.com") + path);
+  const url = endpointUrl(endpoint.baseUrl, path, endpoint.version);
   for (const field of endpoint.queryParams) {
     let values = [field.value || field.default || placeholder(field.key)];
     if (field.type === "array" && field.value) {

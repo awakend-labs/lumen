@@ -1,21 +1,21 @@
 import { and, eq } from "drizzle-orm";
-import { headers } from "next/headers";
+import { cache } from "react";
 import { db } from "@/db";
 import { projectMembers, projects } from "@/db/schema";
-import { auth } from "@/lib/auth";
+import { getServerSession } from "./session";
 import { canEditContent, canManageProject, canRead } from "@/lib/permissions";
 import type { ProjectRole } from "@/lib/types";
 import { HttpError } from "./http";
 
 export async function requireUser() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getServerSession();
   if (!session) {
     throw new HttpError(401, "Sign in to continue");
   }
   return session.user;
 }
 
-export async function getMembership(userId: string, projectId: string) {
+export const getMembership = cache(async (userId: string, projectId: string) => {
   const [member] = await db
     .select()
     .from(projectMembers)
@@ -27,7 +27,7 @@ export async function getMembership(userId: string, projectId: string) {
     )
     .limit(1);
   return member ?? null;
-}
+});
 
 async function requireRole(
   userId: string,
@@ -35,15 +35,8 @@ async function requireRole(
   allowed: (role: ProjectRole) => boolean,
 ) {
   const member = await getMembership(userId, projectId);
-  if (!member || !allowed(member.role)) {
-    const [project] = await db
-      .select({ id: projects.id })
-      .from(projects)
-      .where(eq(projects.id, projectId))
-      .limit(1);
-    if (!project || !member) {
-      throw new HttpError(404, "Project not found");
-    }
+  if (!member) throw new HttpError(404, "Project not found");
+  if (!allowed(member.role)) {
     throw new HttpError(403, "You don't have permission to do that");
   }
   return member;

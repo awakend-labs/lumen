@@ -4,7 +4,6 @@ import { NextResponse, type NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
   const { pathname, search } = request.nextUrl;
-  const isAuthPage = pathname === "/login" || pathname === "/signup";
   const isProtected =
     pathname.startsWith("/dashboard") || pathname.startsWith("/projects");
 
@@ -14,7 +13,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (sessionCookie && isAuthPage) {
+  // Only the public landing page uses a cookie-presence shortcut. Auth pages
+  // validate the real session so an expired cookie cannot create a redirect loop.
+  if (sessionCookie && pathname === "/") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
@@ -22,5 +23,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/projects/:path*", "/login", "/signup"],
+  matcher: ["/", "/dashboard/:path*", "/projects/:path*"],
 };

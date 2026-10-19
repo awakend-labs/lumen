@@ -1,12 +1,9 @@
 import { LumenMark } from "@/components/lumen-mark";
-import { headers } from "next/headers";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowDownRight, ArrowRight, Braces, FolderOpen, Layers, ListTree, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ProductPreview } from "@/components/product-preview";
-import { auth } from "@/lib/auth";
 
 const features = [
   { number: "01", icon: Layers, title: "Structure without the clutter.", body: "Organize endpoints into stashes and optional API groups. Give every route a place that makes sense." },
@@ -14,9 +11,7 @@ const features = [
   { number: "03", icon: Users, title: "The same page. Finally.", body: "Share a project invitation link. Give teammates the right access to view or edit." },
 ];
 
-export default async function HomePage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (session) redirect("/dashboard");
+export default function HomePage() {
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background">
       <header className="mx-auto flex w-full max-w-[100rem] flex-wrap items-center justify-between gap-3 px-5 py-6 sm:px-10 lg:px-12 xl:px-16">

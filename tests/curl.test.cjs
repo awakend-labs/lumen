@@ -9,7 +9,7 @@ test('imports JSON requests, methods, server URL, route version, headers and que
   const draft = parseCurl(`curl --location 'https://api.example.com/v2/users?limit=20&tag=one&tag=two' -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer secret-value' --data-raw '{"name":"Ada"}'`);
   assert.equal(draft.method, 'POST');
   assert.equal(draft.baseUrl, 'https://api.example.com');
-  assert.equal(draft.path, '/v2/users');
+  assert.equal(draft.path, '/users');
   assert.equal(draft.version, 'v2');
   assert.equal(draft.access, 'authenticated');
   assert.deepEqual(draft.requestBody.example, { name: 'Ada' });
@@ -90,5 +90,36 @@ test('manual endpoint commands use documented values, body fields, schemas and p
   command = generateCurl(draft, { scheme: 'api_key', location: 'query', headerName: 'key' });
   assert.match(command, /key=YOUR_API_KEY/);
   assert.equal(baseUrlSchema.safeParse('https://user:password@example.com').success, false);
-  assert.equal(baseUrlSchema.safeParse('https://api.example.com/path').success, false);
+  assert.equal(baseUrlSchema.safeParse('https://api.example.com/path').success, true);
+});
+
+test('manual cURL includes the selected version exactly once with base paths and legacy routes', () => {
+  const draft = parseCurl('curl https://api.shopkart.dev/auth/register');
+  for (const [baseUrl, path, version, expected] of [
+    ['https://api.shopkart.dev', '/auth/register', 'v1', 'https://api.shopkart.dev/v1/auth/register'],
+    ['https://api.shopkart.dev/v1', '/auth/register', 'v1', 'https://api.shopkart.dev/v1/auth/register'],
+    ['https://api.shopkart.dev/v1/', '/v1/auth/register', 'v1', 'https://api.shopkart.dev/v1/auth/register'],
+    ['https://api.shopkart.dev', '/v1/auth/register', 'v2', 'https://api.shopkart.dev/v2/auth/register'],
+    ['https://api.shopkart.dev/api/v1', '/api/v1/auth/register', 'v3', 'https://api.shopkart.dev/api/v3/auth/register'],
+    ['https://api.shopkart.dev/api', '/products/{id}', 'v2', 'https://api.shopkart.dev/api/v2/products/YOUR_ID'],
+  ]) {
+    const command = generateCurl({ ...draft, baseUrl, path, version });
+    assert.equal(curlTokens(command)[3], expected);
+  }
+});
+
+test('versioned cURL import separates base prefix, version, and resource path and preserves queries', () => {
+  for (const [address, expectedBase, version, path] of [
+    ['https://api.example.com/v1/products', 'https://api.example.com', 'v1', '/products'],
+    ['https://api.example.com/api/v2/products', 'https://api.example.com/api', 'v2', '/products'],
+    ['https://api.example.com/v3', 'https://api.example.com', 'v3', '/'],
+  ]) {
+    const imported = parseCurl(`curl '${address}?page=2'`);
+    assert.equal(imported.baseUrl, expectedBase); assert.equal(imported.version, version); assert.equal(imported.path, path);
+    const exported = new URL(curlTokens(generateCurl(imported))[3]);
+    assert.equal(exported.pathname.replace(/\/$/, ''), new URL(address).pathname.replace(/\/$/, ''));
+    assert.equal(exported.search, '?page=2');
+  }
+  assert.equal(baseUrlSchema.parse('https://api.shopkart.dev/v1/'), 'https://api.shopkart.dev/v1');
+  for (const url of ['https://user:password@example.com/v1', 'https://example.com/v1?secret=x', 'https://example.com/v1#fragment', 'javascript:alert(1)']) assert.equal(baseUrlSchema.safeParse(url).success, false);
 });
