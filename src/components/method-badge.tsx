@@ -21,7 +21,7 @@ export function MethodBadge({
   return (
     <span
       className={cn(
-        "inline-flex h-5 min-w-14 items-center justify-center rounded-md px-1.5 font-mono text-[11px] font-semibold tracking-wide",
+        "inline-flex h-5 min-w-14 items-center justify-center rounded-sm px-1.5 font-mono text-[11px] font-semibold tracking-wide",
         methodClass[method],
         className,
       )}

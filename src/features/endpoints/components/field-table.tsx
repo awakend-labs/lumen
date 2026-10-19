@@ -2,7 +2,7 @@ import type { ParamField } from "@/lib/types";
 
 export function FieldTable({ fields }: { fields: ParamField[] }) {
   if (!fields.length) return <p className="text-sm text-muted-foreground">No fields documented.</p>;
-  return <div className="max-w-full overflow-x-auto rounded-lg border border-border/30 dark:border-white/5">
+  return <div className="max-w-full overflow-x-auto rounded-md border border-border/30 dark:border-white/5">
     <table className="w-full text-left text-sm">
       <thead className="bg-muted/40 text-xs text-muted-foreground"><tr>{["Field", "Type", "Required", "Description / constraints"].map(label => <th key={label} className="p-3 font-medium">{label}</th>)}</tr></thead>
       <tbody>{fields.map((field, index) => <tr key={`${field.key}-${index}`} className="border-t border-border/30 align-top dark:border-white/5">

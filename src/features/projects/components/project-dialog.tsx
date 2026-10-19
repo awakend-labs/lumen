@@ -1,18 +1,29 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  AlignLeftIcon,
+  ClipboardCheckIcon,
+  FolderPlusIcon,
+  GlobeIcon,
+  PencilLineIcon,
+  TagIcon,
+} from "lucide-react";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
+import {
+  DialogFormHeader,
+  FieldIconLabel,
+  formDialogContentClassName,
+  formDialogFooterClassName,
+} from "@/components/dialog-form-header";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
@@ -63,20 +74,20 @@ export function ProjectDialog({
     }
   }, [open, initial?.name, initial?.description, initial?.status, initial?.baseUrl, form]);
 
+  const isEdit = title.toLowerCase().startsWith("edit");
+  const HeaderIcon = isEdit ? PencilLineIcon : FolderPlusIcon;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
+      <DialogContent className={formDialogContentClassName}>
+        <DialogFormHeader icon={HeaderIcon} title={title} description={description} />
         <form
-          className="flex flex-col gap-4"
+          className="flex flex-col gap-6"
           onSubmit={form.handleSubmit(onSubmit)}
         >
-          <FieldGroup>
+          <FieldGroup className="gap-5">
             <Field data-invalid={Boolean(form.formState.errors.name) || undefined}>
-              <FieldLabel htmlFor="project-name">Name</FieldLabel>
+              <FieldIconLabel icon={TagIcon} htmlFor="project-name">Name</FieldIconLabel>
               <Input
                 id="project-name"
                 aria-invalid={Boolean(form.formState.errors.name)}
@@ -85,7 +96,9 @@ export function ProjectDialog({
               <FieldError errors={[form.formState.errors.name]} />
             </Field>
             <Field>
-              <FieldLabel htmlFor="project-description">Description</FieldLabel>
+              <FieldIconLabel icon={AlignLeftIcon} htmlFor="project-description">
+                Description
+              </FieldIconLabel>
               <Textarea
                 id="project-description"
                 rows={3}
@@ -93,7 +106,9 @@ export function ProjectDialog({
               />
             </Field>
             <Field data-invalid={Boolean(form.formState.errors.baseUrl) || undefined}>
-              <FieldLabel htmlFor="project-base-url">Default Base URL <span className="text-muted-foreground">(optional)</span></FieldLabel>
+              <FieldIconLabel icon={GlobeIcon} htmlFor="project-base-url">
+                Default Base URL <span className="font-normal text-muted-foreground">(optional)</span>
+              </FieldIconLabel>
               <Input id="project-base-url" placeholder="https://api.example.com/v1" {...form.register("baseUrl")} />
               <p className="text-xs text-muted-foreground">New endpoints start with this URL. Each endpoint can use its own.</p>
               <FieldError errors={[form.formState.errors.baseUrl]} />
@@ -102,9 +117,16 @@ export function ProjectDialog({
               control={form.control}
               name="status"
               render={({ field }) => (
-                <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/30 px-3 py-2.5">
+                <div className="flex items-center justify-between gap-4 rounded-md border bg-muted/30 px-4 py-3">
                   <div className="flex flex-col gap-0.5">
-                    <span id="project-status-label" className="text-sm font-medium">
+                    <span
+                      id="project-status-label"
+                      className="flex items-center gap-1.5 text-sm font-medium"
+                    >
+                      <ClipboardCheckIcon
+                        className="size-3.5 shrink-0 text-muted-foreground"
+                        aria-hidden
+                      />
                       Documented
                     </span>
                     <span className="text-xs text-muted-foreground">
@@ -124,7 +146,7 @@ export function ProjectDialog({
               )}
             />
           </FieldGroup>
-          <DialogFooter>
+          <DialogFooter className={formDialogFooterClassName}>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

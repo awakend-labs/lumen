@@ -19,7 +19,7 @@ export function AppShell({
 }) {
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
-      <a href="#workspace-content" className="sr-only fixed top-3 left-3 z-50 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only">Skip to content</a>
+      <a href="#workspace-content" className="sr-only fixed top-3 left-3 z-50 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only">Skip to content</a>
       <AppSidebar />
       <SidebarInset className="workspace min-w-0">
         <header

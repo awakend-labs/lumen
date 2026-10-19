@@ -1,5 +1,6 @@
 "use client";
 
+import { HashIcon } from "lucide-react";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
@@ -17,7 +18,10 @@ export function ResponseStatusField({ id, value, usedCodes, onChange, error }: {
   const errorId = `${id}-error`;
 
   return <><Field data-invalid={Boolean(message) || undefined}>
-    <FieldLabel htmlFor={id}>Status</FieldLabel>
+    <FieldLabel htmlFor={id} className="gap-1.5">
+      <HashIcon className="size-3.5 text-muted-foreground" aria-hidden />
+      Status
+    </FieldLabel>
     <Input id={id} type="number" min={100} max={599}
       className="bg-background font-mono dark:bg-background" value={value}
       aria-invalid={Boolean(message)} aria-describedby={message ? errorId : undefined}

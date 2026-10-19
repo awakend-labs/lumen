@@ -32,13 +32,13 @@ export function ProjectStatusControl({
           setStatus.mutate({ projectId, status: value as ProjectStatus });
         }}
         aria-label="Project status"
-        className="rounded-full border border-border/70 bg-muted/30 p-0.5"
+        className="rounded-sm border border-border/70 bg-muted/30 p-0.5"
       >
         <ToggleGroupItem
           value="in_progress"
           aria-label="In progress"
           className={cn(
-            "h-7 gap-1.5 rounded-full px-2.5 text-xs",
+            "h-7 gap-1.5 rounded-sm px-2.5 text-xs",
             "data-[state=on]:border-stash-amber/40 data-[state=on]:bg-stash-amber/15 data-[state=on]:text-stash-amber",
           )}
         >
@@ -49,7 +49,7 @@ export function ProjectStatusControl({
           value="documented"
           aria-label="Documented"
           className={cn(
-            "h-7 gap-1.5 rounded-full px-2.5 text-xs",
+            "h-7 gap-1.5 rounded-sm px-2.5 text-xs",
             "data-[state=on]:border-stash-green/40 data-[state=on]:bg-stash-green/15 data-[state=on]:text-stash-green",
           )}
         >

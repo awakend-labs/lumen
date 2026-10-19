@@ -61,9 +61,15 @@ import {
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useDeleteEndpoint, useReorderEndpoints } from "@/features/endpoints/queries";
+import {
+  useDeleteEndpoint,
+  useReorderEndpoints,
+} from "@/features/endpoints/queries";
 import { StashDialog } from "@/features/stashes/components/stash-dialog";
-import { ApiGroupControl, ApiGroupSection } from "@/features/stashes/components/api-group-section";
+import {
+  ApiGroupControl,
+  ApiGroupSection,
+} from "@/features/stashes/components/api-group-section";
 import {
   useDeleteStash,
   useReorderStashes,
@@ -79,7 +85,7 @@ import { canEditContent } from "@/lib/permissions";
 import type { EndpointRecord, ProjectDetail, StashRecord } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type VisibleStash = { stash: StashRecord; endpoints: EndpointRecord[]; };
+type VisibleStash = { stash: StashRecord; endpoints: EndpointRecord[] };
 
 export function EndpointBrowser({
   project,
@@ -96,7 +102,9 @@ export function EndpointBrowser({
   const reorder = useReorderStashes(project.id);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   const baseStashes = stashId
@@ -114,15 +122,36 @@ export function EndpointBrowser({
       return [
         {
           stash,
-          endpoints: stash.endpoints.filter((endpoint) => matchesEndpoint(endpoint, normalized) || stash.groups.some(group => group.id === endpoint.groupId && group.name.toLowerCase().includes(normalized))),
+          endpoints: stash.endpoints.filter(
+            (endpoint) =>
+              matchesEndpoint(endpoint, normalized) ||
+              stash.groups.some(
+                (group) =>
+                  group.id === endpoint.groupId &&
+                  group.name.toLowerCase().includes(normalized),
+              ),
+          ),
         },
       ];
     }
     const stashMatch = stash.name.toLowerCase().includes(normalized);
     const endpoints = stash.endpoints.filter(
-      (endpoint) => stashMatch || matchesEndpoint(endpoint, normalized) || stash.groups.some(group => group.id === endpoint.groupId && group.name.toLowerCase().includes(normalized)),
+      (endpoint) =>
+        stashMatch ||
+        matchesEndpoint(endpoint, normalized) ||
+        stash.groups.some(
+          (group) =>
+            group.id === endpoint.groupId &&
+            group.name.toLowerCase().includes(normalized),
+        ),
     );
-    return stashMatch || endpoints.length > 0 || stash.groups.some(group => group.name.toLowerCase().includes(normalized)) ? [{ stash, endpoints }] : [];
+    return stashMatch ||
+      endpoints.length > 0 ||
+      stash.groups.some((group) =>
+        group.name.toLowerCase().includes(normalized),
+      )
+      ? [{ stash, endpoints }]
+      : [];
   });
 
   function onDragEnd(event: DragEndEvent) {
@@ -139,7 +168,9 @@ export function EndpointBrowser({
     return (
       <Empty className="min-h-64 border">
         <EmptyHeader>
-          <EmptyTitle>{stashId ? "Stash not found" : "No stashes yet"}</EmptyTitle>
+          <EmptyTitle>
+            {stashId ? "Stash not found" : "No stashes yet"}
+          </EmptyTitle>
           <EmptyDescription>
             {stashId
               ? "This stash may have been removed."
@@ -172,15 +203,34 @@ export function EndpointBrowser({
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={stashId ? "Filter endpoints..." : "Filter stashes or routes..."}
-            aria-label={stashId ? "Filter endpoints" : "Filter stashes or routes"}
-            className="h-9 bg-background pl-8"
+            placeholder={
+              stashId ? "Filter endpoints..." : "Filter stashes or routes..."
+            }
+            aria-label={
+              stashId ? "Filter endpoints" : "Filter stashes or routes"
+            }
+            className="h-9 rounded-sm bg-background pl-8"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {editable && stashId && <ApiGroupControl projectId={project.id} stashId={stashId} />}
-          {editable && <Button asChild variant="outline" size="sm"><Link href={`/projects/${project.id}/endpoints/new?import=curl${stashId ? `&stash=${stashId}` : ""}`}><TerminalSquare className="size-4" />Import cURL</Link></Button>}
-          <span className="text-xs text-muted-foreground">View</span>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {editable && stashId && (
+            <ApiGroupControl projectId={project.id} stashId={stashId} />
+          )}
+          {editable && (
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 rounded-sm px-3 shadow-none"
+            >
+              <Link
+                href={`/projects/${project.id}/endpoints/new?import=curl${stashId ? `&stash=${stashId}` : ""}`}
+              >
+                <TerminalSquare className="size-3.5" />
+                Import cURL
+              </Link>
+            </Button>
+          )}
           <ToggleGroup
             type="single"
             variant="outline"
@@ -205,7 +255,9 @@ export function EndpointBrowser({
         <Empty className="min-h-48 border border-dashed">
           <EmptyHeader>
             <EmptyTitle>No matches</EmptyTitle>
-            <EmptyDescription>Nothing matches &ldquo;{query.trim()}&rdquo;.</EmptyDescription>
+            <EmptyDescription>
+              Nothing matches &ldquo;{query.trim()}&rdquo;.
+            </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Button variant="outline" onClick={() => setQuery("")}>
@@ -214,7 +266,11 @@ export function EndpointBrowser({
           </EmptyContent>
         </Empty>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+        >
           <SortableContext
             items={visible.map(({ stash }) => stash.id)}
             strategy={verticalListSortingStrategy}
@@ -246,12 +302,13 @@ export function EndpointBrowser({
           onClick={onCreateStash}
           className="create-tile group flex w-full cursor-pointer flex-col items-center justify-center gap-2 px-6 py-7 text-center transition-colors"
         >
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground transition-transform group-hover:scale-105">
+          <span className="flex size-11 items-center justify-center rounded-md bg-primary text-primary-foreground transition-transform group-hover:scale-105">
             <PlusIcon className="size-5" />
           </span>
           <span className="text-sm font-medium">Create another stash</span>
           <span className="text-xs text-muted-foreground">
-            Group endpoints into logical resources like auth, users, or webhooks.
+            Group endpoints into logical resources like auth, users, or
+            webhooks.
           </span>
         </button>
       ) : null}
@@ -308,7 +365,9 @@ function StashSection({
   const reorderEndpoints = useReorderEndpoints(projectId);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   function onDragEnd(event: DragEndEvent) {
@@ -318,44 +377,108 @@ function StashSection({
     const oldIndex = ids.indexOf(String(active.id));
     const newIndex = ids.indexOf(String(over.id));
     if (oldIndex < 0 || newIndex < 0) return;
-    reorderEndpoints.mutate({ stashId: stash.id, ids: arrayMove(ids, oldIndex, newIndex) });
+    reorderEndpoints.mutate({
+      stashId: stash.id,
+      ids: arrayMove(ids, oldIndex, newIndex),
+    });
   }
 
-  const renderEndpoints = (items: EndpointRecord[]) => items.map((endpoint) => (
-    <EndpointItem
-      key={endpoint.id}
-      projectId={projectId}
-      endpoint={endpoint}
-      mode={mode}
-      editable={editable}
-      canReorder={canReorder}
-    />
-  ));
+  const renderEndpoints = (items: EndpointRecord[]) =>
+    items.map((endpoint) => (
+      <EndpointItem
+        key={endpoint.id}
+        projectId={projectId}
+        endpoint={endpoint}
+        mode={mode}
+        editable={editable}
+        canReorder={canReorder}
+      />
+    ));
 
-  const groupedBody = stash.groups.length ? <div className="flex flex-col gap-4">
-    {stash.groups.filter(group => !filtering || group.name.toLowerCase().includes(groupQuery) || endpoints.some(endpoint => endpoint.groupId === group.id)).map(group => {
-      const items = endpoints.filter(endpoint => endpoint.groupId === group.id);
-      return <ApiGroupSection key={group.id} id={`api-group-${group.id}`} name={group.name} count={items.length} filtering={filtering}
-        actions={editable ? <ApiGroupControl projectId={projectId} stashId={stash.id} group={group} /> : undefined}>
-        {items.length ? <EndpointLayout mode={mode}>{renderEndpoints(items)}</EndpointLayout> : <p className="text-sm text-muted-foreground">{filtering ? "No matching endpoints." : "No endpoints yet. Choose this group when creating or editing an endpoint."}</p>}
-      </ApiGroupSection>;
-    })}
-    {endpoints.some(endpoint => !endpoint.groupId) && <ApiGroupSection name="Ungrouped APIs" count={endpoints.filter(endpoint => !endpoint.groupId).length} filtering={filtering}>
-      <EndpointLayout mode={mode}>{renderEndpoints(endpoints.filter(endpoint => !endpoint.groupId))}</EndpointLayout>
-    </ApiGroupSection>}
-  </div> : <EndpointLayout mode={mode}>{renderEndpoints(endpoints)}</EndpointLayout>;
+  const groupedBody = stash.groups.length ? (
+    <div className="flex flex-col gap-4">
+      {stash.groups
+        .filter(
+          (group) =>
+            !filtering ||
+            group.name.toLowerCase().includes(groupQuery) ||
+            endpoints.some((endpoint) => endpoint.groupId === group.id),
+        )
+        .map((group) => {
+          const items = endpoints.filter(
+            (endpoint) => endpoint.groupId === group.id,
+          );
+          return (
+            <ApiGroupSection
+              key={group.id}
+              id={`api-group-${group.id}`}
+              name={group.name}
+              count={items.length}
+              filtering={filtering}
+              actions={
+                editable ? (
+                  <ApiGroupControl
+                    projectId={projectId}
+                    stashId={stash.id}
+                    group={group}
+                  />
+                ) : undefined
+              }
+            >
+              {items.length ? (
+                <EndpointLayout mode={mode}>
+                  {renderEndpoints(items)}
+                </EndpointLayout>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {filtering
+                    ? "No matching endpoints."
+                    : "No endpoints yet. Choose this group when creating or editing an endpoint."}
+                </p>
+              )}
+            </ApiGroupSection>
+          );
+        })}
+      {endpoints.some((endpoint) => !endpoint.groupId) && (
+        <ApiGroupSection
+          name="Ungrouped APIs"
+          count={endpoints.filter((endpoint) => !endpoint.groupId).length}
+          filtering={filtering}
+        >
+          <EndpointLayout mode={mode}>
+            {renderEndpoints(endpoints.filter((endpoint) => !endpoint.groupId))}
+          </EndpointLayout>
+        </ApiGroupSection>
+      )}
+    </div>
+  ) : (
+    <EndpointLayout mode={mode}>{renderEndpoints(endpoints)}</EndpointLayout>
+  );
 
   const endpointBody =
-    endpoints.length === 0 && (stash.groups.length === 0 || (filtering && !stash.groups.some(group => group.name.toLowerCase().includes(groupQuery)))) ? (
+    endpoints.length === 0 &&
+    (stash.groups.length === 0 ||
+      (filtering &&
+        !stash.groups.some((group) =>
+          group.name.toLowerCase().includes(groupQuery),
+        ))) ? (
       filtering ? (
-        <p className="text-sm text-muted-foreground">No matching endpoints in this stash.</p>
+        <p className="text-sm text-muted-foreground">
+          No matching endpoints in this stash.
+        </p>
       ) : editable ? (
         <EmptyStashState projectId={projectId} stashId={stash.id} />
       ) : (
-        <p className="text-sm text-muted-foreground">No endpoints in this stash yet.</p>
+        <p className="text-sm text-muted-foreground">
+          No endpoints in this stash yet.
+        </p>
       )
     ) : canReorder ? (
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={onDragEnd}
+      >
         <SortableContext
           items={endpoints.map((endpoint) => endpoint.id)}
           strategy={verticalListSortingStrategy}
@@ -376,7 +499,7 @@ function StashSection({
       ref={sortable.setNodeRef}
       style={style}
       className={cn(
-        "overflow-hidden rounded-2xl border bg-card",
+        "overflow-hidden rounded-md border bg-card",
         sortable.isDragging && "shadow-lg ring-2 ring-primary/40",
       )}
     >
@@ -394,7 +517,12 @@ function StashSection({
                 <GripVerticalIcon className="size-4" />
               </button>
             ) : null}
-            <span className={cn("size-2.5 shrink-0 rounded-full", stashDotClass(stash.color))} />
+            <span
+              className={cn(
+                "size-2.5 shrink-0 rounded-sm",
+                stashDotClass(stash.color),
+              )}
+            />
             {showStashLink ? (
               <Link
                 href={`/projects/${projectId}/stashes/${stash.id}`}
@@ -405,12 +533,12 @@ function StashSection({
             ) : (
               <h2 className="truncate font-semibold">{stash.name}</h2>
             )}
-            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">
+            <span className="shrink-0 rounded-sm bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">
               {endpoints.length}
             </span>
             <span
               className={cn(
-                "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                "shrink-0 rounded-sm px-2 py-0.5 text-[11px] font-medium",
                 STASH_STATUS_CLASS[stash.status],
               )}
             >
@@ -422,16 +550,20 @@ function StashSection({
               </span>
             ) : null}
           </div>
-          <div className="flex shrink-0 items-center gap-1">
-            {editable && <ApiGroupControl projectId={projectId} stashId={stash.id} />}
+          <div className="flex shrink-0 items-center gap-2">
+            {editable && (
+              <ApiGroupControl projectId={projectId} stashId={stash.id} />
+            )}
             {editable ? (
               <Button
                 asChild
                 size="sm"
                 variant="outline"
-                className="h-8 gap-1.5 rounded-full border-primary/35 bg-primary/10 px-3 text-foreground shadow-none hover:border-primary/50 hover:bg-primary/15"
+                className="h-8 gap-1.5 rounded-sm border-primary/35 bg-primary/10 px-3 text-foreground shadow-none hover:border-primary/50 hover:bg-primary/15"
               >
-                <Link href={`/projects/${projectId}/endpoints/new?stash=${stash.id}`}>
+                <Link
+                  href={`/projects/${projectId}/endpoints/new?stash=${stash.id}`}
+                >
                   <PlusIcon className="size-3.5 text-primary" />
                   Endpoint
                 </Link>
@@ -440,14 +572,22 @@ function StashSection({
             {editable ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon-sm" aria-label="Stash actions">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Stash actions"
+                  >
                     <MoreHorizontalIcon />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuGroup>
-                    <DropdownMenuItem onSelect={() => setRenaming(true)}>Rename</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setEditing(true)}>Edit</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setRenaming(true)}>
+                      Rename
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setEditing(true)}>
+                      Edit
+                    </DropdownMenuItem>
                     <ConfirmDelete
                       title="Delete stash?"
                       description="Endpoints inside this stash will be deleted too."
@@ -473,7 +613,10 @@ function StashSection({
                 aria-label={open ? "Collapse stash" : "Expand stash"}
               >
                 <ChevronDownIcon
-                  className={cn("transition-transform duration-200", !open && "-rotate-90")}
+                  className={cn(
+                    "transition-transform duration-200",
+                    !open && "-rotate-90",
+                  )}
                 />
               </Button>
             </CollapsibleTrigger>
@@ -483,7 +626,14 @@ function StashSection({
           <div className="border-t p-4">{endpointBody}</div>
         </CollapsibleContent>
       </Collapsible>
-      <RenameDialog kind="stash" projectId={projectId} itemId={stash.id} name={stash.name} open={renaming} onOpenChange={setRenaming} />
+      <RenameDialog
+        kind="stash"
+        projectId={projectId}
+        itemId={stash.id}
+        name={stash.name}
+        open={renaming}
+        onOpenChange={setRenaming}
+      />
       <StashDialog
         open={editing}
         onOpenChange={setEditing}
@@ -500,10 +650,16 @@ function StashSection({
   );
 }
 
-function EmptyStashState({ projectId, stashId }: { projectId: string; stashId: string; }) {
+function EmptyStashState({
+  projectId,
+  stashId,
+}: {
+  projectId: string;
+  stashId: string;
+}) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed bg-muted/20 px-6 py-8 text-center">
-      <span className="flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+    <div className="flex flex-col items-center gap-3 rounded-md border border-dashed bg-muted/20 px-6 py-8 text-center">
+      <span className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
         <InboxIcon className="size-5" />
       </span>
       <div className="flex flex-col gap-1">
@@ -515,7 +671,7 @@ function EmptyStashState({ projectId, stashId }: { projectId: string; stashId: s
       <div className="w-full max-w-sm pt-2">
         <Link
           href={`/projects/${projectId}/endpoints/new?stash=${stashId}`}
-          className="flex flex-col items-start gap-1 rounded-lg border bg-background p-3 text-left transition-colors hover:border-primary hover:bg-primary/5"
+          className="flex flex-col items-start gap-1 rounded-md border bg-background p-3 text-left transition-colors hover:border-primary hover:bg-primary/5"
         >
           <span className="flex items-center gap-2 text-sm font-medium">
             <PlusIcon className="size-4 text-primary" />
@@ -525,7 +681,6 @@ function EmptyStashState({ projectId, stashId }: { projectId: string; stashId: s
             Define method, path, parameters, and examples.
           </span>
         </Link>
-
       </div>
     </div>
   );
@@ -577,9 +732,7 @@ function EndpointItem({
     <div ref={sortable.setNodeRef} style={style}>
       {mode === "grid" ? (
         <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
-          <Card
-            className="h-full gap-3 border-border bg-card py-4 shadow-none transition-[border-color,box-shadow] hover:border-foreground/25 hover:shadow-sm"
-          >
+          <Card className="h-full gap-3 border-border bg-card py-4 shadow-none transition-[border-color,box-shadow] hover:border-foreground/25 hover:shadow-sm">
             <CardHeader className="gap-2 px-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
@@ -617,14 +770,21 @@ function EndpointItem({
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-2 px-4">
-              <p className="truncate font-mono text-xs text-muted-foreground">{endpoint.path}</p>
-              <CompactMarkdown className="max-h-24 overflow-y-auto" content={endpoint.description || "No description"} />
-              {endpoint.isDeprecated ? <Badge variant="outline">Deprecated</Badge> : null}
+              <p className="truncate font-mono text-xs text-muted-foreground">
+                {endpoint.path}
+              </p>
+              <CompactMarkdown
+                className="max-h-24 overflow-y-auto"
+                content={endpoint.description || "No description"}
+              />
+              {endpoint.isDeprecated ? (
+                <Badge variant="outline">Deprecated</Badge>
+              ) : null}
             </CardContent>
           </Card>
         </motion.div>
       ) : (
-        <div className="group flex flex-wrap items-center gap-2 rounded-lg border border-transparent border-b-border bg-card px-3 py-3.5 transition-colors hover:bg-muted/50 sm:flex-nowrap sm:gap-3">
+        <div className="group flex flex-wrap items-center gap-2 rounded-md border border-transparent border-b-border bg-card px-3 py-3.5 transition-colors hover:bg-muted/50 sm:flex-nowrap sm:gap-3">
           {canReorder ? (
             <button
               type="button"
@@ -700,43 +860,70 @@ function EndpointMenu({
   const [moving, setMoving] = useState(false);
   return (
     <>
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label="Endpoint actions">
-          <MoreHorizontalIcon />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuGroup>
-          <DropdownMenuItem onSelect={() => setRenaming(true)}>Rename</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setMoving(true)}>Move to stash…</DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={() =>
-              router.push(`/projects/${projectId}/endpoints/${endpoint.id}/edit`)
-            }
-          >
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => router.push(`/projects/${projectId}/endpoints/new?duplicate=${endpoint.id}`)}>Duplicate endpoint</DropdownMenuItem>
-          <ConfirmDelete
-            title="Delete endpoint?"
-            description="This removes the endpoint from the stash."
-            pending={pending}
-            onConfirm={onDelete}
-            trigger={
-              <DropdownMenuItem
-                variant="destructive"
-                onSelect={(event) => event.preventDefault()}
-              >
-                Delete
-              </DropdownMenuItem>
-            }
-          />
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
-    {moving && <MoveEndpointDialog projectId={projectId} endpoint={endpoint} onClose={() => setMoving(false)} />}
-    <RenameDialog kind="endpoint" projectId={projectId} itemId={endpoint.id} name={endpoint.name} open={renaming} onOpenChange={setRenaming} />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-sm" aria-label="Endpoint actions">
+            <MoreHorizontalIcon />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuGroup>
+            <DropdownMenuItem onSelect={() => setRenaming(true)}>
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setMoving(true)}>
+              Move to stash…
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() =>
+                router.push(
+                  `/projects/${projectId}/endpoints/${endpoint.id}/edit`,
+                )
+              }
+            >
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() =>
+                router.push(
+                  `/projects/${projectId}/endpoints/new?duplicate=${endpoint.id}`,
+                )
+              }
+            >
+              Duplicate endpoint
+            </DropdownMenuItem>
+            <ConfirmDelete
+              title="Delete endpoint?"
+              description="This removes the endpoint from the stash."
+              pending={pending}
+              onConfirm={onDelete}
+              trigger={
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={(event) => event.preventDefault()}
+                >
+                  Delete
+                </DropdownMenuItem>
+              }
+            />
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {moving && (
+        <MoveEndpointDialog
+          projectId={projectId}
+          endpoint={endpoint}
+          onClose={() => setMoving(false)}
+        />
+      )}
+      <RenameDialog
+        kind="endpoint"
+        projectId={projectId}
+        itemId={endpoint.id}
+        name={endpoint.name}
+        open={renaming}
+        onOpenChange={setRenaming}
+      />
     </>
   );
 }

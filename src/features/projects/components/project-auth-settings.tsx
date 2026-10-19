@@ -31,14 +31,14 @@ export function ProjectAuthSettings({ project }: { project: ProjectDetail; }) {
     <form className="grid gap-4" onSubmit={event => { event.preventDefault(); save.mutate(); }}>
       <fieldset disabled={project.role !== "owner" || save.isPending} className="grid gap-4 disabled:opacity-60">
         <label className="grid gap-2 text-sm">Scheme
-          <select className="h-11 rounded-lg border border-input bg-card px-3" value={value.scheme} onChange={event => setValue({ ...value, scheme: event.target.value as ProjectAuth["scheme"] })}>
+          <select className="h-11 rounded-md border border-input bg-card px-3" value={value.scheme} onChange={event => setValue({ ...value, scheme: event.target.value as ProjectAuth["scheme"] })}>
             {AUTH_SCHEMES.map(scheme => <option key={scheme} value={scheme}>{authLabels[scheme]}</option>)}
           </select>
         </label>
         {value.scheme === "api_key" && <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-2 text-sm">Parameter name<Input required value={value.headerName} onChange={event => setValue({ ...value, headerName: event.target.value })} />
           </label>
-          <label className="grid gap-2 text-sm">Location<select className="h-11 rounded-lg border border-input bg-card px-3" value={value.location} onChange={event => setValue({ ...value, location: event.target.value as ProjectAuth["location"] })}>
+          <label className="grid gap-2 text-sm">Location<select className="h-11 rounded-md border border-input bg-card px-3" value={value.location} onChange={event => setValue({ ...value, location: event.target.value as ProjectAuth["location"] })}>
             <option value="header">Header</option>
             <option value="query">Query parameter</option>
           </select>

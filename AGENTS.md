@@ -14,6 +14,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Use pnpm for installs, scripts, and CI-style commands in this repo.
 - Use yellow as the primary accent on soft charcoal surfaces in dark mode and white surfaces in light mode (avoid pure black backgrounds).
 - Prefer modern, polished UI with icons and accent colors wherever they fit.
+- Prefer default browser text selection styling; do not add custom `::selection` highlight colors.
 
 ## Learned Workspace Facts
 
@@ -22,6 +23,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Authentication is email and password only; Google OAuth is not used.
 - Project invitations are copyable share links; outbound invite email is not implemented.
 - Code is organized feature-first under `src/features/` with shared `src/db/`, `src/server/`, and `src/lib/`.
+- Authenticated workspace UI uses a collapsible sidebar shell (`SidebarProvider`, `AppSidebar`) with inset main content and a sticky header.
 - Endpoint grid/list view preference is stored in the `user_preferences` table and exposed via `/api/preferences`.
 - Production deploy targets Cloudflare Workers using `@opennextjs/cloudflare` (`pnpm preview`, `pnpm deploy`, Wrangler).
 - Drizzle migrations run from the local machine via `pnpm db:migrate` (`drizzle-kit migrate`) against Neon, not inside the Worker.

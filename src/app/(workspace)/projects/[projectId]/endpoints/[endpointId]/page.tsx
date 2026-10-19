@@ -50,7 +50,7 @@ export default function EndpointPage({
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      {endpoint.isLoading ? <Skeleton className="h-80 w-full rounded-xl" /> : null}
+      {endpoint.isLoading ? <Skeleton className="h-80 w-full rounded-md" /> : null}
       {endpoint.isError ? (
         <Empty className="border">
           <EmptyHeader>

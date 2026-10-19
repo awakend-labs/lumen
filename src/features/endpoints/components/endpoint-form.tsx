@@ -6,6 +6,7 @@ import { pathParameterNames, validEndpointPath } from "@/lib/endpoint-path";
 import { baseUrlSchema, endpointInputSchema } from "@/lib/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  AlignLeftIcon,
   BracesIcon,
   Code2Icon,
   EyeIcon,
@@ -449,7 +450,7 @@ export function EndpointForm({
     >
       <div className="flex flex-wrap items-center justify-between gap-2"><p role={draft.error ? "alert" : "status"} className={cn("text-xs", draft.error ? "text-destructive" : "text-muted-foreground")}>{draft.status}</p>
         <Button type="button" size="sm" variant="ghost" disabled={draft.loading} onClick={() => { if (window.confirm("Discard this saved draft and reset the form?")) void draft.discard(toFormValues(endpoint ?? duplicateFrom, fixedStashId, projectBaseUrl)).catch(() => toast.error("Could not discard the draft. Please try again.")); }}>Discard draft</Button></div>
-      {draft.hasRecoveredDraft && <div className="flex flex-wrap gap-2 rounded-lg border border-border bg-muted/30 p-3">
+      {draft.hasRecoveredDraft && <div className="flex flex-wrap gap-2 rounded-md border border-border bg-muted/30 p-3">
         <p className="w-full text-xs text-muted-foreground">Saving is paused until you choose which draft to keep.</p>
         <Button type="button" size="sm" variant="outline" onClick={() => {
           if (window.confirm("Replace your current edits with the saved draft?")) draft.restore();
@@ -871,7 +872,14 @@ export function EndpointForm({
                     void form.trigger("responses");
                   }} />
                 <Field>
-                  <FieldLabel htmlFor={`response-desc-${field.id}`}>
+                  <FieldLabel
+                    htmlFor={`response-desc-${field.id}`}
+                    className="gap-1.5"
+                  >
+                    <AlignLeftIcon
+                      className="size-3.5 text-muted-foreground"
+                      aria-hidden
+                    />
                     Description
                   </FieldLabel>
                   <Input
@@ -898,7 +906,16 @@ export function EndpointForm({
                     undefined
                   }
                 >
-                  <FieldLabel htmlFor={`response-body-${field.id}`}>Example body</FieldLabel>
+                  <FieldLabel
+                    htmlFor={`response-body-${field.id}`}
+                    className="gap-1.5"
+                  >
+                    <Code2Icon
+                      className="size-3.5 text-muted-foreground"
+                      aria-hidden
+                    />
+                    Example body
+                  </FieldLabel>
                   <Textarea
                     id={`response-body-${field.id}`}
                     rows={6}
@@ -915,7 +932,16 @@ export function EndpointForm({
                     undefined
                   }
                 >
-                  <FieldLabel htmlFor={`response-schema-${field.id}`}>Schema</FieldLabel>
+                  <FieldLabel
+                    htmlFor={`response-schema-${field.id}`}
+                    className="gap-1.5"
+                  >
+                    <BracesIcon
+                      className="size-3.5 text-muted-foreground"
+                      aria-hidden
+                    />
+                    Schema
+                  </FieldLabel>
                   <Textarea
                     id={`response-schema-${field.id}`}
                     rows={6}
@@ -992,7 +1018,7 @@ function FormSection({
         <div className="flex min-w-0 items-start gap-3">
           {Icon ? (
             <div
-              className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+              className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"
               aria-hidden
             >
               <Icon className="size-4" />

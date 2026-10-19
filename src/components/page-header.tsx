@@ -19,27 +19,35 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-end justify-between gap-5 py-2 sm:py-4",
+        "flex flex-wrap items-start justify-between gap-x-4 gap-y-2 py-0 sm:py-0",
         className,
       )}
     >
-      <div className="flex min-w-0 items-start gap-4">
+      <div className="flex min-w-0 items-start gap-3">
         {Icon ? (
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-accent-foreground">
-            <Icon className="size-5" aria-hidden />
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/12 text-accent-foreground">
+            <Icon className="size-4" aria-hidden />
           </span>
         ) : null}
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">{title}</h1>
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-[-0.03em] sm:text-2xl">
+              {title}
+            </h1>
             {badge}
           </div>
           {description ? (
-            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{description}</p>
+            <p className="max-w-2xl text-sm leading-snug text-muted-foreground">
+              {description}
+            </p>
           ) : null}
         </div>
       </div>
-      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+      {actions ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-2 pt-0.5">
+          {actions}
+        </div>
+      ) : null}
     </div>
   );
 }

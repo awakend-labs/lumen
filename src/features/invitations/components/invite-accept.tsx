@@ -36,7 +36,7 @@ export function InviteAccept({ token }: { token: string; }) {
     <div className="flex min-h-full flex-1 items-center justify-center px-4 py-16">
       <Card className="w-full max-w-md gap-0 overflow-hidden border-border/50 p-0 shadow-lg dark:border-white/5">
         <div className="flex flex-col items-center gap-3 border-b border-border/50 bg-muted/30 px-6 py-8 text-center dark:bg-white/2">
-          <span className="flex size-12 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary shadow-sm">
+          <span className="flex size-12 items-center justify-center rounded-md border border-primary/25 bg-primary/10 text-primary shadow-sm">
             <MailOpenIcon className="size-5" aria-hidden />
           </span>
           <div className="flex flex-col gap-1">
@@ -51,7 +51,7 @@ export function InviteAccept({ token }: { token: string; }) {
           ) : null}
           {preview.data ? (
             <div className="flex flex-col gap-4 text-sm">
-              <div className="flex flex-col gap-1 rounded-xl border border-border/50 bg-muted/20 p-4 dark:border-white/5 dark:bg-white/2">
+              <div className="flex flex-col gap-1 rounded-md border border-border/50 bg-muted/20 p-4 dark:border-white/5 dark:bg-white/2">
                 <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Project</span>
                 <span className="text-base font-semibold">{preview.data.projectName}</span>
               </div>
@@ -62,7 +62,7 @@ export function InviteAccept({ token }: { token: string; }) {
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Role</span>
-                  <Badge variant="outline" className="w-fit gap-1.5 rounded-full border-primary/35 bg-primary/10 capitalize">
+                  <Badge variant="outline" className="w-fit gap-1.5 rounded-sm border-primary/35 bg-primary/10 capitalize">
                     <ShieldCheckIcon className="size-3 text-primary" aria-hidden />
                     {preview.data.role}
                   </Badge>
@@ -73,7 +73,7 @@ export function InviteAccept({ token }: { token: string; }) {
                   This invitation is {preview.data.status}.
                 </p>
               ) : null}
-              {sessionReady && wrongEmail && <p role="alert" className="rounded-lg border border-border bg-muted/30 p-3 text-sm leading-6">This invitation is for <strong className="break-all">{preview.data.email}</strong>. You’re signed in as <span className="break-all">{signedInUser?.email}</span>. Use the invited account to continue.</p>}
+              {sessionReady && wrongEmail && <p role="alert" className="rounded-md border border-border bg-muted/30 p-3 text-sm leading-6">This invitation is for <strong className="break-all">{preview.data.email}</strong>. You’re signed in as <span className="break-all">{signedInUser?.email}</span>. Use the invited account to continue.</p>}
               {session.error && <p role="alert" className="text-sm text-destructive">We couldn’t verify your account. Reload this page to try again.</p>}
             </div>
           ) : null}

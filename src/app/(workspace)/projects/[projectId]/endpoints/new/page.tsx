@@ -64,7 +64,7 @@ function NewEndpoint({ projectId }: { projectId: string; }) {
             <p className="text-sm text-muted-foreground">{stashId ? "That stash is unavailable. " : ""}{project.stashes.length ? "Open a stash to create your endpoint in it." : "Create a stash in this project before adding an endpoint."}</p>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{project.stashes.map(stash => {
               const next = new URLSearchParams(search.toString()); next.set("stash", stash.id); next.delete("duplicate");
-              return <Link key={stash.id} href={`/projects/${project.id}/endpoints/new?${next}`} className="flex min-w-0 items-center gap-3 rounded-xl border bg-card p-5 transition-colors hover:border-primary/50"><FolderIcon className="size-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 truncate font-medium">{stash.name}</span><ArrowRightIcon className="size-4 shrink-0" /></Link>;
+              return <Link key={stash.id} href={`/projects/${project.id}/endpoints/new?${next}`} className="flex min-w-0 items-center gap-3 rounded-md border bg-card p-5 transition-colors hover:border-primary/50"><FolderIcon className="size-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 truncate font-medium">{stash.name}</span><ArrowRightIcon className="size-4 shrink-0" /></Link>;
             })}</div>
             <Button asChild variant="outline" className="w-fit"><Link href={`/projects/${project.id}`}>Back to project</Link></Button>
           </div> : <EndpointForm

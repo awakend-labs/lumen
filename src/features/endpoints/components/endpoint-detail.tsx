@@ -72,15 +72,20 @@ export function EndpointDetail({
                 ))}
               </div>
               <div className="flex min-w-0 items-center gap-2"><h1 className="min-w-0 break-words text-3xl font-semibold tracking-[-0.04em]">{endpoint.name}</h1></div>
-              <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5" style={{ backgroundImage: "var(--surface-gradient)" }}>
+              <div
+                className="mt-2 flex min-w-0 items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1"
+                style={{ backgroundImage: "var(--surface-gradient)" }}
+              >
                 <Code2Icon aria-hidden className="hidden size-4 shrink-0 text-muted-foreground/70 sm:block" />
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="text-[9px] font-medium tracking-[0.12em] text-muted-foreground uppercase">Endpoint path</span>
-                  <code className="block overflow-x-auto font-mono text-[13px] leading-6 whitespace-nowrap [scrollbar-width:thin]">
+                <div className="flex min-w-0 flex-1 items-baseline gap-2">
+                  <span className="shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Path
+                  </span>
+                  <code className="min-w-0 overflow-x-auto font-mono text-sm font-medium leading-snug whitespace-nowrap [scrollbar-width:thin]">
                     {endpoint.path}
                   </code>
                 </div>
-                <div className="flex shrink-0 items-center self-stretch border-l border-border pl-2">
+                <div className="flex shrink-0 items-center border-l border-border pl-1">
                   <CopyButton value={endpoint.path} label="Copy path" />
                 </div>
               </div>
@@ -177,30 +182,39 @@ export function EndpointDetail({
             <EmptyNote>No responses documented.</EmptyNote>
           ) : (
             <div className="flex flex-col gap-3">
-              {endpoint.responses.map((response, index) => (
-                <div key={`${response.statusCode}-${index}`} className={cn("lumen-response flex flex-col gap-3 p-4", insetSurfaceClass)}>
-                  <div className="flex items-center gap-2 text-base font-medium">
-                    <span
-                      className={cn(
-                        "inline-flex h-5 items-center rounded-md px-1.5 font-mono text-xs font-semibold",
-                        statusClass(response.statusCode),
-                      )}
-                    >
-                      {response.statusCode}
-                    </span>
-                    <span className="font-normal text-muted-foreground">
-                      {response.description || "No description"}
-                    </span>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <JsonBlock title="Example" value={response.body} />
-                    <div className="min-w-0 space-y-3">
-                      <FieldTable fields={schemaFields(response.schema)} />
+              {endpoint.responses.map((response, index) => {
+                const fields = schemaFields(response.schema);
+                return (
+                  <div
+                    key={`${response.statusCode}-${index}`}
+                    className={cn("lumen-response flex flex-col gap-4 p-4", insetSurfaceClass)}
+                  >
+                    <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                      <span
+                        className={cn(
+                          "inline-flex h-5 shrink-0 items-center rounded-sm px-1.5 font-mono text-xs font-semibold",
+                          statusClass(response.statusCode),
+                        )}
+                      >
+                        {response.statusCode}
+                      </span>
+                      <span className="min-w-0 text-sm leading-snug text-muted-foreground">
+                        {response.description || "No description"}
+                      </span>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
+                      <JsonBlock title="Example" value={response.body} />
                       <JsonBlock title="Schema" value={response.schema} />
                     </div>
+                    {fields.length > 0 ? (
+                      <div className="flex min-w-0 flex-col gap-2">
+                        <p className="text-xs font-medium text-muted-foreground">Fields</p>
+                        <FieldTable fields={fields} />
+                      </div>
+                    ) : null}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </DetailSection>
@@ -276,13 +290,16 @@ function ParamSection({
 }
 
 function JsonBlock({ title, value }: { title: string; value: unknown; }) {
-  const text = value === undefined ? "" : JSON.stringify(value, null, 2);
+  const text =
+    value === undefined || value === null || value === ""
+      ? ""
+      : JSON.stringify(value, null, 2);
   const TitleIcon = title === "Schema" ? BracesIcon : Code2Icon;
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+    <div className="flex min-w-0 flex-col gap-2">
+      <div className="flex min-h-6 items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <TitleIcon className="size-3.5" aria-hidden />
+          <TitleIcon className="size-3.5 shrink-0" aria-hidden />
           {title}
         </p>
         {text ? <CopyButton value={text} label={`Copy ${title}`} /> : null}
@@ -292,7 +309,14 @@ function JsonBlock({ title, value }: { title: string; value: unknown; }) {
           {text}
         </pre>
       ) : (
-        <p className="text-sm text-muted-foreground">Not set.</p>
+        <p
+          className={cn(
+            "px-3 py-2.5 text-sm leading-snug text-muted-foreground",
+            insetSurfaceClass,
+          )}
+        >
+          Not set.
+        </p>
       )}
     </div>
   );

@@ -26,18 +26,23 @@ export function formatUpdatedLabel(value: string) {
   return `Updated ${formatDate(value)}`;
 }
 
+const STASH_COLOR_KEYS = [
+  "slate",
+  "blue",
+  "green",
+  "amber",
+  "red",
+  "violet",
+  "pink",
+  "teal",
+] as const;
+
+function normalizeStashColor(color: string) {
+  return STASH_COLOR_KEYS.find((item) => item === color) ?? "slate";
+}
+
 export function stashDotClass(color: string) {
-  const known = [
-    "slate",
-    "blue",
-    "green",
-    "amber",
-    "red",
-    "violet",
-    "pink",
-    "teal",
-  ] as const;
-  const match = known.find((item) => item === color) ?? "slate";
+  const match = normalizeStashColor(color);
   return {
     slate: "bg-stash-slate",
     blue: "bg-stash-blue",
@@ -47,5 +52,28 @@ export function stashDotClass(color: string) {
     violet: "bg-stash-violet",
     pink: "bg-stash-pink",
     teal: "bg-stash-teal",
+  }[match];
+}
+
+/** Selected-state ring/background for stash color toggle items in dialogs. */
+export function stashColorPickerItemClass(color: string) {
+  const match = normalizeStashColor(color);
+  return {
+    slate:
+      "data-[state=on]:border-stash-slate data-[state=on]:bg-stash-slate/20 data-[state=on]:ring-2 data-[state=on]:ring-stash-slate/45",
+    blue:
+      "data-[state=on]:border-stash-blue data-[state=on]:bg-stash-blue/20 data-[state=on]:ring-2 data-[state=on]:ring-stash-blue/45",
+    green:
+      "data-[state=on]:border-stash-green data-[state=on]:bg-stash-green/20 data-[state=on]:ring-2 data-[state=on]:ring-stash-green/45",
+    amber:
+      "data-[state=on]:border-stash-amber data-[state=on]:bg-stash-amber/20 data-[state=on]:ring-2 data-[state=on]:ring-stash-amber/45",
+    red:
+      "data-[state=on]:border-stash-red data-[state=on]:bg-stash-red/20 data-[state=on]:ring-2 data-[state=on]:ring-stash-red/45",
+    violet:
+      "data-[state=on]:border-stash-violet data-[state=on]:bg-stash-violet/20 data-[state=on]:ring-2 data-[state=on]:ring-stash-violet/45",
+    pink:
+      "data-[state=on]:border-stash-pink data-[state=on]:bg-stash-pink/20 data-[state=on]:ring-2 data-[state=on]:ring-stash-pink/45",
+    teal:
+      "data-[state=on]:border-stash-teal data-[state=on]:bg-stash-teal/20 data-[state=on]:ring-2 data-[state=on]:ring-stash-teal/45",
   }[match];
 }

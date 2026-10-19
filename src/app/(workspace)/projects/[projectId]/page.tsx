@@ -63,12 +63,12 @@ function ProjectView({ projectId }: { projectId: string }) {
               <div className="flex min-w-0 items-center gap-2"><h1 className="min-w-0 break-words text-3xl font-semibold tracking-[-0.04em]">{project.name}</h1></div>
               <CompactMarkdown content={project.description || "No description yet."} />
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5 rounded-sm bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground">
                   <Layers className={cn("size-3.5", accent.icon)} />
                   <span className="font-medium text-foreground">{project.stashes.length}</span>
                   {project.stashes.length === 1 ? "stash" : "stashes"}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5 rounded-sm bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground">
                   <Route className={cn("size-3.5", accent.icon)} />
                   <span className="font-medium text-foreground">{endpointCount}</span>
                   endpoints

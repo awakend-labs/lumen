@@ -3,12 +3,12 @@ import { ArrowUpRight, Braces, ChevronDown, CodeXml, Folder, Layers } from "luci
 /** Illustrative content, not an interactive or live project. */
 export function ProductPreview({ compact = false }: { compact?: boolean; }) {
   return (
-    <figure aria-label="Example API documentation workspace" className="overflow-hidden rounded-2xl border border-border bg-card text-left shadow-[0_24px_80px_#0000000b]">
+    <figure aria-label="Example API documentation workspace" className="overflow-hidden rounded-md border border-border bg-card text-left shadow-[0_24px_80px_#0000000b]">
       <figcaption className="flex items-center justify-between border-b border-border bg-muted/40 px-5 py-3 text-[10px] text-muted-foreground">
         <span className="flex gap-1.5" aria-hidden>
-          <span className="size-2 rounded-full bg-border" />
-          <span className="size-2 rounded-full bg-border" />
-          <span className="size-2 rounded-full bg-primary" />
+          <span className="size-2 rounded-sm bg-border" />
+          <span className="size-2 rounded-sm bg-border" />
+          <span className="size-2 rounded-sm bg-primary" />
         </span>
         <span className="font-mono">Lumen / Example workspace</span>
         <span>v1.0</span>
@@ -18,7 +18,7 @@ export function ProductPreview({ compact = false }: { compact?: boolean; }) {
           <div className="mb-9 flex items-center gap-2 text-sm font-semibold">
             <CodeXml className="size-5" />Lumen.</div>
           <p className="eyebrow mb-3">Projects</p>
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-card px-3 py-2.5 text-xs font-medium">
+          <div className="mb-4 flex items-center gap-2 rounded-md bg-card px-3 py-2.5 text-xs font-medium">
             <Folder className="size-3.5" />Commerce</div>
           <div className="ml-3 space-y-4 border-l border-border pl-4 text-xs text-muted-foreground">
             <p>Authentication</p>
@@ -35,9 +35,9 @@ export function ProductPreview({ compact = false }: { compact?: boolean; }) {
               <h3 className="text-xl font-semibold tracking-tight">Products</h3>
               <p className="mt-1 text-xs text-muted-foreground">The catalog, clearly documented.</p>
             </div>
-            <span className="rounded-full bg-stash-green/10 px-2.5 py-1 text-[10px] text-stash-green">Active</span>
+            <span className="rounded-sm bg-stash-green/10 px-2.5 py-1 text-[10px] text-stash-green">Active</span>
           </div>
-          <div className="overflow-hidden rounded-xl border border-border">
+          <div className="overflow-hidden rounded-md border border-border">
             <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-3 text-xs font-medium">
               <Braces className="size-4 text-muted-foreground" />Endpoints<span className="ml-auto text-muted-foreground">3</span>
               <ChevronDown className="size-3" />
@@ -50,7 +50,7 @@ export function ProductPreview({ compact = false }: { compact?: boolean; }) {
               <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground" />
             </div>)}</div>
           <div className="mt-5 flex items-center gap-2 text-[10px] text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-stash-green" />A shared source of clarity.</div>
+            <span className="size-1.5 rounded-sm bg-stash-green" />A shared source of clarity.</div>
         </div>
       </div>
     </figure>

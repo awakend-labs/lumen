@@ -63,7 +63,7 @@ export function GlobalSearch() {
         variant="outline"
         size="sm"
         className={cn(
-          "h-9 w-full justify-start gap-2.5 rounded-lg border-border/50 px-3",
+          "h-9 w-full justify-start gap-2.5 rounded-sm border-border/50 px-3",
           "bg-muted/30 font-normal text-muted-foreground shadow-none",
           "hover:border-border/80 hover:bg-muted/50 hover:text-foreground",
           "dark:border-white/10 dark:bg-white/3 dark:hover:bg-white/6",
@@ -98,10 +98,10 @@ export function GlobalSearch() {
               value={input}
               onChange={(event) => setInput(event.target.value)}
               placeholder="Name, route, or tag…"
-              className="pl-9"
+              className="rounded-sm pl-9"
             />
           </div>
-          <div className="max-h-[60vh] overflow-y-auto rounded-lg border border-border/40 dark:border-white/5" aria-live="polite">
+          <div className="max-h-[60vh] overflow-y-auto rounded-md border border-border/40 dark:border-white/5" aria-live="polite">
             {input.trim().length < 2 ? (
               <p className="p-4 text-sm text-muted-foreground">Type at least two characters.</p>
             ) : waiting && visibleResults.length === 0 ? (

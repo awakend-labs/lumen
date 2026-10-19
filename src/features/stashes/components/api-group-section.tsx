@@ -47,7 +47,17 @@ export function ApiGroupControl({ projectId, stashId, group }: {
           pending={mutation.isPending} onConfirm={() => mutation.mutate("delete")}
           trigger={<DropdownMenuItem variant="destructive" onSelect={event => event.preventDefault()}>Delete group</DropdownMenuItem>} />
       </DropdownMenuGroup></DropdownMenuContent>
-    </DropdownMenu> : <Button variant="outline" size="sm" onClick={edit}><PlusIcon className="size-4 text-primary" />API group</Button>}
+    </DropdownMenu> : (
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-8 gap-1.5 rounded-sm px-3 shadow-none"
+        onClick={edit}
+      >
+        <PlusIcon className="size-3.5 text-primary" />
+        API group
+      </Button>
+    )}
     <Dialog open={open} onOpenChange={value => { if (!mutation.isPending) setOpen(value); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>{group ? "Rename API group" : "Create API group"}</DialogTitle>
@@ -68,14 +78,14 @@ export function ApiGroupSection({ id, name, count, actions, children, filtering 
   id?: string; name: string; count: number; actions?: ReactNode; children: ReactNode; filtering: boolean;
 }) {
   const [open, setOpen] = useState(true);
-  return <Collapsible id={id} open={filtering || open} onOpenChange={setOpen} className="min-w-0 scroll-mt-20 rounded-2xl border bg-muted/15">
+  return <Collapsible id={id} open={filtering || open} onOpenChange={setOpen} className="min-w-0 scroll-mt-20 rounded-md border bg-muted/15">
     <div className="flex items-center gap-2 px-3 py-2">
       <CollapsibleTrigger asChild>
-        <button type="button" className="flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2 text-left transition-colors hover:bg-muted/60 active:bg-muted focus-visible:outline-2 focus-visible:outline-ring" aria-label={`${open || filtering ? "Collapse" : "Expand"} ${name}`}>
+        <button type="button" className="flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 text-left transition-colors hover:bg-muted/60 active:bg-muted focus-visible:outline-2 focus-visible:outline-ring" aria-label={`${open || filtering ? "Collapse" : "Expand"} ${name}`}>
           <ChevronDownIcon className={`size-4 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none ${open || filtering ? "" : "-rotate-90"}`} />
           <FolderIcon className="size-4 shrink-0 text-primary" />
           <span className="min-w-0 break-words text-sm font-semibold">{name}</span>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground tabular-nums">{count}</span>
+          <span className="rounded-sm bg-muted px-2 py-0.5 text-xs text-muted-foreground tabular-nums">{count}</span>
         </button>
       </CollapsibleTrigger>
       {actions}

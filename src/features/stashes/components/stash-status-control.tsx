@@ -79,7 +79,7 @@ export function StashStatusControl({
         setStatus.mutate({ stashId, status: value as StashStatus });
       }}
       aria-label="Stash status"
-      className="flex-wrap rounded-full border border-border/70 bg-muted/30 p-0.5"
+      className="flex-wrap rounded-sm border border-border/70 bg-muted/30 p-0.5"
     >
       {OPTIONS.map((option) => {
         const Icon = option.icon;
@@ -88,7 +88,7 @@ export function StashStatusControl({
             key={option.value}
             value={option.value}
             aria-label={option.label}
-            className={cn("h-7 gap-1.5 rounded-full px-2.5 text-xs", option.on)}
+            className={cn("h-7 gap-1.5 rounded-sm px-2.5 text-xs", option.on)}
           >
             <Icon className="size-3.5" />
             {option.label}

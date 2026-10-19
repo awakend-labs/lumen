@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -166,43 +166,50 @@ export function ProjectSettings({
                 }),
               )}
             >
-              <FieldGroup>
-                <div className="grid gap-3 md:grid-cols-[1fr_180px_auto] md:items-end">
-                  <Field data-invalid={Boolean(form.formState.errors.email) || undefined}>
-                    <FieldLabel htmlFor="invite-email">Email</FieldLabel>
-                    <Input
-                      id="invite-email"
-                      type="email"
-                      aria-invalid={Boolean(form.formState.errors.email)}
-                      {...form.register("email")}
-                    />
-                    <FieldError errors={[form.formState.errors.email]} />
-                  </Field>
-                  <Field>
-                    <FieldLabel>Role</FieldLabel>
-                    <Select
-                      value={form.watch("role")}
-                      onValueChange={(value) =>
-                        form.setValue("role", value as InvitationInput["role"])
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectItem value="editor">Editor</SelectItem>
-                          <SelectItem value="viewer">Viewer</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  <Button type="submit" disabled={invite.isPending}>
-                    {invite.isPending ? <Spinner data-icon="inline-start" /> : null}
-                    Create link
-                  </Button>
-                </div>
-              </FieldGroup>
+              <div className="flex flex-col gap-3 md:flex-row md:items-end">
+                <Field
+                  className="min-w-0 flex-1"
+                  data-invalid={Boolean(form.formState.errors.email) || undefined}
+                >
+                  <FieldLabel htmlFor="invite-email">Email</FieldLabel>
+                  <Input
+                    id="invite-email"
+                    type="email"
+                    className="h-8 min-h-8 py-0 text-sm"
+                    aria-invalid={Boolean(form.formState.errors.email)}
+                    {...form.register("email")}
+                  />
+                  <FieldError errors={[form.formState.errors.email]} />
+                </Field>
+                <Field className="w-full shrink-0 md:w-40">
+                  <FieldLabel htmlFor="invite-role">Role</FieldLabel>
+                  <Select
+                    value={form.watch("role")}
+                    onValueChange={(value) =>
+                      form.setValue("role", value as InvitationInput["role"])
+                    }
+                  >
+                    <SelectTrigger id="invite-role" className="h-8 min-h-8 w-full py-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="editor">Editor</SelectItem>
+                        <SelectItem value="viewer">Viewer</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-8 w-full shrink-0 px-3 md:w-auto"
+                  disabled={invite.isPending}
+                >
+                  {invite.isPending ? <Spinner data-icon="inline-start" /> : null}
+                  Create link
+                </Button>
+              </div>
             </form>
 
             {created && invitations.data?.some(invitation => invitation.id === created.id) ? (
@@ -227,7 +234,7 @@ export function ProjectSettings({
               {invitations.data?.map((invitation) => (
                 <div
                   key={invitation.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2"
                 >
                   <div>
                     <p className="text-sm">{invitation.email}</p>

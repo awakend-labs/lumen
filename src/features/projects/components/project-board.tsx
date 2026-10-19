@@ -68,7 +68,7 @@ type ProjectFilter = "all" | ProjectStatus;
 type ProjectSort = "updated" | "name";
 type BoardView = "grid" | "list";
 
-const FILTER_OPTIONS: { value: ProjectFilter; label: string; }[] = [
+const FILTER_OPTIONS: { value: ProjectFilter; label: string }[] = [
   { value: "all", label: "All projects" },
   { value: "documented", label: "Documented" },
   { value: "in_progress", label: "In progress" },
@@ -117,17 +117,17 @@ export function ProjectBoard() {
   const totalCount = projects.data?.length ?? 0;
 
   return (
-    <div className="lumen-page flex flex-col gap-8">
+    <div className="lumen-page flex flex-col gap-5 pt-5 pb-10 md:gap-6 md:pt-6 md:pb-12">
       <div>
-        <p className="eyebrow mb-3">Your workspace / Overview</p>
+        <p className="eyebrow mb-1.5">Your workspace / Overview</p>
         <PageHeader
           title="Projects"
-          description="A clear view of everything you’re building."
+          description="Open a project to document endpoints, organize stashes, and share access with your team."
           badge={
             totalCount > 0 ? (
               <Badge
                 variant="outline"
-                className="gap-1.5 rounded-full border-primary/40 bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-foreground"
+                className="gap-1.5 rounded-sm border-primary/40 bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-foreground"
               >
                 {totalCount} {totalCount === 1 ? "project" : "projects"}
               </Badge>
@@ -142,7 +142,9 @@ export function ProjectBoard() {
         />
       </div>
 
-      {projects.data && projects.data.length > 0 ? <WorkspaceSummary projects={projects.data} /> : null}
+      {projects.data && projects.data.length > 0 ? (
+        <WorkspaceSummary projects={projects.data} />
+      ) : null}
 
       {projects.data && projects.data.length > 0 ? (
         <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
@@ -153,7 +155,12 @@ export function ProjectBoard() {
                 type="button"
                 size="sm"
                 variant={filter === value ? "secondary" : "ghost"}
-                className={cn("h-9 gap-2 rounded-none border-x-0 border-t-0 border-b-2 px-3 text-xs font-medium", filter === value ? "border-primary bg-transparent shadow-none hover:bg-muted/50" : "border-transparent")}
+                className={cn(
+                  "h-9 gap-2 rounded-none border-x-0 border-t-0 border-b-2 px-3 text-xs font-medium",
+                  filter === value
+                    ? "border-primary bg-transparent shadow-none hover:bg-muted/50"
+                    : "border-transparent",
+                )}
                 onClick={() => setFilter(value)}
                 aria-pressed={filter === value}
               >
@@ -164,7 +171,7 @@ export function ProjectBoard() {
                   <Hourglass className="size-3.5 text-stash-amber" />
                 ) : null}
                 {label}
-                <span className="rounded-full bg-background/70 px-1.5 text-[10px] text-muted-foreground tabular-nums">
+                <span className="rounded-sm bg-background/70 px-1.5 text-[10px] text-muted-foreground tabular-nums">
                   {counts[value]}
                 </span>
               </Button>
@@ -172,12 +179,12 @@ export function ProjectBoard() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative min-w-48 flex-1 sm:min-w-64 sm:max-w-sm xl:min-w-72">
-              <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+              <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Filter projects..."
-                className="h-9 bg-background pl-8"
+                className="h-8 min-h-8 rounded-sm bg-background py-0 pl-8 text-sm"
                 aria-label="Filter projects"
               />
             </div>
@@ -187,17 +194,23 @@ export function ProjectBoard() {
             >
               <SelectTrigger
                 aria-label="Sort projects"
-                className="h-9 w-auto min-w-44 gap-2 bg-background pr-2.5 pl-3 text-sm dark:bg-white/3"
+                className="h-8 min-h-8 w-auto min-w-44 gap-2 bg-background py-0 pr-2.5 pl-3 text-sm dark:bg-white/3"
               >
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent align="end">
                 <SelectItem value="updated">
-                  <Clock className="size-3.5 text-muted-foreground" aria-hidden />
+                  <Clock
+                    className="size-3.5 text-muted-foreground"
+                    aria-hidden
+                  />
                   Last updated
                 </SelectItem>
                 <SelectItem value="name">
-                  <ArrowUpDownIcon className="size-3.5 text-muted-foreground" aria-hidden />
+                  <ArrowUpDownIcon
+                    className="size-3.5 text-muted-foreground"
+                    aria-hidden
+                  />
                   Name (A–Z)
                 </SelectItem>
               </SelectContent>
@@ -221,9 +234,9 @@ export function ProjectBoard() {
       ) : null}
 
       {projects.isLoading ? (
-        <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,21rem),1fr))]">
           {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-64 rounded-xl" />
+            <Skeleton key={index} className="h-52 rounded-md" />
           ))}
         </div>
       ) : null}
@@ -256,8 +269,8 @@ export function ProjectBoard() {
       ) : null}
 
       {projects.data &&
-        projects.data.length > 0 &&
-        filteredProjects.length === 0 ? (
+      projects.data.length > 0 &&
+      filteredProjects.length === 0 ? (
         <Empty className="min-h-48 border border-dashed">
           <EmptyHeader>
             <EmptyTitle>No projects match</EmptyTitle>
@@ -282,9 +295,9 @@ export function ProjectBoard() {
       {filteredProjects.length > 0 ? (
         <div
           className={cn(
-            "gap-4",
+            "gap-3",
             view === "grid"
-              ? "grid items-stretch [grid-template-columns:repeat(auto-fill,minmax(min(100%,19rem),1fr))]"
+              ? "grid items-stretch [grid-template-columns:repeat(auto-fill,minmax(min(100%,21rem),1fr))]"
               : "flex flex-col",
           )}
         >
@@ -368,12 +381,13 @@ function CreateProjectCard({
       onClick={onCreate}
       className={cn(
         "create-tile group col-span-full flex w-full cursor-pointer items-center gap-4 px-5 py-4 text-left transition-colors",
+        view === "grid" && "mt-2",
         view === "list" && "min-h-0 flex-row justify-start px-5 py-4 text-left",
       )}
     >
       <span
         className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground",
+          "flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground",
           view === "list" && "size-9 shrink-0",
         )}
       >
@@ -433,25 +447,28 @@ function ProjectCard({
           }
         }}
         className={cn(
-          "project-card group relative h-full cursor-pointer gap-0 overflow-hidden py-0 transition-[border-color,box-shadow] duration-200 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+          "project-card group relative h-full cursor-pointer gap-0 overflow-hidden rounded-md py-0 transition-[border-color,box-shadow] duration-200 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
           view === "list" && "flex flex-row items-stretch",
         )}
       >
-        <div className="flex min-w-0 flex-1 flex-col gap-4 p-5">
-          <div className="flex items-start gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 p-4">
+          <div className="flex items-start gap-2.5">
             <span
               className={cn(
-                "flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-foreground",
+                "flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-foreground",
               )}
               aria-hidden
             >
-              <Braces className="size-5" />
+              <Braces className="size-4" />
             </span>
-            <div className="min-w-0 flex-1 pt-0.5">
-              <CardTitle className="truncate text-base leading-tight">
+            <div className="min-w-0 flex-1">
+              <CardTitle className="truncate text-sm leading-tight">
                 {project.name}
               </CardTitle>
-              <CompactMarkdown className="mt-1 max-h-24 overflow-y-auto" content={project.description || "No description yet."} />
+              <CompactMarkdown
+                className="mt-0.5 max-h-[4.5rem] overflow-y-auto text-[13px] leading-snug"
+                content={project.description || "No description yet."}
+              />
             </div>
             {canManageProject(project.role) ? (
               <div
@@ -471,7 +488,9 @@ function ProjectCard({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuGroup>
-                      <DropdownMenuItem onSelect={() => setRenaming(true)}>Rename</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setRenaming(true)}>
+                        Rename
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
                       <ConfirmDelete
                         title="Delete project?"
@@ -494,7 +513,7 @@ function ProjectCard({
             ) : null}
           </div>
 
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-3">
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <Layers className="size-3.5 text-muted-foreground" />
               <span className="font-medium text-foreground">
@@ -502,7 +521,7 @@ function ProjectCard({
               </span>
               {stashLabel}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-transparent py-1 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-sm bg-transparent py-1 text-xs text-muted-foreground">
               <Route className="size-3.5 text-muted-foreground" />
               <span className="font-medium text-foreground">
                 {project.endpointCount}
@@ -512,18 +531,37 @@ function ProjectCard({
           </div>
 
           {view === "grid" && project.previewStashes.length > 0 ? (
-            <div role="group" aria-label="Latest stashes" className="space-y-2 rounded-lg bg-background p-3">
+            <div
+              role="group"
+              aria-label="Latest stashes"
+              className="space-y-1.5 rounded-md bg-background p-2"
+            >
               {project.previewStashes.map((stash) => (
                 <div key={stash.id} className="flex min-w-0 items-center gap-2">
-                  <span aria-hidden className={cn("size-2 shrink-0 rounded-full", stashDotClass(stash.color))} />
-                  <span className="truncate text-xs text-muted-foreground">{stash.name}</span>
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "size-2 shrink-0 rounded-sm",
+                      stashDotClass(stash.color),
+                    )}
+                  />
+                  <span className="truncate text-xs text-muted-foreground">
+                    {stash.name}
+                  </span>
                 </div>
               ))}
             </div>
           ) : null}
-          <div className="mt-auto flex items-center justify-between border-t border-border/50 pt-3">
+          <div className="mt-auto flex items-center justify-between border-t border-border/50 pt-2.5">
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className={cn("size-1.5 rounded-full", project.status === "documented" ? "bg-stash-green" : "bg-primary")} />
+              <span
+                className={cn(
+                  "size-1.5 rounded-sm",
+                  project.status === "documented"
+                    ? "bg-stash-green"
+                    : "bg-primary",
+                )}
+              />
               {formatUpdatedLabel(project.updatedAt)}
             </span>
             <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground">
@@ -533,19 +571,58 @@ function ProjectCard({
           </div>
         </div>
       </Card>
-      <RenameDialog kind="project" projectId={project.id} name={project.name} open={renaming} onOpenChange={setRenaming} />
+      <RenameDialog
+        kind="project"
+        projectId={project.id}
+        name={project.name}
+        open={renaming}
+        onOpenChange={setRenaming}
+      />
     </motion.div>
   );
 }
 
-function WorkspaceSummary({ projects }: { projects: ProjectListItem[]; }) {
-  const endpoints = projects.reduce((sum, project) => sum + project.endpointCount, 0);
-  const documented = projects.filter((project) => project.status === "documented").length;
-  return <section aria-label="Workspace overview" className="grid grid-cols-3 gap-4 border-y border-border py-6 sm:gap-8">{[{ label: "Projects", value: projects.length, note: "In your workspace" }, { label: "Endpoints", value: endpoints, note: "Details worth documenting" }, { label: "Documented", value: documented, note: "Projects marked complete" }].map(({ label, value, note }) =>
-    <div key={label} className="min-w-0">
-      <p className="eyebrow text-[9px] sm:text-[10px]">{label}</p>
-      <p className="mt-2 text-3xl font-medium tracking-[-0.06em] tabular-nums sm:text-4xl">{String(value).padStart(2, "0")}<span className="ml-1 text-primary">.</span>
-      </p>
-      <p className="mt-1 hidden text-xs text-muted-foreground sm:block">{note}</p>
-    </div>)}</section>;
+function WorkspaceSummary({ projects }: { projects: ProjectListItem[] }) {
+  const endpoints = projects.reduce(
+    (sum, project) => sum + project.endpointCount,
+    0,
+  );
+  const documented = projects.filter(
+    (project) => project.status === "documented",
+  ).length;
+  return (
+    <section
+      aria-label="Workspace overview"
+      className="grid grid-cols-3 gap-3 border-y border-border py-4 sm:gap-5"
+    >
+      {[
+        {
+          label: "Projects",
+          value: projects.length,
+          note: "In your workspace",
+        },
+        {
+          label: "Endpoints",
+          value: endpoints,
+          note: "Details worth documenting",
+        },
+        {
+          label: "Documented",
+          value: documented,
+          note: "Projects marked complete",
+        },
+      ].map(({ label, value, note }) => (
+        <div key={label} className="min-w-0">
+          <p className="eyebrow text-[9px] sm:text-[10px]">{label}</p>
+          <p className="mt-1 text-2xl font-medium tracking-[-0.06em] tabular-nums sm:text-[1.75rem]">
+            {String(value).padStart(2, "0")}
+            <span className="ml-1 text-primary">.</span>
+          </p>
+          <p className="mt-0.5 hidden text-xs text-muted-foreground sm:block">
+            {note}
+          </p>
+        </div>
+      ))}
+    </section>
+  );
 }

@@ -111,14 +111,14 @@ function StashView({
       <div className="flex flex-col items-start justify-between gap-5 xl:flex-row xl:items-end">
         <div className="flex w-full min-w-0 max-w-2xl flex-1 flex-col gap-2 xl:w-auto">
           <div className="flex items-center gap-2.5">
-            <span className={cn("size-2.5 shrink-0 rounded-full", stashDotClass(stash.color))} />
+            <span className={cn("size-2.5 shrink-0 rounded-sm", stashDotClass(stash.color))} />
             <h1 className="truncate text-3xl font-semibold tracking-[-0.04em]">{stash.name}</h1>
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground">
             {stash.description || "Endpoints documented in this stash."}
           </p>
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-sm bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground">
               <Route className="size-3.5 text-primary" />
               <span className="font-medium text-foreground">{endpointCount}</span>
               {endpointCount === 1 ? "endpoint" : "endpoints"}

@@ -73,10 +73,10 @@ export function AuthForm({ mode }: { mode: "login" | "signup"; }) {
           <LumenMark /><span className="text-xl font-semibold tracking-[-0.04em]">Lumen.</span>
         </Link>
         <div className="relative my-8 w-full max-w-md self-center">
-          <p className="eyebrow mb-5 flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary" />A shared source of clarity</p>
+          <p className="eyebrow mb-5 flex items-center gap-2"><span className="size-1.5 rounded-sm bg-primary" />A shared source of clarity</p>
           <h2 className="text-[clamp(2.75rem,4.1vw,4rem)] leading-[1.04] font-semibold tracking-[-0.06em]">Less guesswork.<br />More good work<span className="text-primary">.</span></h2>
           <p className="mt-5 max-w-sm text-sm leading-7 text-muted-foreground">A considered home for your APIs, and the people who build with them.</p>
-          <figure aria-label="Example endpoint documentation" className="auth-doc-preview mt-8 overflow-hidden rounded-2xl border border-border bg-card shadow-[0_12px_40px_#00000006]">
+          <figure aria-label="Example endpoint documentation" className="auth-doc-preview mt-8 overflow-hidden rounded-md border border-border bg-card shadow-[0_12px_40px_#00000006]">
             <figcaption className="flex items-center justify-between border-b border-border px-5 py-3"><span className="eyebrow text-[9px]">Commerce API / Products</span><BracesIcon className="size-3.5 text-muted-foreground" /></figcaption>
             <div className="px-5 py-5"><div className="flex items-center gap-3"><span className="rounded-md bg-method-get/10 px-2 py-1 font-mono text-[10px] font-semibold text-method-get">GET</span><code className="font-mono text-xs">/v1/products</code><span className="ml-auto flex items-center gap-1 text-[10px] text-stash-green"><CircleCheckIcon className="size-3" />200</span></div><p className="mt-3 text-xs text-muted-foreground">Every route. Every detail. All in one place.</p></div>
             <div className="flex items-center gap-5 border-t border-border px-5 py-3 font-mono text-[9px] text-muted-foreground"><span>Headers</span><span>Parameters</span><span>Responses</span></div>
@@ -92,7 +92,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup"; }) {
         </header>
         <div className="flex flex-1 flex-col items-center justify-center py-6 sm:py-8 lg:py-4">
           <div className="w-full max-w-[26rem]">
-            <div className="auth-card rounded-3xl border border-border bg-card p-6 shadow-[0_8px_40px_#00000005] sm:p-8">
+            <div className="auth-card rounded-md border border-border bg-card p-6 shadow-[0_8px_40px_#00000005] sm:p-8">
               <div className="mb-6">
                 <p className="eyebrow mb-3 flex items-center gap-2"><span className="h-px w-5 bg-primary" />{isSignup ? "Your next chapter" : "Your workspace awaits"}</p>
                 <h1 className="text-[1.875rem] leading-tight font-semibold tracking-[-0.05em]">{isSignup ? "Create your account" : "Welcome back"}<span className="text-primary">.</span></h1>
@@ -113,11 +113,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup"; }) {
                   </Field>
                   <Field data-invalid={Boolean(form.formState.errors.password) || undefined} className="gap-2">
                     <FieldLabel htmlFor="password" className="text-xs font-medium">Password</FieldLabel>
-                    <div className="relative"><LockKeyholeIcon aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground/70" /><Input id="password" type={showPassword ? "text" : "password"} autoComplete={isSignup ? "new-password" : "current-password"} placeholder={isSignup ? "At least 8 characters" : "Enter your password"} className="h-11 bg-background/60 pr-11 pl-10 dark:bg-background/35" disabled={pending} aria-invalid={Boolean(form.formState.errors.password)} {...form.register("password")} /><button type="button" className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-muted-foreground transition-colors hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} aria-controls="password" onClick={() => setShowPassword(value => !value)} disabled={pending}>{showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}</button></div>
+                    <div className="relative"><LockKeyholeIcon aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground/70" /><Input id="password" type={showPassword ? "text" : "password"} autoComplete={isSignup ? "new-password" : "current-password"} placeholder={isSignup ? "At least 8 characters" : "Enter your password"} className="h-11 bg-background/60 pr-11 pl-10 dark:bg-background/35" disabled={pending} aria-invalid={Boolean(form.formState.errors.password)} {...form.register("password")} /><button type="button" className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-sm text-muted-foreground transition-colors hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} aria-controls="password" onClick={() => setShowPassword(value => !value)} disabled={pending}>{showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}</button></div>
                     <FieldError errors={[form.formState.errors.password]} />
                   </Field>
                 </FieldGroup>
-                {authError && <p role="alert" className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-xs leading-5 text-destructive">{authError}</p>}
+                {authError && <p role="alert" className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-xs leading-5 text-destructive">{authError}</p>}
                 <Button type="submit" size="lg" className="h-11 w-full justify-between px-4" disabled={pending}><span>{pending ? (isSignup ? "Creating account…" : "Signing in…") : (isSignup ? "Create account" : "Sign in")}</span>{pending ? <Spinner /> : <ArrowRightIcon className="size-4" />}</Button>
                 </fieldset>
               </form>

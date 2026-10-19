@@ -6,9 +6,9 @@ export default function Loading() {
       <Skeleton className="h-8 w-48" />
       <Skeleton className="h-4 w-72" />
       <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
-        <Skeleton className="h-44 rounded-xl" />
-        <Skeleton className="h-44 rounded-xl" />
-        <Skeleton className="h-44 rounded-xl" />
+        <Skeleton className="h-44 rounded-md" />
+        <Skeleton className="h-44 rounded-md" />
+        <Skeleton className="h-44 rounded-md" />
       </div>
     </div>
   );
