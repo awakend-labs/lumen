@@ -177,27 +177,15 @@ const endpointFormSchema = z.object({
       used.add(response.statusCode);
     });
   }),
-  tags: z.preprocess(
-    (val) => {
-      if (Array.isArray(val)) return val.map(String);
-      if (typeof val === "string") {
-        return val
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean);
-      }
-      return [];
-    },
-    z
-      .array(
-        z
-          .string()
-          .trim()
-          .min(1, "Tag cannot be empty")
-          .max(40, "Tag is too long"),
-      )
-      .max(5, "You can add up to 5 tags"),
-  ),
+  tags: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(1, "Tag cannot be empty")
+        .max(40, "Tag is too long"),
+    )
+    .max(5, "You can add up to 5 tags"),
   version: z
     .string()
     .trim()
@@ -208,6 +196,19 @@ const endpointFormSchema = z.object({
 });
 
 type EndpointFormValues = z.infer<typeof endpointFormSchema>;
+
+function normalizeTagsForForm(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map(String).map((tag) => tag.trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
 
 const endpointDraftFormSchema = endpointFormSchema.extend({
   baseUrl: z.string(),
@@ -224,6 +225,14 @@ const endpointDraftFormSchema = endpointFormSchema.extend({
     }),
   ),
 });
+
+function parseEndpointDraftPayload(payload: string) {
+  const parsed = JSON.parse(payload) as Record<string, unknown>;
+  return endpointDraftFormSchema.parse({
+    ...parsed,
+    tags: normalizeTagsForForm(parsed.tags),
+  });
+}
 
 const emptyParam = {
   type: "string" as const,
@@ -454,7 +463,7 @@ export function EndpointForm({
       : `new:${fixedStashId}${duplicateFrom ? `:${duplicateFrom.id}` : ""}`,
     form,
     (payload) => ({
-      ...endpointDraftFormSchema.parse(JSON.parse(payload)),
+      ...parseEndpointDraftPayload(payload),
       stashId: fixedStashId,
     }),
   );
