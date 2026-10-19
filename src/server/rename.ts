@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { endpoints, projects, stashes } from "@/db/schema";
 import { requireEditor, requireOwner, touchProject } from "./access";
 import { HttpError } from "./http";
+import { assertStashNameAvailable } from "./stashes";
 
 export async function renameProject(userId: string, projectId: string, name: string) {
   await requireOwner(userId, projectId);
@@ -16,6 +17,7 @@ export async function renameProject(userId: string, projectId: string, name: str
 
 export async function renameStash(userId: string, projectId: string, stashId: string, name: string) {
   await requireEditor(userId, projectId);
+  await assertStashNameAvailable(projectId, name, stashId);
   const [record] = await db.update(stashes)
     .set({ name, updatedAt: new Date() })
     .where(and(eq(stashes.id, stashId), eq(stashes.projectId, projectId)))

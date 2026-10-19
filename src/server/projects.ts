@@ -1,6 +1,6 @@
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { apiGroups, endpoints, projectMembers, projects, stashes } from "@/db/schema";
+import { apiGroups, endpointDrafts, endpoints, projectMembers, projects, stashes } from "@/db/schema";
 import { validateGroup } from "./api-groups";
 import { slugify } from "@/lib/slug";
 import type {
@@ -12,8 +12,13 @@ import type {
   StashRecord,
 } from "@/lib/types";
 import type { EndpointInput, ProjectInput } from "@/lib/validators";
-import { requireEditor, requireOwner, requireReader, touchProject } from "./access";
+import { requireEditor, requireOwner, touchProject } from "./access";
 import { HttpError } from "./http";
+
+function savedDraftCleanup(userId: string, projectId: string, draft: NonNullable<EndpointInput["draft"]>) {
+  return db.update(endpointDrafts).set({ payload: null, revision: crypto.randomUUID(), writeOrder: 0, updatedAt: new Date() })
+    .where(and(eq(endpointDrafts.userId, userId), eq(endpointDrafts.projectId, projectId), eq(endpointDrafts.key, draft.key), eq(endpointDrafts.revision, draft.revision)));
+}
 
 async function uniqueSlug(name: string) {
   const base = slugify(name);
@@ -151,10 +156,10 @@ export async function getProjectDetail(
   userId: string,
   projectId: string,
 ): Promise<ProjectDetail> {
-  const member = await requireReader(userId, projectId);
   const [project] = await db
-    .select()
+    .select({ ...getTableColumns(projects), role: projectMembers.role })
     .from(projects)
+    .innerJoin(projectMembers, and(eq(projectMembers.projectId, projects.id), eq(projectMembers.userId, userId)))
     .where(eq(projects.id, projectId))
     .limit(1);
   if (!project) throw new HttpError(404, "Project not found");
@@ -199,7 +204,7 @@ export async function getProjectDetail(
     name: project.name,
     description: project.description,
     slug: project.slug,
-    role: member.role,
+    role: project.role,
     status: project.status,
     auth: project.auth,
     createdAt: project.createdAt.toISOString(),
@@ -290,7 +295,7 @@ export async function createEndpoint(
       isDeprecated: input.isDeprecated,
       order: sql`(select coalesce(max(sort_order), -1) + 1 from endpoints where stash_id = ${input.stashId})`,
     })
-    .returning(), db.update(projects).set({ updatedAt: new Date() }).where(eq(projects.id, projectId))]);
+    .returning(), db.update(projects).set({ updatedAt: new Date() }).where(eq(projects.id, projectId)), ...(input.draft ? [savedDraftCleanup(userId, projectId, input.draft)] : [])]);
 
   if (!created) throw new HttpError(500, "Could not create the endpoint");
   return toEndpoint(created);
@@ -301,16 +306,17 @@ export async function getEndpoint(
   projectId: string,
   endpointId: string,
 ) {
-  const member = await requireReader(userId, projectId);
   const [row] = await db
-    .select()
+    .select({ ...getTableColumns(endpoints), role: projectMembers.role })
     .from(endpoints)
-    .where(eq(endpoints.id, endpointId))
+    .innerJoin(projectMembers, and(eq(projectMembers.projectId, endpoints.projectId), eq(projectMembers.userId, userId)))
+    .where(and(eq(endpoints.id, endpointId), eq(endpoints.projectId, projectId)))
     .limit(1);
   if (!row || row.projectId !== projectId) {
     throw new HttpError(404, "Endpoint not found");
   }
-  return { endpoint: toEndpoint(row), role: member.role };
+  const { role, ...endpoint } = row;
+  return { endpoint: toEndpoint(endpoint), role };
 }
 
 export async function updateEndpoint(
@@ -320,7 +326,8 @@ export async function updateEndpoint(
   input: EndpointInput,
 ) {
   await requireEditor(userId, projectId);
-  const { endpoint: existing } = await getEndpoint(userId, projectId, endpointId);
+  const [existing] = await db.select({ stashId: endpoints.stashId }).from(endpoints).where(and(eq(endpoints.id, endpointId), eq(endpoints.projectId, projectId))).limit(1);
+  if (!existing) throw new HttpError(404, "Endpoint not found");
   if (input.groupId !== undefined && existing.stashId !== input.stashId) {
     throw new HttpError(409, "This endpoint moved to another stash. Reload before changing its group.");
   }
@@ -346,7 +353,7 @@ export async function updateEndpoint(
       updatedAt: new Date(),
     })
     .where(and(eq(endpoints.id, endpointId), eq(endpoints.projectId, projectId)))
-    .returning(), db.update(projects).set({ updatedAt: new Date() }).where(eq(projects.id, projectId))]);
+    .returning(), db.update(projects).set({ updatedAt: new Date() }).where(eq(projects.id, projectId)), ...(input.draft ? [savedDraftCleanup(userId, projectId, input.draft)] : [])]);
 
   if (!updated || updated.projectId !== projectId) {
     throw new HttpError(404, "Endpoint not found");

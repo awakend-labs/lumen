@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { endpoints, stashes } from "@/db/schema";
 import type { StashStatus } from "@/lib/types";
@@ -6,12 +6,19 @@ import type { StashInput } from "@/lib/validators";
 import { requireEditor, touchProject } from "./access";
 import { HttpError } from "./http";
 
+export async function assertStashNameAvailable(projectId: string, name: string, exceptId?: string) {
+  const [existing] = await db.select({ id: stashes.id }).from(stashes)
+    .where(and(eq(stashes.projectId, projectId), sql`lower(btrim(${stashes.name})) = ${name.trim().toLowerCase()}`, exceptId ? ne(stashes.id, exceptId) : undefined)).limit(1);
+  if (existing) throw new HttpError(409, "A stash with this name already exists in this project. Choose a different name.");
+}
+
 export async function createStash(
   userId: string,
   projectId: string,
   input: StashInput,
 ) {
   await requireEditor(userId, projectId);
+  await assertStashNameAvailable(projectId, input.name);
   const [last] = await db
     .select({ order: stashes.order })
     .from(stashes)
@@ -43,6 +50,7 @@ export async function updateStash(
   input: StashInput,
 ) {
   await requireEditor(userId, projectId);
+  await assertStashNameAvailable(projectId, input.name, stashId);
   const [updated] = await db
     .update(stashes)
     .set({

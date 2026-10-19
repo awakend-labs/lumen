@@ -22,7 +22,18 @@ db.batch = async queries => { const result = []; for (const query of queries) re
 
 test('migrations, endpoint scope/uniqueness, search, auth, invitations, and status persist in PostgreSQL', async () => {
   const dir = path.resolve(__dirname, '../drizzle');
-  for (const file of fs.readdirSync(dir).filter(file => file.endsWith('.sql')).sort()) await pg.exec(fs.readFileSync(path.join(dir, file), 'utf8'));
+  for (const file of fs.readdirSync(dir).filter(file => file.endsWith('.sql')).sort()) {
+    if (file === '0007_odd_rhino.sql') {
+      await pg.exec(`insert into "user" (id,name,email) values ('migration-user','Migration check','migration@example.com');
+        insert into projects (id,name,slug,owner_id) values ('00000000-0000-4000-8000-000000000001','Migration check','migration-check','migration-user');
+        insert into stashes (project_id,name) values ('00000000-0000-4000-8000-000000000001','Temp'), ('00000000-0000-4000-8000-000000000001','temp'), ('00000000-0000-4000-8000-000000000001','Temp (2)');`);
+    }
+    await pg.exec(fs.readFileSync(path.join(dir, file), 'utf8'));
+  }
+  const migratedNames = (await pg.query("select name from stashes where project_id = '00000000-0000-4000-8000-000000000001'")).rows.map(row => row.name.toLowerCase());
+  assert.equal(migratedNames.length, 3); assert.equal(new Set(migratedNames).size, 3);
+  assert.ok(migratedNames.includes('temp (2)')); assert.ok(migratedNames.includes('temp (3)'));
+  await pg.exec("delete from projects where id = '00000000-0000-4000-8000-000000000001'; delete from \"user\" where id = 'migration-user';");
   await pg.exec(`insert into "user" (id,name,email) values ('owner','Owner','owner@example.com'), ('other','Other','other@example.com'), ('viewer','Viewer','viewer@example.com')`);
   const service = require('../src/server/projects.ts');
   const stashService = require('../src/server/stashes.ts');
@@ -275,5 +286,43 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   await assert.rejects(ProjectLayout({ ...pageProps, params: Promise.resolve({ projectId: 'invalid' }) }), is404);
   testUser = null;
   await assert.rejects(ProjectLayout(pageProps), error => error.digest?.startsWith('NEXT_REDIRECT;') && error.digest.includes('/login?callbackUrl='));
+  // Stash names are unique within a project, including case/whitespace variants.
+  const named = await stashService.createStash('owner', a.id, { name: 'Temp', description: '', color: 'blue' });
+  await assert.rejects(stashService.createStash('owner', a.id, { name: ' temp ', description: '', color: 'blue' }), /already exists/);
+  await assert.rejects(stashService.updateStash('owner', a.id, secondStash.id, { name: 'TEMP', description: '', color: 'blue' }), /already exists/);
+  await assert.rejects(pg.query('insert into stashes (project_id, name) values ($1, $2)', [a.id, 'temp']), error => error.code === '23505');
+  await stashService.createStash('other', b.id, { name: 'Temp', description: '', color: 'blue' });
+  // Base URL paths and JSON insertion order survive a full database round trip.
+  const ordered = { password: 'example', email: 'example', role: 'member' };
+  const orderedSchema = { type: 'object', properties: { password: { type: 'string' }, email: { type: 'string' }, role: { type: 'string' } } };
+  const storedInput = endpointInputSchema.parse({ ...input, pathParams: [], stashId: named.id, name: 'Ordered payload', path: '/ordered', baseUrl: 'https://api.shopkart.dev/v1', requestBody: { contentType: 'application/json', example: ordered, schema: orderedSchema }, responses: [{ statusCode: 201, description: 'Created', body: ordered, schema: orderedSchema }] });
+  const stored = await service.createEndpoint('owner', a.id, storedInput);
+  const roundTrip = (await service.getEndpoint('owner', a.id, stored.id)).endpoint;
+  assert.equal(roundTrip.baseUrl, 'https://api.shopkart.dev/v1');
+  for (const object of [roundTrip.requestBody.example, roundTrip.requestBody.schema.properties, roundTrip.responses[0].body, roundTrip.responses[0].schema.properties]) assert.deepEqual(Object.keys(object), ['password', 'email', 'role']);
+  // Drafts recover incomplete input, belong to one editor, and reject late writes after publishing/discard.
+  const drafts = require('../src/server/endpoint-drafts.ts');
+  const key = `new:${named.id}`;
+  const token = await drafts.getEndpointDraft('owner', a.id, key);
+  const payload = JSON.stringify({ name: '', baseUrl: 'https://api.shopkart.dev/v1', requestSchema: '{ incomplete' });
+  await drafts.saveEndpointDraft('owner', a.id, key, { revision: token.revision, writeOrder: 2, payload });
+  assert.equal((await drafts.getEndpointDraft('owner', a.id, key)).payload, payload);
+  await assert.rejects(drafts.saveEndpointDraft('owner', a.id, key, { revision: token.revision, writeOrder: 1, payload: '{}' }), /changed in another tab/);
+  assert.equal((await drafts.getEndpointDraft('other', a.id, key)).payload, null);
+  await assert.rejects(drafts.saveEndpointDraft('other', a.id, key, { revision: token.revision, writeOrder: 3, payload: '{}' }), /changed in another tab/);
+  await assert.rejects(drafts.getEndpointDraft('viewer', a.id, key), /permission/);
+  await assert.rejects(drafts.getEndpointDraft('owner', a.id, `new:${otherStash.id}`), /not found/);
+  await service.createEndpoint('owner', a.id, { ...storedInput, name: 'Published draft', path: '/published', draft: { key, revision: token.revision } });
+  const cleared = await drafts.getEndpointDraft('owner', a.id, key);
+  assert.equal(cleared.payload, null); assert.notEqual(cleared.revision, token.revision);
+  await assert.rejects(drafts.saveEndpointDraft('owner', a.id, key, { revision: token.revision, writeOrder: 4, payload }), /changed in another tab/);
+  await drafts.saveEndpointDraft('owner', a.id, key, { revision: cleared.revision, writeOrder: 1, payload });
+  await drafts.clearEndpointDraft('owner', a.id, key, cleared.revision);
+  await assert.rejects(drafts.saveEndpointDraft('owner', a.id, key, { revision: cleared.revision, writeOrder: 2, payload }), /changed in another tab/);
+  const editKey = `endpoint:${stored.id}`;
+  const editToken = await drafts.getEndpointDraft('owner', a.id, editKey);
+  await drafts.saveEndpointDraft('owner', a.id, editKey, { revision: editToken.revision, writeOrder: 1, payload });
+  await service.updateEndpoint('owner', a.id, stored.id, { ...storedInput, draft: { key: editKey, revision: editToken.revision } });
+  assert.equal((await drafts.getEndpointDraft('owner', a.id, editKey)).payload, null);
   await pg.close();
 });

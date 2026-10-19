@@ -4,6 +4,7 @@ import {
   foreignKey,
   index,
   integer,
+  json,
   jsonb,
   pgEnum,
   pgTable,
@@ -97,7 +98,10 @@ export const stashes = pgTable(
     order: integer("sort_order").notNull().default(0),
     ...timestamps,
   },
-  (table) => [index("stashes_project_order_idx").on(table.projectId, table.order)],
+  (table) => [
+    index("stashes_project_order_idx").on(table.projectId, table.order),
+    uniqueIndex("stashes_project_name_uidx").on(table.projectId, sql`lower(btrim(${table.name}))`),
+  ],
 );
 
 export const apiGroups = pgTable("api_groups", {
@@ -129,8 +133,8 @@ export const endpoints = pgTable(
     headers: jsonb("headers").$type<ParamField[]>().notNull().default([]),
     queryParams: jsonb("query_params").$type<ParamField[]>().notNull().default([]),
     pathParams: jsonb("path_params").$type<ParamField[]>().notNull().default([]),
-    requestBody: jsonb("request_body").$type<RequestBodyDoc>(),
-    responses: jsonb("responses").$type<ResponseDoc[]>().notNull().default([]),
+    requestBody: json("request_body").$type<RequestBodyDoc>(),
+    responses: json("responses").$type<ResponseDoc[]>().notNull().default([]),
     tags: text("tags").array().notNull().default([]),
     version: text("version").notNull().default("v1"),
     access: text("access").$type<"public" | "authenticated" | "admin_only">().notNull().default("public"),
@@ -147,6 +151,17 @@ export const endpoints = pgTable(
     index("endpoints_stash_order_idx").on(table.stashId, table.order),
   ],
 );
+
+export const endpointDrafts = pgTable("endpoint_drafts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  key: text("draft_key").notNull(),
+  payload: text("payload"),
+  revision: uuid("revision").defaultRandom().notNull(),
+  writeOrder: integer("write_order").notNull().default(0),
+  ...timestamps,
+}, table => [uniqueIndex("endpoint_drafts_user_project_key_uidx").on(table.userId, table.projectId, table.key)]);
 
 export const projectMembers = pgTable(
   "project_members",

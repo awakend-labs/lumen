@@ -20,6 +20,7 @@ import { useCreateStash } from "@/features/stashes/queries";
 import { canEditContent } from "@/lib/permissions";
 import { accentFor } from "@/lib/project-accent";
 import { cn } from "@/lib/utils";
+import { CompactMarkdown } from "@/components/compact-markdown";
 
 export default function ProjectPage({
   params,
@@ -60,9 +61,7 @@ function ProjectView({ projectId }: { projectId: string }) {
           <div className="flex flex-col items-start justify-between gap-5 xl:flex-row xl:items-end">
             <div className="flex w-full min-w-0 max-w-2xl flex-1 flex-col gap-2 xl:w-auto">
               <div className="flex min-w-0 items-center gap-2"><h1 className="min-w-0 break-words text-3xl font-semibold tracking-[-0.04em]">{project.name}</h1></div>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                {project.description || "No description yet."}
-              </p>
+              <CompactMarkdown content={project.description || "No description yet."} />
               <div className="flex flex-wrap items-center gap-2 pt-1">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground">
                   <Layers className={cn("size-3.5", accent.icon)} />

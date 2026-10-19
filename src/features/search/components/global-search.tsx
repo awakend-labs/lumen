@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,16 +15,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { searchCachedWorkspace } from "@/lib/workspace-search";
+import type { ProjectDetail, ProjectListItem } from "@/lib/types";
 
 type Result = { id: string; kind: string; title: string; context: string; href: string; };
 
 export function GlobalSearch() {
+  const client = useQueryClient();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [query, setQuery] = useState("");
 
   useEffect(() => {
-    const timer = setTimeout(() => setQuery(input.trim()), 250);
+    const timer = setTimeout(() => setQuery(input.trim()), 150);
     return () => clearTimeout(timer);
   }, [input]);
 
@@ -44,10 +47,14 @@ export function GlobalSearch() {
     queryFn: ({ signal }) =>
       api<Result[]>(`/api/search?q=${encodeURIComponent(query)}`, { signal }),
     enabled: open && query.length >= 2,
-    staleTime: 0,
+    staleTime: 30_000,
+    retry: false,
   });
 
   const waiting = input.trim() !== query || results.isFetching;
+  const cachedDetails = client.getQueriesData<ProjectDetail>({ queryKey: ["projects"] }).flatMap(([key, data]) => key.length === 2 && data?.stashes ? [data] : []);
+  const local = searchCachedWorkspace(input, client.getQueryData<ProjectListItem[]>(["projects"]) ?? [], cachedDetails);
+  const visibleResults = [...new Map([...local, ...(input.trim() === query ? results.data ?? [] : [])].map(result => [`${result.kind}:${result.id}`, result])).values()];
 
   return (
     <>
@@ -97,21 +104,21 @@ export function GlobalSearch() {
           <div className="max-h-[60vh] overflow-y-auto rounded-lg border border-border/40 dark:border-white/5" aria-live="polite">
             {input.trim().length < 2 ? (
               <p className="p-4 text-sm text-muted-foreground">Type at least two characters.</p>
-            ) : waiting ? (
+            ) : waiting && visibleResults.length === 0 ? (
               <p className="p-4 text-sm text-muted-foreground">Searching…</p>
-            ) : results.isError ? (
+            ) : results.isError && visibleResults.length === 0 ? (
               <p role="alert" className="p-4 text-sm text-destructive">
                 {results.error.message}{" "}
                 <Button variant="ghost" size="sm" onClick={() => results.refetch()}>
                   Retry
                 </Button>
               </p>
-            ) : results.data?.length === 0 ? (
+            ) : visibleResults.length === 0 ? (
               <p className="p-4 text-sm text-muted-foreground">
                 No matches. Try a route, name, or tag.
               </p>
             ) : (
-              results.data?.map((result) => (
+              visibleResults.map((result) => (
                 <Link
                   key={`${result.kind}-${result.id}`}
                   href={result.href}

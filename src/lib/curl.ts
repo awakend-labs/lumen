@@ -191,6 +191,7 @@ export function generateCurl(endpoint: Pick<EndpointRecord, "method" | "path" | 
   });
   const url = endpointUrl(endpoint.baseUrl, path, endpoint.version);
   for (const field of endpoint.queryParams) {
+    if (!field.required && !field.value.trim()) continue;
     let values = [field.value || field.default || placeholder(field.key)];
     if (field.type === "array" && field.value) {
       try { const parsed = JSON.parse(field.value); if (Array.isArray(parsed)) values = parsed.map(String); } catch { /* Use the literal example. */ }

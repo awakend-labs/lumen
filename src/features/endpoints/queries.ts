@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
+import { useRouter } from "next/navigation";
 import {
   deleteEndpoint,
   fetchEndpoint,
@@ -30,13 +31,22 @@ export function useEndpoint(projectId: string, endpointId: string) {
 
 export function useSaveEndpoint(projectId: string, endpointId?: string) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   return useMutation({
     mutationFn: (input: EndpointInput) => saveEndpoint(projectId, input, endpointId),
     onSuccess: (endpoint) => {
       const project = queryClient.getQueryData<ProjectDetail>(projectKeys.detail(projectId));
       if (project) queryClient.setQueryData(endpointKeys.detail(projectId, endpoint.id), { endpoint, role: project.role });
-      queryClient.invalidateQueries({ queryKey: projectKeys.all });
+      if (project) queryClient.setQueryData<ProjectDetail>(projectKeys.detail(projectId), {
+        ...project, stashes: project.stashes.map(stash => ({ ...stash,
+          endpoints: stash.id === endpoint.stashId
+            ? [...stash.endpoints.filter(item => item.id !== endpoint.id), endpoint].sort((a, b) => a.order - b.order)
+            : stash.endpoints.filter(item => item.id !== endpoint.id),
+        })),
+      });
+      queryClient.invalidateQueries({ queryKey: projectKeys.all, refetchType: "none" });
       toast.success(endpointId ? "Endpoint updated" : "Endpoint created");
+      router.replace(`/projects/${projectId}/endpoints/${endpoint.id}`);
     },
     onError: (error: Error) => toast.error(error.message),
   });

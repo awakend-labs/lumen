@@ -21,10 +21,11 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { RenameDialog } from "@/components/rename-dialog";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { CompactMarkdown } from "@/components/compact-markdown";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -449,9 +450,7 @@ function ProjectCard({
               <CardTitle className="truncate text-base leading-tight">
                 {project.name}
               </CardTitle>
-              <CardDescription className="mt-1 line-clamp-2 text-sm leading-relaxed">
-                {project.description || "No description yet."}
-              </CardDescription>
+              <CompactMarkdown className="mt-1 max-h-24 overflow-y-auto" content={project.description || "No description yet."} />
             </div>
             {canManageProject(project.role) ? (
               <div

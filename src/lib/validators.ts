@@ -105,6 +105,7 @@ export const baseUrlSchema = z.string().trim().max(2000).refine(value => {
 }, "Use an HTTP or HTTPS base URL without credentials, query parameters, or fragments.").transform(value => value.replace(/\/+$/, ""));
 
 export const endpointInputSchema = z.object({
+  draft: z.object({ key: z.string().max(120), revision: z.uuid() }).optional(),
   groupId: z.uuid().nullable().optional(),
   baseUrl: baseUrlSchema.default(""),
   access: z.enum(ACCESS_LEVELS).default("public"),

@@ -15,8 +15,8 @@ import {
   UserRoundIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -28,10 +28,11 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { signInSchema, signUpSchema } from "@/lib/validators";
 
 export function AuthForm({ mode }: { mode: "login" | "signup"; }) {
-  const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = safeCallbackPath(params.get("callbackUrl"));
   const [pending, setPending] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState("");
   const isSignup = mode === "signup";
@@ -53,8 +54,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup"; }) {
         setAuthError(result.error.message ?? (isSignup ? "Could not create account" : "Could not sign in"));
         return;
       }
-      router.push(callbackUrl);
-      router.refresh();
+      window.location.replace(callbackUrl);
     } catch {
       setAuthError("We couldn't connect. Please try again.");
     } finally {
@@ -98,7 +98,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup"; }) {
                 <h1 className="text-[1.875rem] leading-tight font-semibold tracking-[-0.05em]">{isSignup ? "Create your account" : "Welcome back"}<span className="text-primary">.</span></h1>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{isSignup ? "Make room for the APIs you’re building." : "A little clarity is one sign-in away."}</p>
               </div>
-              <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)}>
+              <form method="post" action={`/api/auth/form-unavailable?mode=${mode}`} className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)}>
+                <fieldset disabled={!hydrated || pending} className="flex min-w-0 flex-col gap-5">
                 <FieldGroup className="gap-4">
                   {isSignup && <Field data-invalid={Boolean(form.formState.errors.name) || undefined} className="gap-2">
                     <FieldLabel htmlFor="name" className="text-xs font-medium">Full name</FieldLabel>
@@ -118,6 +119,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup"; }) {
                 </FieldGroup>
                 {authError && <p role="alert" className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-xs leading-5 text-destructive">{authError}</p>}
                 <Button type="submit" size="lg" className="h-11 w-full justify-between px-4" disabled={pending}><span>{pending ? (isSignup ? "Creating account…" : "Signing in…") : (isSignup ? "Create account" : "Sign in")}</span>{pending ? <Spinner /> : <ArrowRightIcon className="size-4" />}</Button>
+                </fieldset>
               </form>
             </div>
             <p className="mt-6 text-center text-xs leading-6 text-muted-foreground">{isSignup ? "Already have an account?" : "New to Lumen?"}{" "}<Link href={switchHref} className="inline-flex items-center gap-1 font-medium text-foreground underline decoration-primary/70 decoration-2 underline-offset-4 hover:decoration-primary">{isSignup ? "Sign in" : "Create an account"}<ArrowRightIcon className="size-3" /></Link></p>

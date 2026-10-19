@@ -66,6 +66,10 @@ import {
 import type { EndpointInput } from "@/lib/validators";
 import { cn } from "@/lib/utils";
 import { registerSignOutGuard } from "@/lib/unsaved-changes";
+import { useEndpointDraft } from "../use-endpoint-draft";
+import { EnumValuesEditor } from "./enum-values-editor";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 const sectionSurfaceClass =
   "lumen-section";
@@ -85,7 +89,7 @@ const jsonText = z.string().refine((value) => {
 
 const paramFormSchema = z.object({
   type: z.enum(FIELD_TYPES),
-  enumText: z.string(),
+  enumValues: z.array(z.string()),
   default: z.string(),
   format: z.string(),
   min: z.string(),
@@ -141,9 +145,15 @@ const endpointFormSchema = z.object({
 
 type EndpointFormValues = z.infer<typeof endpointFormSchema>;
 
+const endpointDraftFormSchema = endpointFormSchema.extend({
+  baseUrl: z.string(), name: z.string(), path: z.string(), version: z.string(),
+  requestSchema: z.string(), requestExample: z.string(),
+  responses: z.array(responseFormSchema.extend({ statusCode: z.number(), body: z.string(), schema: z.string() })),
+});
+
 const emptyParam = {
   type: "string" as const,
-  enumText: "",
+  enumValues: [] as string[],
   default: "",
   format: "",
   min: "",
@@ -188,7 +198,7 @@ function toFormValues(
             body: pretty(response.body),
             schema: pretty(response.schema),
           }))
-        : [{ statusCode: 200, description: "Success", body: "", schema: "" }],
+        : [{ statusCode: endpoint?.method === "POST" ? 201 : 200, description: endpoint?.method === "POST" ? "Created" : "Success", body: "", schema: "" }],
     tags: endpoint?.tags?.join(", ") ?? "",
     version: endpoint?.version ?? "v1",
     isDeprecated: endpoint?.isDeprecated ?? false,
@@ -206,9 +216,7 @@ function cleanParams(params: EndpointFormValues["headers"]) {
     .filter((param) => param.key.trim())
     .map((param) => ({
       type: param.type,
-      enum: param.enumText.trim()
-        ? param.enumText.split(",").map((item) => item.trim())
-        : undefined,
+      enum: param.enumValues.length ? param.enumValues : undefined,
       default: param.default || undefined,
       format: param.format || undefined,
       min: param.min.trim() ? Number(param.min) : undefined,
@@ -238,6 +246,8 @@ export function EndpointForm({
   const router = useRouter();
   const [importOpen, setImportOpen] = useState(importCurl);
   const [imported, setImported] = useState(false);
+  const [pathDialogOpen, setPathDialogOpen] = useState(false);
+  const [pathParameterName, setPathParameterName] = useState("");
   const save = useSaveEndpoint(projectId, endpoint?.id);
   const fixedStashId = endpoint?.stashId ?? duplicateFrom?.stashId ?? initialStashId ?? "";
   const form = useForm<EndpointFormValues>({
@@ -267,10 +277,20 @@ export function EndpointForm({
     name: "bodyFields",
   });
   const responses = useFieldArray({ control: form.control, name: "responses" });
+  const draft = useEndpointDraft(projectId, endpoint ? `endpoint:${endpoint.id}` : `new:${fixedStashId}${duplicateFrom ? `:${duplicateFrom.id}` : ""}`, form,
+    payload => ({ ...endpointDraftFormSchema.parse(JSON.parse(payload)), stashId: fixedStashId }));
   const description = form.watch("description");
   const method = form.watch("method");
   const path = form.watch("path");
   const name = form.watch("name");
+  useEffect(() => {
+    if (endpoint || draft.loading || !form.getFieldState("method").isDirty) return;
+    const current = form.getValues("responses");
+    if (current.length === 1 && [200, 201].includes(current[0].statusCode) && ["Success", "Created"].includes(current[0].description) && !current[0].body && !current[0].schema && !form.getFieldState("responses").isDirty) {
+      form.setValue("responses.0.statusCode", method === "POST" ? 201 : 200);
+      form.setValue("responses.0.description", method === "POST" ? "Created" : "Success");
+    }
+  }, [method, endpoint, draft.loading, form]);
 
   const allowLeave = useRef(false);
   const dirty = form.formState.isDirty || Boolean(duplicateFrom) || imported;
@@ -295,7 +315,7 @@ export function EndpointForm({
         !event.ctrlKey &&
         !event.metaKey &&
         !window.confirm(
-          "Leave this page? Your unsaved endpoint changes will be lost.",
+          "Leave this page? Changes that have not finished autosaving may be lost.",
         )
       ) {
         event.preventDefault();
@@ -304,7 +324,7 @@ export function EndpointForm({
     };
     window.addEventListener("beforeunload", beforeUnload);
     document.addEventListener("click", click, true);
-    const removeSignOutGuard = registerSignOutGuard(() => allowLeave.current || window.confirm("Sign out and discard unsaved endpoint changes?"));
+    const removeSignOutGuard = registerSignOutGuard(() => allowLeave.current || window.confirm("Sign out? Changes that have not finished autosaving may be lost."));
     return () => {
       removeSignOutGuard();
       window.removeEventListener("beforeunload", beforeUnload);
@@ -331,6 +351,7 @@ export function EndpointForm({
       return;
     }
     const payload: EndpointInput = {
+      draft: draft.token(),
       baseUrl: values.baseUrl,
       access: values.access,
       stashId: fixedStashId,
@@ -378,10 +399,9 @@ export function EndpointForm({
       return;
     }
     save.mutate(validation.data, {
-      onSuccess: (saved) => {
+      onSuccess: () => {
         allowLeave.current = true;
         form.reset(values);
-        router.push(`/projects/${projectId}/endpoints/${saved.id}`);
       },
     });
   }
@@ -397,8 +417,17 @@ export function EndpointForm({
       className="flex min-w-0 max-w-full flex-col gap-5 pb-20"
       onSubmit={form.handleSubmit(submit)}
     >
+      <div className="flex flex-wrap items-center justify-between gap-2"><p role={draft.error ? "alert" : "status"} className={cn("text-xs", draft.error ? "text-destructive" : "text-muted-foreground")}>{draft.status}</p>
+        <Button type="button" size="sm" variant="ghost" disabled={draft.loading} onClick={() => { if (window.confirm("Discard this saved draft and reset the form?")) void draft.discard(toFormValues(endpoint ?? duplicateFrom, fixedStashId)).catch(() => toast.error("Could not discard the draft. Please try again.")); }}>Discard draft</Button></div>
+      <fieldset disabled={draft.loading} className="contents">
       {!endpoint && <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Start with a request you already use.</p><Button type="button" variant="outline" onClick={() => setImportOpen(true)}><TerminalSquare className="size-4" />Import cURL</Button></div>}
       <CurlImportDialog open={importOpen} onOpenChange={setImportOpen} onImport={importRequest} />
+      <Dialog open={pathDialogOpen} onOpenChange={setPathDialogOpen}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Add path parameter</DialogTitle><DialogDescription>The parameter will be added to your route and marked required.</DialogDescription></DialogHeader>
+        <div className="grid gap-2"><Label htmlFor="path-parameter-name">Parameter name</Label><Input id="path-parameter-name" value={pathParameterName} placeholder="userId" onChange={event => setPathParameterName(event.target.value)} onKeyDown={event => { if (event.key === "Enter") event.preventDefault(); }} />
+          <p className="text-xs text-muted-foreground">Use a unique name containing letters, numbers, or underscores, starting with a letter or underscore.</p></div>
+        <DialogFooter><Button type="button" variant="outline" onClick={() => setPathDialogOpen(false)}>Cancel</Button><Button type="button" disabled={!/^[A-Za-z_][A-Za-z0-9_]*$/.test(pathParameterName) || pathParameterNames(path).includes(pathParameterName)} onClick={() => {
+          form.setValue("path", `${path.replace(/\/$/, "")}/{${pathParameterName}}`, { shouldDirty: true, shouldValidate: true }); setPathDialogOpen(false);
+        }}>Add parameter</Button></DialogFooter></DialogContent></Dialog>
       {duplicateFrom && (
         <p className="text-sm text-muted-foreground">
           Duplicating {duplicateFrom.name}. Choose a unique name and route
@@ -664,8 +693,8 @@ export function EndpointForm({
         title="Path parameters"
         hint="Use {id} or :id in the route. Matching required fields are added automatically."
         fields={pathParams.fields}
-        append={() => pathParams.append(emptyParam)}
-        remove={pathParams.remove}
+        append={() => { setPathParameterName(""); setPathDialogOpen(true); }}
+        remove={index => { const key = form.getValues(`pathParams.${index}.key`); form.setValue("path", path.replace(new RegExp(`\\{${key}\\}|:${key}(?![A-Za-z0-9_])`, "g"), "").replace(/\/+/g, "/") || "/", { shouldDirty: true }); }}
         register={form.register}
         name="pathParams"
         watch={form.watch}
@@ -776,7 +805,7 @@ export function EndpointForm({
             size="sm"
             onClick={() =>
               responses.append({
-                statusCode: 200,
+                statusCode: method === "POST" ? 201 : 200,
                 description: "",
                 body: "",
                 schema: "",
@@ -902,6 +931,7 @@ export function EndpointForm({
           {endpoint ? "Save changes" : "Save endpoint"}
         </Button>
       </div>
+      </fieldset>
     </form>
     </div>
   );
@@ -979,7 +1009,6 @@ function ParamList({
           type="button"
           variant="outline"
           size="sm"
-          disabled={name === "pathParams"}
           onClick={append}
         >
           <PlusIcon data-icon="inline-start" />
@@ -1035,11 +1064,7 @@ function ParamList({
                 placeholder="Description"
                 {...register(`${name}.${index}.description`)}
               />
-              <Input
-                aria-label="Enum values"
-                placeholder="Enum (comma separated)"
-                {...register(`${name}.${index}.enumText`)}
-              />
+              <EnumValuesEditor values={watch(`${name}.${index}.enumValues`)} onChange={values => setValue(`${name}.${index}.enumValues`, values, { shouldDirty: true })} />
               <Input
                 aria-label="Default value"
                 placeholder="Default"
@@ -1082,7 +1107,6 @@ function ParamList({
                 variant="ghost"
                 size="icon"
                 aria-label="Remove"
-                disabled={name === "pathParams"}
                 onClick={() => remove(index)}
               >
                 <Trash2Icon />
@@ -1100,7 +1124,7 @@ function fieldToForm(field: ParamField) {
     ...emptyParam,
     ...field,
     type: field.type ?? "string",
-    enumText: field.enum?.join(", ") ?? "",
+    enumValues: field.enum ?? [],
     default: field.default ?? "",
     format: field.format ?? "",
     min: field.min === undefined ? "" : String(field.min),

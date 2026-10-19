@@ -19,7 +19,7 @@ function reset() {
 }
 Module._load = function(request, parent, isMain) {
   if (request === 'react' && parent?.filename.endsWith('project-frame.tsx')) return { ...React, useSyncExternalStore: () => true };
-  if (request === 'next/navigation') return { useRouter: () => ({ replace() {} }) };
+  if (request === 'next/navigation') return { useRouter: () => ({ replace() {} }), useSearchParams: () => new URLSearchParams() };
   if (request === 'next/link') return function TestLink({ children, ...props }) { return React.createElement('a', props, children); };
   if (request === 'sonner') return { toast: { success() {}, error() {} } };
   if (request === '@/lib/auth-client') return { authClient: { useSession: () => session } };
@@ -40,6 +40,9 @@ const { useInviteMember } = require('../src/features/members/queries.ts');
 const { useAcceptInvitation } = require('../src/features/invitations/queries.ts');
 const { useCreateStash } = require('../src/features/stashes/queries.ts');
 const { EndpointForm } = require('../src/features/endpoints/components/endpoint-form.tsx');
+const { AuthForm } = require('../src/features/auth/components/auth-form.tsx');
+const { EnumValuesEditor } = require('../src/features/endpoints/components/enum-values-editor.tsx');
+const { CompactMarkdown } = require('../src/components/compact-markdown.tsx');
 const renderInvite = () => renderToStaticMarkup(React.createElement(InviteAccept, { token: 'fixture' }));
 
 test('invite UI hides Accept for another email, during session loading, and on session errors', () => {
@@ -139,4 +142,44 @@ test('response example and schema inputs have connected screen-reader labels', (
     assert.ok(id, `response ${type} label`);
     assert.ok((html.match(/<textarea\b[^>]*>/g) ?? []).some(tag => tag.includes(`id="${id}"`)), `response ${type} input`);
   }
+});
+
+test('login and signup are safe before hydration: native POST fallback and disabled fieldset', () => {
+  reset(); for (const mode of ['login', 'signup']) {
+    const html = renderToStaticMarkup(React.createElement(AuthForm, { mode }));
+    const form = html.match(/<form\b[^>]*>/)?.[0] ?? '';
+    assert.match(form, /method="post"/);
+    assert.match(form, /action="\/api\/auth\/form-unavailable\?mode=/);
+    assert.match(html, /<fieldset disabled=""/);
+    assert.match(html, /type="password"/);
+  }
+});
+
+test('compact descriptions preserve real unordered and ordered Markdown lists', () => {
+  const html = renderToStaticMarkup(React.createElement(CompactMarkdown, { content: '- first\n- **second**\n\n1. step one\n2. step two' }));
+  assert.match(html, /<ul>/); assert.match(html, /<ol>/); assert.match(html, /<li><strong>second<\/strong><\/li>/);
+});
+
+test('enum values are separate removable entries, including a value containing a comma', () => {
+  const html = renderToStaticMarkup(React.createElement(EnumValuesEditor, { values: ['admin', 'member, guest'], onChange() {} }));
+  assert.equal((html.match(/<li /g) ?? []).length, 2);
+  assert.match(html, /Remove allowed value member, guest/); assert.match(html, /New allowed value/);
+  assert.doesNotMatch(html, /comma separated/);
+});
+
+test('POST response defaults to 201 and path parameter Add is no longer permanently disabled', () => {
+  reset(); const stashId = '11111111-1111-4111-8111-111111111111';
+  const html = renderToStaticMarkup(React.createElement(EndpointForm, { projectId: 'p', stashes: [{ id: stashId, groups: [], endpoints: [] }], endpoint: { id: 'e', stashId, method: 'POST', responses: [] } }));
+  assert.match(html, /201/);
+  const section = html.slice(html.indexOf('id="path-parameters"'), html.indexOf('id="body-fields"'));
+  assert.ok(section.length); const add = section.match(/<button[^>]*>/)?.[0];
+  assert.ok(add); assert.doesNotMatch(add, /\sdisabled(?:=|\s|>)/);
+});
+
+test('revoking an invitation requires an explicit confirmation', () => {
+  reset(); queries.invitations = { data: [{ id: 'i', email: 'invitee@example.com', role: 'viewer', expiresAt: new Date().toISOString(), link: 'https://example.com/invite/fixture' }] };
+  renderToStaticMarkup(React.createElement(ProjectSettings, { projectId: 'p', role: 'owner' }));
+  const revoke = confirmations.find(item => item.confirmLabel === 'Revoke invitation');
+  assert.ok(revoke); assert.equal(revoke.trigger.props.onClick, undefined); assert.equal(removals, 0);
+  revoke.onConfirm(); assert.equal(removals, 1);
 });

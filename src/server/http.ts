@@ -27,7 +27,7 @@ export function toErrorResponse(error: unknown) {
   const cause = error && typeof error === "object" && "cause" in error ? error.cause : error;
   if (cause && typeof cause === "object" && "code" in cause && cause.code === "23505") {
     const constraint = "constraint" in cause ? String(cause.constraint) : "";
-    const message = constraint === "api_groups_stash_name_uidx" ? "An API group with this name already exists in this stash" : constraint.includes("route_uidx") ? "This method and path already exist in this project and version" : constraint.includes("name_uidx") ? "An endpoint with this name already exists in this project and version" : "This record already exists";
+    const message = constraint === "stashes_project_name_uidx" ? "A stash with this name already exists in this project. Choose a different name." : constraint === "api_groups_stash_name_uidx" ? "An API group with this name already exists in this stash" : constraint.includes("route_uidx") ? "This method and path already exist in this project and version" : constraint.includes("name_uidx") ? "An endpoint with this name already exists in this project and version" : "This record already exists";
     return NextResponse.json({ error: message }, { status: 409 });
   }
   console.error(error);

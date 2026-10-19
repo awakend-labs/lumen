@@ -35,7 +35,7 @@ import { useState } from "react";
 import { MoveEndpointDialog } from "./move-endpoint-dialog";
 import { RenameDialog } from "@/components/rename-dialog";
 import { ConfirmDelete } from "@/components/confirm-delete";
-import ReactMarkdown from "react-markdown";
+import { CompactMarkdown } from "@/components/compact-markdown";
 import { MethodBadge, statusClass } from "@/components/method-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -618,9 +618,7 @@ function EndpointItem({
             </CardHeader>
             <CardContent className="flex flex-col gap-2 px-4">
               <p className="truncate font-mono text-xs text-muted-foreground">{endpoint.path}</p>
-              <p className="line-clamp-2 text-sm text-muted-foreground">
-                <ReactMarkdown allowedElements={["p", "strong", "em", "code"]} unwrapDisallowed components={{ p: ({ children }) => <span>{children}</span> }}>{endpoint.description || "No description"}</ReactMarkdown>
-              </p>
+              <CompactMarkdown className="max-h-24 overflow-y-auto" content={endpoint.description || "No description"} />
               {endpoint.isDeprecated ? <Badge variant="outline">Deprecated</Badge> : null}
             </CardContent>
           </Card>

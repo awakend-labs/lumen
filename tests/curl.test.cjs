@@ -123,3 +123,15 @@ test('versioned cURL import separates base prefix, version, and resource path an
   assert.equal(baseUrlSchema.parse('https://api.shopkart.dev/v1/'), 'https://api.shopkart.dev/v1');
   for (const url of ['https://user:password@example.com/v1', 'https://example.com/v1?secret=x', 'https://example.com/v1#fragment', 'javascript:alert(1)']) assert.equal(baseUrlSchema.safeParse(url).success, false);
 });
+
+test('optional query defaults are omitted unless an example is explicitly supplied', () => {
+  const draft = parseCurl('curl https://api.example.com/v1/products');
+  draft.queryParams = [
+    { key: 'invite', value: '', default: 'none', required: false, description: '' },
+    { key: 'page', value: '', default: '1', required: true, description: '' },
+    { key: 'tag', value: 'featured', required: false, description: '' },
+  ];
+  const url = new URL(curlTokens(generateCurl(draft))[3]);
+  assert.equal(url.searchParams.has('invite'), false);
+  assert.equal(url.searchParams.get('page'), '1'); assert.equal(url.searchParams.get('tag'), 'featured');
+});

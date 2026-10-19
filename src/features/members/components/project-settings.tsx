@@ -235,14 +235,10 @@ export function ProjectSettings({
                   </div>
                   <div className="flex items-center">
                     <CopyButton value={invitation.link} label="Copy invite link" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={revoke.isPending}
-                      onClick={() => revoke.mutate(invitation.id, { onSuccess: () => { if (created?.id === invitation.id) setCreated(null); } })}
-                    >
-                      Revoke
-                    </Button>
+                    <ConfirmDelete title="Revoke invitation?" description={`The invitation link for ${invitation.email} will stop working. You can create a new link later.`}
+                      confirmLabel="Revoke invitation" pending={revoke.isPending}
+                      onConfirm={() => revoke.mutate(invitation.id, { onSuccess: () => { if (created?.id === invitation.id) setCreated(null); } })}
+                      trigger={<Button variant="ghost" size="sm" disabled={revoke.isPending}>Revoke</Button>} />
                   </div>
                 </div>
               ))}
