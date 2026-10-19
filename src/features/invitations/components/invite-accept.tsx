@@ -11,7 +11,6 @@ import {
   CardContent,
   CardDescription,
   CardFooter,
-  CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,7 +18,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { useAcceptInvitation, useInvitationPreview } from "@/features/invitations/queries";
 import { authClient } from "@/lib/auth-client";
 
-export function InviteAccept({ token }: { token: string }) {
+export function InviteAccept({ token }: { token: string; }) {
   const router = useRouter();
   const preview = useInvitationPreview(token);
   const accept = useAcceptInvitation(token);

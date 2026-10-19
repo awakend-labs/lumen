@@ -53,6 +53,14 @@ Open [http://localhost:3000](http://localhost:3000).
 - `pnpm db:migrate` applies migrations (run locally or in CI, not on the Worker)
 - `pnpm db:studio` opens Drizzle Studio
 
+## cURL requests
+
+Choose **Import cURL** in a project or stash, or on the new endpoint form. Paste a single Bash-style cURL command, review the extracted fields, choose a stash, and save the endpoint. Importing never executes the command. Common authentication headers, cookies, and token query values become placeholders.
+
+Imports support HTTP methods, headers, query and path parameters, JSON, URL-encoded forms, literal multipart fields, and plain-text bodies. Unsupported flags, multiple URLs, and file references show an error instead of importing an incomplete request.
+
+Every endpoint viewer includes a copyable **cURL** request generated from its saved fields and project authentication settings. Set **Server URL** when creating or editing an endpoint to use your actual host; otherwise replace `https://api.example.com` in the command. Generated commands use Bash/zsh quoting and `YOUR_` placeholders for missing examples and credentials. Migration `0005_endpoint_curl_server_url` adds the optional server URL.
+
 ## Deploy on Cloudflare Workers
 
 Lumen uses [@opennextjs/cloudflare](https://opennext.js.org/cloudflare/get-started). Do **not** deploy with `pnpm build` alone.

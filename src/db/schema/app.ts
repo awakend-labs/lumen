@@ -112,6 +112,7 @@ export const endpoints = pgTable(
     name: text("name").notNull(),
     method: httpMethod("method").notNull(),
     path: text("path").notNull(),
+    baseUrl: text("base_url").notNull().default(""),
     description: text("description").notNull().default(""),
     headers: jsonb("headers").$type<ParamField[]>().notNull().default([]),
     queryParams: jsonb("query_params").$type<ParamField[]>().notNull().default([]),

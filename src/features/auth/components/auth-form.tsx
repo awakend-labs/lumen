@@ -1,13 +1,15 @@
 "use client";
 
+import { LumenMark } from "@/components/lumen-mark";
+
 import { zodResolver } from "@hookform/resolvers/zod";
-import { motion } from "framer-motion";
 import {
   ArrowRightIcon,
+  ArrowLeftIcon,
+  EyeIcon,
+  EyeOffIcon,
   BracesIcon,
-  CodeXmlIcon,
-  FolderIcon,
-  LayersIcon,
+  CircleCheckIcon,
   LockKeyholeIcon,
   MailIcon,
   UserRoundIcon,
@@ -16,27 +18,22 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { authClient } from "@/lib/auth-client";
 import { safeCallbackPath } from "@/lib/app-url";
-import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { signInSchema, signUpSchema } from "@/lib/validators";
 
-const highlights = [
-  { icon: LayersIcon, title: "Stashes", body: "Group endpoints by domain, like auth or payments." },
-  { icon: BracesIcon, title: "Rich routes", body: "Schemas, examples, headers, and responses in one place." },
-  { icon: FolderIcon, title: "Shared projects", body: "Invite teammates with a link and set their access." },
-];
-
-export function AuthForm({ mode }: { mode: "login" | "signup" }) {
+export function AuthForm({ mode }: { mode: "login" | "signup"; }) {
   const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = safeCallbackPath(params.get("callbackUrl"));
   const [pending, setPending] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState("");
   const isSignup = mode === "signup";
   const form = useForm({
     resolver: zodResolver(isSignup ? signUpSchema : signInSchema),
@@ -45,28 +42,24 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       : { email: "", password: "" },
   });
 
-  async function onSubmit(values: { name?: string; email: string; password: string }) {
+  async function onSubmit(values: { name?: string; email: string; password: string; }) {
     setPending(true);
-    const result = isSignup
-      ? await authClient.signUp.email({
-          name: values.name ?? "",
-          email: values.email,
-          password: values.password,
-          callbackURL: callbackUrl,
-        })
-      : await authClient.signIn.email({
-          email: values.email,
-          password: values.password,
-          callbackURL: callbackUrl,
-        });
-    setPending(false);
-    if (result.error) {
-      const fallback = isSignup ? "Could not create account" : "Could not sign in";
-      toast.error(result.error.message ?? fallback);
-      return;
+    setAuthError("");
+    try {
+      const result = isSignup
+        ? await authClient.signUp.email({ name: values.name ?? "", email: values.email, password: values.password, callbackURL: callbackUrl })
+        : await authClient.signIn.email({ email: values.email, password: values.password, callbackURL: callbackUrl });
+      if (result.error) {
+        setAuthError(result.error.message ?? (isSignup ? "Could not create account" : "Could not sign in"));
+        return;
+      }
+      router.push(callbackUrl);
+      router.refresh();
+    } catch {
+      setAuthError("We couldn't connect. Please try again.");
+    } finally {
+      setPending(false);
     }
-    router.push(callbackUrl);
-    router.refresh();
   }
 
   const switchHref = isSignup
@@ -74,176 +67,64 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     : `/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`;
 
   return (
-    <div className="relative grid min-h-full flex-1 bg-background lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
-      {/* Brand panel */}
-      <aside className="relative hidden overflow-hidden border-r border-border/50 bg-muted/20 lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,oklch(0.85_0.17_95/0.18),transparent_55%)] dark:bg-[radial-gradient(ellipse_at_top_left,oklch(0.85_0.17_95/0.12),transparent_55%)]"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-size-[48px_48px] mask-[radial-gradient(ellipse_at_center,black_40%,transparent_75%)] opacity-[0.35] dark:opacity-[0.12]"
-        />
-
-        <Link href="/" className="relative flex items-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <CodeXmlIcon className="size-4.5" aria-hidden />
-          </span>
-          <span className="text-base font-semibold tracking-tight">Lumen</span>
+    <div className="grid min-h-svh flex-1 bg-background lg:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
+      <aside className="auth-brand-panel relative hidden flex-col justify-between overflow-hidden border-r border-border p-9 lg:flex xl:px-14">
+        <Link href="/" className="relative flex w-fit items-center gap-3" aria-label="Lumen home">
+          <LumenMark /><span className="text-xl font-semibold tracking-[-0.04em]">Lumen.</span>
         </Link>
-
-        <div className="relative flex max-w-md flex-col gap-8">
-          <div className="flex flex-col gap-4">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-foreground">
-              <span className="size-1.5 rounded-full bg-primary" />
-              API documentation workspace
-            </span>
-            <h2 className="text-4xl leading-[1.1] font-semibold tracking-tight">
-              Documentation that stays out of the way.
-            </h2>
-            <p className="text-base leading-7 text-muted-foreground">
-              Organize endpoints into stashes, scan them in a grid or a list, and share projects
-              with the people who build against them.
-            </p>
-          </div>
-
-          <ul className="flex flex-col gap-3">
-            {highlights.map(({ icon: Icon, title, body }) => (
-              <li
-                key={title}
-                className="flex items-start gap-3 rounded-xl border border-border/50 bg-background/60 p-4 shadow-sm backdrop-blur-sm dark:border-white/5 dark:bg-white/3"
-              >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Icon className="size-4" aria-hidden />
-                </span>
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-sm font-medium">{title}</span>
-                  <span className="text-xs leading-5 text-muted-foreground">{body}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
+        <div className="relative my-8 w-full max-w-md self-center">
+          <p className="eyebrow mb-5 flex items-center gap-2"><span className="size-1.5 rounded-full bg-primary" />A shared source of clarity</p>
+          <h2 className="text-[clamp(2.75rem,4.1vw,4rem)] leading-[1.04] font-semibold tracking-[-0.06em]">Less guesswork.<br />More good work<span className="text-primary">.</span></h2>
+          <p className="mt-5 max-w-sm text-sm leading-7 text-muted-foreground">A considered home for your APIs, and the people who build with them.</p>
+          <figure aria-label="Example endpoint documentation" className="auth-doc-preview mt-8 overflow-hidden rounded-2xl border border-border bg-card shadow-[0_12px_40px_#00000006]">
+            <figcaption className="flex items-center justify-between border-b border-border px-5 py-3"><span className="eyebrow text-[9px]">Commerce API / Products</span><BracesIcon className="size-3.5 text-muted-foreground" /></figcaption>
+            <div className="px-5 py-5"><div className="flex items-center gap-3"><span className="rounded-md bg-method-get/10 px-2 py-1 font-mono text-[10px] font-semibold text-method-get">GET</span><code className="font-mono text-xs">/v1/products</code><span className="ml-auto flex items-center gap-1 text-[10px] text-stash-green"><CircleCheckIcon className="size-3" />200</span></div><p className="mt-3 text-xs text-muted-foreground">Every route. Every detail. All in one place.</p></div>
+            <div className="flex items-center gap-5 border-t border-border px-5 py-3 font-mono text-[9px] text-muted-foreground"><span>Headers</span><span>Parameters</span><span>Responses</span></div>
+          </figure>
         </div>
-
-        <p className="relative text-xs text-muted-foreground">Local-first API docs.</p>
+        <div className="relative flex items-center justify-between gap-4 border-t border-border pt-4 text-[11px] text-muted-foreground"><span>Built for shared understanding.</span><span className="font-mono text-[9px]">LUMEN / API WORKSPACE</span></div>
       </aside>
 
-      {/* Form panel */}
-      <motion.main
-        className="flex flex-col items-center justify-center px-4 py-12 sm:px-8"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
-      >
-        <div className="flex w-full max-w-md flex-col gap-8">
-          <Link href="/" className="flex items-center gap-2.5 lg:hidden">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <CodeXmlIcon className="size-4" aria-hidden />
-            </span>
-            <span className="text-sm font-semibold tracking-tight">Lumen</span>
-          </Link>
-
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
-                {isSignup ? <UserRoundIcon className="size-5" /> : <LockKeyholeIcon className="size-5" />}
-              </span>
-              <div className="flex flex-col">
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  {isSignup ? "Create your account" : "Welcome back"}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {isSignup
-                    ? "Start a workspace for the APIs you maintain."
-                    : "Sign in to your Lumen workspace."}
-                </p>
+      <main className="auth-form-panel relative flex min-w-0 flex-col px-5 py-5 sm:px-10 lg:px-12">
+        <header className="flex w-full items-center justify-between gap-4">
+          <Link href="/" className="flex items-center gap-2.5 text-xs text-muted-foreground hover:text-foreground"><span className="lg:hidden"><LumenMark className="size-8" /></span><ArrowLeftIcon className="hidden size-3.5 lg:block" /><span className="hidden lg:inline">Back to Lumen</span><span className="text-base font-semibold text-foreground lg:hidden">Lumen.</span></Link>
+          <ThemeToggle />
+        </header>
+        <div className="flex flex-1 flex-col items-center justify-center py-6 sm:py-8 lg:py-4">
+          <div className="w-full max-w-[26rem]">
+            <div className="auth-card rounded-3xl border border-border bg-card p-6 shadow-[0_8px_40px_#00000005] sm:p-8">
+              <div className="mb-6">
+                <p className="eyebrow mb-3 flex items-center gap-2"><span className="h-px w-5 bg-primary" />{isSignup ? "Your next chapter" : "Your workspace awaits"}</p>
+                <h1 className="text-[1.875rem] leading-tight font-semibold tracking-[-0.05em]">{isSignup ? "Create your account" : "Welcome back"}<span className="text-primary">.</span></h1>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{isSignup ? "Make room for the APIs you’re building." : "A little clarity is one sign-in away."}</p>
               </div>
-            </div>
-          </div>
-
-          <div
-            className={cn(
-              "rounded-2xl border border-border/60 bg-card p-6 shadow-sm sm:p-8",
-              "dark:border-white/5 dark:bg-white/2 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]",
-            )}
-          >
-            <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)}>
-              <FieldGroup>
-                {isSignup ? (
-                  <Field data-invalid={Boolean(form.formState.errors.name) || undefined}>
-                    <FieldLabel htmlFor="name" className="gap-1.5">
-                      <UserRoundIcon className="size-3.5 text-muted-foreground" aria-hidden />
-                      Name
-                    </FieldLabel>
-                    <Input
-                      id="name"
-                      autoComplete="name"
-                      placeholder="Ada Lovelace"
-                      className="h-10"
-                      {...form.register("name")}
-                    />
+              <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)}>
+                <FieldGroup className="gap-4">
+                  {isSignup && <Field data-invalid={Boolean(form.formState.errors.name) || undefined} className="gap-2">
+                    <FieldLabel htmlFor="name" className="text-xs font-medium">Full name</FieldLabel>
+                    <div className="relative"><UserRoundIcon aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground/70" /><Input id="name" autoComplete="name" placeholder="Ada Lovelace" className="h-11 bg-background/60 pl-10 dark:bg-background/35" disabled={pending} aria-invalid={Boolean(form.formState.errors.name)} {...form.register("name")} /></div>
                     <FieldError errors={[form.formState.errors.name]} />
+                  </Field>}
+                  <Field data-invalid={Boolean(form.formState.errors.email) || undefined} className="gap-2">
+                    <FieldLabel htmlFor="email" className="text-xs font-medium">Email address</FieldLabel>
+                    <div className="relative"><MailIcon aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground/70" /><Input id="email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="you@company.com" className="h-11 bg-background/60 pl-10 dark:bg-background/35" disabled={pending} aria-invalid={Boolean(form.formState.errors.email)} {...form.register("email")} /></div>
+                    <FieldError errors={[form.formState.errors.email]} />
                   </Field>
-                ) : null}
-
-                <Field data-invalid={Boolean(form.formState.errors.email) || undefined}>
-                  <FieldLabel htmlFor="email" className="gap-1.5">
-                    <MailIcon className="size-3.5 text-muted-foreground" aria-hidden />
-                    Email
-                  </FieldLabel>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="you@company.com"
-                    className="h-10"
-                    aria-invalid={Boolean(form.formState.errors.email)}
-                    {...form.register("email")}
-                  />
-                  <FieldError errors={[form.formState.errors.email]} />
-                </Field>
-
-                <Field data-invalid={Boolean(form.formState.errors.password) || undefined}>
-                  <FieldLabel htmlFor="password" className="gap-1.5">
-                    <LockKeyholeIcon className="size-3.5 text-muted-foreground" aria-hidden />
-                    Password
-                  </FieldLabel>
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete={isSignup ? "new-password" : "current-password"}
-                    placeholder={isSignup ? "At least 8 characters" : "Your password"}
-                    className="h-10"
-                    aria-invalid={Boolean(form.formState.errors.password)}
-                    {...form.register("password")}
-                  />
-                  <FieldError errors={[form.formState.errors.password]} />
-                </Field>
-              </FieldGroup>
-
-              <Button type="submit" size="lg" className="h-10 w-full gap-2 shadow-sm" disabled={pending}>
-                {pending ? (
-                  <Spinner data-icon="inline-start" />
-                ) : (
-                  <ArrowRightIcon data-icon="inline-end" />
-                )}
-                {isSignup ? "Create account" : "Sign in"}
-              </Button>
-            </form>
+                  <Field data-invalid={Boolean(form.formState.errors.password) || undefined} className="gap-2">
+                    <FieldLabel htmlFor="password" className="text-xs font-medium">Password</FieldLabel>
+                    <div className="relative"><LockKeyholeIcon aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground/70" /><Input id="password" type={showPassword ? "text" : "password"} autoComplete={isSignup ? "new-password" : "current-password"} placeholder={isSignup ? "At least 8 characters" : "Enter your password"} className="h-11 bg-background/60 pr-11 pl-10 dark:bg-background/35" disabled={pending} aria-invalid={Boolean(form.formState.errors.password)} {...form.register("password")} /><button type="button" className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-muted-foreground transition-colors hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} aria-controls="password" onClick={() => setShowPassword(value => !value)} disabled={pending}>{showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}</button></div>
+                    <FieldError errors={[form.formState.errors.password]} />
+                  </Field>
+                </FieldGroup>
+                {authError && <p role="alert" className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-xs leading-5 text-destructive">{authError}</p>}
+                <Button type="submit" size="lg" className="h-11 w-full justify-between px-4" disabled={pending}><span>{pending ? (isSignup ? "Creating account…" : "Signing in…") : (isSignup ? "Create account" : "Sign in")}</span>{pending ? <Spinner /> : <ArrowRightIcon className="size-4" />}</Button>
+              </form>
+            </div>
+            <p className="mt-6 text-center text-xs leading-6 text-muted-foreground">{isSignup ? "Already have an account?" : "New to Lumen?"}{" "}<Link href={switchHref} className="inline-flex items-center gap-1 font-medium text-foreground underline decoration-primary/70 decoration-2 underline-offset-4 hover:decoration-primary">{isSignup ? "Sign in" : "Create an account"}<ArrowRightIcon className="size-3" /></Link></p>
           </div>
-
-          <p className="text-center text-sm text-muted-foreground">
-            {isSignup ? "Already have an account?" : "New to Lumen?"}{" "}
-            <Link
-              href={switchHref}
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
-              {isSignup ? "Sign in" : "Create an account"}
-            </Link>
-          </p>
         </div>
-      </motion.main>
+        <p className="text-center text-[10px] tracking-wide text-muted-foreground/70">Your APIs. Your team. One clear workspace.</p>
+      </main>
     </div>
   );
 }

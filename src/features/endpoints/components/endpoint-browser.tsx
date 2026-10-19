@@ -27,11 +27,12 @@ import {
   MoreHorizontalIcon,
   PlusIcon,
   SearchIcon,
-  UploadIcon,
+  TerminalSquare,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { RenameDialog } from "@/components/rename-dialog";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import ReactMarkdown from "react-markdown";
 import { MethodBadge, statusClass } from "@/components/method-badge";
@@ -76,7 +77,7 @@ import { canEditContent } from "@/lib/permissions";
 import type { EndpointRecord, ProjectDetail, StashRecord } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type VisibleStash = { stash: StashRecord; endpoints: EndpointRecord[] };
+type VisibleStash = { stash: StashRecord; endpoints: EndpointRecord[]; };
 
 export function EndpointBrowser({
   project,
@@ -175,6 +176,7 @@ export function EndpointBrowser({
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {editable && <Button asChild variant="outline" size="sm"><Link href={`/projects/${project.id}/endpoints/new?import=curl${stashId ? `&stash=${stashId}` : ""}`}><TerminalSquare className="size-4" />Import cURL</Link></Button>}
           <span className="text-xs text-muted-foreground">View</span>
           <ToggleGroup
             type="single"
@@ -238,7 +240,7 @@ export function EndpointBrowser({
         <button
           type="button"
           onClick={onCreateStash}
-          className="group flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-primary/35 bg-linear-to-br from-primary/10 via-background to-muted/30 px-6 py-8 text-center shadow-sm transition-all hover:border-primary/50 hover:from-primary/15 hover:shadow-md"
+          className="create-tile group flex w-full cursor-pointer flex-col items-center justify-center gap-2 px-6 py-7 text-center transition-colors"
         >
           <span className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground transition-transform group-hover:scale-105">
             <PlusIcon className="size-5" />
@@ -294,6 +296,7 @@ function StashSection({
   };
   const [open, setOpen] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const update = useUpdateStash(projectId);
   const remove = useDeleteStash(projectId);
   const reorderEndpoints = useReorderEndpoints(projectId);
@@ -354,12 +357,12 @@ function StashSection({
       ref={sortable.setNodeRef}
       style={style}
       className={cn(
-        "overflow-hidden rounded-xl border bg-card shadow-sm",
+        "overflow-hidden rounded-2xl border bg-card",
         sortable.isDragging && "shadow-lg ring-2 ring-primary/40",
       )}
     >
       <Collapsible open={open} onOpenChange={setOpen}>
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
           <div className="flex min-w-0 items-center gap-2.5">
             {canReorder && showStashLink ? (
               <button
@@ -423,6 +426,7 @@ function StashSection({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuGroup>
+                    <DropdownMenuItem onSelect={() => setRenaming(true)}>Rename</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setEditing(true)}>Edit</DropdownMenuItem>
                     <ConfirmDelete
                       title="Delete stash?"
@@ -459,6 +463,7 @@ function StashSection({
           <div className="border-t p-4">{endpointBody}</div>
         </CollapsibleContent>
       </Collapsible>
+      <RenameDialog kind="stash" projectId={projectId} itemId={stash.id} name={stash.name} open={renaming} onOpenChange={setRenaming} />
       <StashDialog
         open={editing}
         onOpenChange={setEditing}
@@ -475,7 +480,7 @@ function StashSection({
   );
 }
 
-function EmptyStashState({ projectId, stashId }: { projectId: string; stashId: string }) {
+function EmptyStashState({ projectId, stashId }: { projectId: string; stashId: string; }) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed bg-muted/20 px-6 py-8 text-center">
       <span className="flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
@@ -484,10 +489,10 @@ function EmptyStashState({ projectId, stashId }: { projectId: string; stashId: s
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium">No endpoints in this stash yet.</p>
         <p className="text-xs text-muted-foreground">
-          Get started by defining an endpoint or importing your API schema.
+          Document your first route to bring this stash to life.
         </p>
       </div>
-      <div className="grid w-full max-w-xl gap-3 pt-2 sm:grid-cols-2">
+      <div className="w-full max-w-sm pt-2">
         <Link
           href={`/projects/${projectId}/endpoints/new?stash=${stashId}`}
           className="flex flex-col items-start gap-1 rounded-lg border bg-background p-3 text-left transition-colors hover:border-primary hover:bg-primary/5"
@@ -500,19 +505,7 @@ function EmptyStashState({ projectId, stashId }: { projectId: string; stashId: s
             Define method, path, parameters, and examples.
           </span>
         </Link>
-        <div
-          aria-disabled="true"
-          className="flex flex-col items-start gap-1 rounded-lg border bg-background p-3 text-left opacity-70"
-        >
-          <span className="flex w-full items-center gap-2 text-sm font-medium">
-            <UploadIcon className="size-4 text-muted-foreground" />
-            Import cURL or OpenAPI
-            <Badge variant="secondary" className="ml-auto">
-              Soon
-            </Badge>
-          </span>
-          <span className="text-xs text-muted-foreground">Paste a cURL command or JSON spec.</span>
-        </div>
+
       </div>
     </div>
   );
@@ -565,7 +558,7 @@ function EndpointItem({
       {mode === "grid" ? (
         <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
           <Card
-            className="h-full border-border/60 bg-linear-to-br from-muted/30 via-card to-background shadow-sm transition-shadow hover:shadow-md"
+            className="h-full border-border bg-card shadow-none transition-[border-color,box-shadow] hover:border-foreground/25 hover:shadow-sm"
           >
             <CardHeader className="gap-3">
               <div className="flex items-center justify-between gap-2">
@@ -613,7 +606,7 @@ function EndpointItem({
           </Card>
         </motion.div>
       ) : (
-        <div className="group flex items-center gap-3 rounded-lg border border-border/60 bg-linear-to-br from-muted/25 via-background to-muted/10 px-3 py-2.5 shadow-sm transition-colors hover:border-foreground/15 hover:bg-muted/40">
+        <div className="group flex flex-wrap items-center gap-2 rounded-lg border border-transparent border-b-border bg-card px-3 py-3.5 transition-colors hover:bg-muted/50 sm:flex-nowrap sm:gap-3">
           {canReorder ? (
             <button
               type="button"
@@ -685,7 +678,9 @@ function EndpointMenu({
   pending: boolean;
 }) {
   const router = useRouter();
+  const [renaming, setRenaming] = useState(false);
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon-sm" aria-label="Endpoint actions">
@@ -694,6 +689,7 @@ function EndpointMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
+          <DropdownMenuItem onSelect={() => setRenaming(true)}>Rename</DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() =>
               router.push(`/projects/${projectId}/endpoints/${endpoint.id}/edit`)
@@ -719,5 +715,7 @@ function EndpointMenu({
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
+    <RenameDialog kind="endpoint" projectId={projectId} itemId={endpoint.id} name={endpoint.name} open={renaming} onOpenChange={setRenaming} />
+    </>
   );
 }

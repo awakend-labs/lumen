@@ -17,7 +17,7 @@ import { ProjectFrame } from "@/features/projects/components/project-frame";
 export default function NewEndpointPage({
   params,
 }: {
-  params: Promise<{ projectId: string }>;
+  params: Promise<{ projectId: string; }>;
 }) {
   const { projectId } = use(params);
   return (
@@ -27,14 +27,14 @@ export default function NewEndpointPage({
   );
 }
 
-function NewEndpoint({ projectId }: { projectId: string }) {
+function NewEndpoint({ projectId }: { projectId: string; }) {
   const search = useSearchParams();
   const stashId = search.get("stash") ?? undefined;
 
   return (
     <ProjectFrame projectId={projectId}>
       {(project) => (
-        <div className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
+        <div className="lumen-page flex flex-col gap-8">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -49,7 +49,7 @@ function NewEndpoint({ projectId }: { projectId: string }) {
             </BreadcrumbList>
           </Breadcrumb>
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold tracking-tight">New endpoint</h1>
+            <h1 className="text-3xl font-semibold tracking-[-0.04em]">New endpoint</h1>
             <p className="text-sm text-muted-foreground">
               Document the route, parameters, and the responses callers should expect.
             </p>
@@ -58,6 +58,7 @@ function NewEndpoint({ projectId }: { projectId: string }) {
             projectId={project.id}
             stashes={project.stashes}
             initialStashId={stashId}
+            importCurl={search.get("import") === "curl"}
             duplicateFrom={project.stashes.flatMap(stash => stash.endpoints).find(endpoint => endpoint.id === search.get("duplicate"))}
           />
         </div>

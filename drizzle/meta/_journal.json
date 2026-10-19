@@ -36,6 +36,13 @@
       "when": 1792354801698,
       "tag": "0004_lame_medusa",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792397528563,
+      "tag": "0005_endpoint_curl_server_url",
+      "breakpoints": true
     }
   ]
 }

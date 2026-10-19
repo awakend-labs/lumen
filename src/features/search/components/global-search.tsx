@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
-type Result = { id: string; kind: string; title: string; context: string; href: string };
+type Result = { id: string; kind: string; title: string; context: string; href: string; };
 
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
@@ -66,9 +66,10 @@ export function GlobalSearch() {
       >
         <Search className="size-4 shrink-0 text-muted-foreground/80" aria-hidden />
         <span className="truncate text-sm text-muted-foreground/90">
-          <span className="hidden sm:inline">Search projects, routes, and tags…</span>
+          <span className="hidden sm:inline">Search workspace…</span>
           <span className="sm:hidden">Search…</span>
         </span>
+        <kbd className="ml-auto hidden rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground sm:block">Ctrl K</kbd>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="gap-4 sm:max-w-2xl">

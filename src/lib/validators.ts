@@ -75,6 +75,8 @@ export const paramFieldSchema = z.object({
 
 const requestBodySchema = z
   .object({
+    contentType: z.enum(["application/json", "application/x-www-form-urlencoded", "multipart/form-data", "text/plain"]).optional(),
+    raw: z.string().max(20000).optional(),
     schema: z.unknown().optional(),
     fields: z.array(paramFieldSchema).max(200).optional(),
     example: z.unknown().optional(),
@@ -89,7 +91,17 @@ const responseDocSchema = z.object({
   schema: z.unknown().optional(),
 });
 
+export const baseUrlSchema = z.string().trim().max(2000).refine(value => {
+  if (!value) return true;
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password &&
+      !url.search && !url.hash && url.pathname === "/";
+  } catch { return false; }
+}, "Use a server URL like https://api.example.com; put the route in Path.").transform(value => value.replace(/\/$/, ""));
+
 export const endpointInputSchema = z.object({
+  baseUrl: baseUrlSchema.default(""),
   access: z.enum(ACCESS_LEVELS).default("public"),
   stashId: z.uuid(),
   name: z.string().trim().min(1, "Name is required").max(120),

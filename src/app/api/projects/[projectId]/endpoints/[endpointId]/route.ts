@@ -1,3 +1,4 @@
+import { renameEndpoint } from "@/server/rename";
 import { NextResponse } from "next/server";
 import { endpointInputSchema } from "@/lib/validators";
 import { requireUser } from "@/server/access";
@@ -18,7 +19,12 @@ export function PATCH(request: Request, context: Context) {
   return handle(async () => {
     const user = await requireUser();
     const { projectId, endpointId } = await context.params;
-    const input = endpointInputSchema.parse(await readJson(request));
+    const body = await readJson(request);
+    if (body && typeof body === "object" && Object.keys(body).length === 1 && "name" in body) {
+      const name = endpointInputSchema.shape.name.parse(body.name);
+      return NextResponse.json(await renameEndpoint(user.id, projectId, endpointId, name));
+    }
+    const input = endpointInputSchema.parse(body);
     return NextResponse.json(
       await updateEndpoint(user.id, projectId, endpointId, input),
     );

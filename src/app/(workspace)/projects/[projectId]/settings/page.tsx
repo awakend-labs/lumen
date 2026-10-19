@@ -19,14 +19,14 @@ import { ProjectFrame } from "@/features/projects/components/project-frame";
 export default function SettingsPage({
   params,
 }: {
-  params: Promise<{ projectId: string }>;
+  params: Promise<{ projectId: string; }>;
 }) {
   const { projectId } = use(params);
 
   return (
     <ProjectFrame projectId={projectId}>
       {(project) => (
-        <div className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
+        <div className="lumen-page flex flex-col gap-8">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>

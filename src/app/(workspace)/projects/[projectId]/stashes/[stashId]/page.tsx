@@ -41,7 +41,7 @@ import { cn } from "@/lib/utils";
 export default function StashPage({
   params,
 }: {
-  params: Promise<{ projectId: string; stashId: string }>;
+  params: Promise<{ projectId: string; stashId: string; }>;
 }) {
   const { projectId, stashId } = use(params);
 
@@ -68,7 +68,7 @@ function StashView({
 
   if (!stash) {
     return (
-      <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
+      <div className="lumen-page">
         <Empty className="border">
           <EmptyHeader>
             <EmptyTitle>Stash not found</EmptyTitle>
@@ -87,7 +87,7 @@ function StashView({
   const endpointCount = stash.endpoints.length;
 
   return (
-    <div className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
+    <div className="lumen-page flex flex-col gap-8">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -108,11 +108,11 @@ function StashView({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex min-w-0 max-w-2xl flex-1 flex-col gap-2">
+      <div className="flex flex-col items-start justify-between gap-5 xl:flex-row xl:items-end">
+        <div className="flex w-full min-w-0 max-w-2xl flex-1 flex-col gap-2 xl:w-auto">
           <div className="flex items-center gap-2.5">
             <span className={cn("size-2.5 shrink-0 rounded-full", stashDotClass(stash.color))} />
-            <h1 className="truncate text-2xl font-semibold tracking-tight">{stash.name}</h1>
+            <h1 className="truncate text-3xl font-semibold tracking-[-0.04em]">{stash.name}</h1>
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground">
             {stash.description || "Endpoints documented in this stash."}
@@ -131,7 +131,7 @@ function StashView({
             />
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           {editable ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -18,7 +18,7 @@ import { ProjectFrame } from "@/features/projects/components/project-frame";
 export default function EditEndpointPage({
   params,
 }: {
-  params: Promise<{ projectId: string; endpointId: string }>;
+  params: Promise<{ projectId: string; endpointId: string; }>;
 }) {
   const { projectId, endpointId } = use(params);
   const endpoint = useEndpoint(projectId, endpointId);
@@ -26,7 +26,7 @@ export default function EditEndpointPage({
   return (
     <ProjectFrame projectId={projectId}>
       {(project) => (
-        <div className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
+        <div className="lumen-page flex flex-col gap-8">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -41,7 +41,7 @@ export default function EditEndpointPage({
             </BreadcrumbList>
           </Breadcrumb>
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Edit endpoint</h1>
+            <h1 className="text-3xl font-semibold tracking-[-0.04em]">Edit endpoint</h1>
             <p className="text-sm text-muted-foreground">
               Update the route, parameters, and responses. Saving keeps this endpoint in the same project.
             </p>

@@ -32,9 +32,10 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   const b = await service.createProject('other', { name: 'Secret Alpha', description: '' });
   const stash = await stashService.createStash('owner', a.id, { name: 'Users', description: '', color: 'blue' });
   const otherStash = await stashService.createStash('other', b.id, { name: 'Users', description: '', color: 'blue' });
-  const input = endpointInputSchema.parse({ stashId: stash.id, name: 'Alpha user', method: 'GET', path: '/users/{id}', pathParams: [{ key: 'id', required: true }], access: 'authenticated' });
+  const input = endpointInputSchema.parse({ baseUrl: 'https://service.example.com', stashId: stash.id, name: 'Alpha user', method: 'GET', path: '/users/{id}', pathParams: [{ key: 'id', required: true }], access: 'authenticated' });
   const created = await service.createEndpoint('owner', a.id, input);
   assert.equal(created.access, 'authenticated');
+  assert.equal(created.baseUrl, 'https://service.example.com');
   await assert.rejects(service.createEndpoint('owner', a.id, { ...input, name: 'Different', path: '/users/:userId' }), error => error.cause?.code === '23505');
   await assert.rejects(service.createEndpoint('owner', a.id, { ...input, name: 'ALPHA USER', path: '/other' }), error => error.cause?.code === '23505');
   const v2 = await service.createEndpoint('owner', a.id, { ...input, version: 'v2' });
@@ -44,7 +45,7 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   await service.setProjectStatus('owner', a.id, 'documented');
   assert.equal((await service.getProjectDetail('owner', a.id)).status, 'documented');
   assert.equal((await service.listProjects('owner'))[0].stashCount, 1);
-  await stashService.createStash('owner', a.id, { name: 'Second', description: '', color: 'blue' });
+  const secondStash = await stashService.createStash('owner', a.id, { name: 'Second', description: '', color: 'blue' });
   assert.equal((await service.listProjects('owner'))[0].stashCount, 2);
   await service.reorderEndpoints('owner', a.id, stash.id, [v2.id, created.id]);
   assert.equal((await service.getProjectDetail('owner', a.id)).stashes[0].endpoints[0].id, v2.id);
@@ -67,5 +68,68 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   testUser = { id: 'viewer', email: 'viewer@example.com' };
   const denied = await authRoute.PUT(new Request('http://localhost', { method: 'PUT', body: JSON.stringify({ scheme: 'basic' }) }), { params: Promise.resolve({ projectId: a.id }) });
   assert.equal(denied.status, 403);
+
+  // Card previews use creation time, even after an older stash is edited or reordered.
+  const thirdStash = await stashService.createStash('owner', a.id, { name: 'Newest', description: '', color: 'green' });
+  await pg.query('update stashes set created_at = $1 where id = $2', ['2026-01-01T00:00:00Z', stash.id]);
+  await pg.query('update stashes set created_at = $1 where id = $2', ['2026-01-02T00:00:00Z', secondStash.id]);
+  await pg.query('update stashes set created_at = $1 where id = $2', ['2026-01-03T00:00:00Z', thirdStash.id]);
+  await stashService.updateStash('owner', a.id, stash.id, { name: 'Updated oldest', description: '', color: 'pink' });
+  await stashService.reorderStashes('owner', a.id, [stash.id, thirdStash.id, secondStash.id]);
+  const emptyProject = await service.createProject('owner', { name: 'Empty', description: '' });
+  const listed = await service.listProjects('owner');
+  assert.deepEqual(listed.find(project => project.id === a.id).previewStashes, [
+    { id: thirdStash.id, name: 'Newest', color: 'green' },
+    { id: secondStash.id, name: 'Second', color: 'blue' },
+  ]);
+  assert.deepEqual(listed.find(project => project.id === emptyProject.id).previewStashes, []);
+  assert.ok(listed.every(project => project.id !== b.id));
+  await stashService.deleteStash('owner', a.id, thirdStash.id);
+  assert.deepEqual((await service.listProjects('owner')).find(project => project.id === a.id).previewStashes.map(stash => stash.name), ['Second', 'Updated oldest']);
+
+  const projectRoute = require('../src/app/api/projects/[projectId]/route.ts');
+  const stashRoute = require('../src/app/api/projects/[projectId]/stashes/[stashId]/route.ts');
+  const endpointRoute = require('../src/app/api/projects/[projectId]/endpoints/[endpointId]/route.ts');
+  const renameRequest = name => new Request('http://localhost', { method: 'PATCH', body: JSON.stringify({ name }) });
+  const projectContext = { params: Promise.resolve({ projectId: a.id }) };
+  const stashContext = { params: Promise.resolve({ projectId: a.id, stashId: stash.id }) };
+  const endpointContext = { params: Promise.resolve({ projectId: a.id, endpointId: created.id }) };
+  testUser = { id: 'owner', email: 'owner@example.com' };
+  await service.updateProject('owner', a.id, { name: 'Alpha', description: 'Keep project details', status: 'documented' });
+  assert.equal((await projectRoute.PATCH(renameRequest('  Renamed project  '), projectContext)).status, 200);
+  const renamedProject = await service.getProjectDetail('owner', a.id);
+  assert.equal(renamedProject.name, 'Renamed project');
+  assert.equal(renamedProject.slug, a.slug);
+  assert.equal(renamedProject.description, 'Keep project details');
+  assert.equal(renamedProject.status, 'documented');
+  assert.equal(renamedProject.auth.scheme, 'bearer');
+  await stashService.updateStash('owner', a.id, stash.id, { name: 'Updated oldest', description: 'Keep these details', color: 'pink', status: 'testing' });
+  assert.equal((await stashRoute.PATCH(renameRequest('Renamed stash'), stashContext)).status, 200);
+  const renamedStash = (await service.getProjectDetail('owner', a.id)).stashes.find(item => item.id === stash.id);
+  assert.equal(renamedStash.name, 'Renamed stash');
+  assert.equal(renamedStash.description, 'Keep these details');
+  assert.equal(renamedStash.color, 'pink');
+  assert.equal(renamedStash.status, 'testing');
+  const beforeRename = (await service.getEndpoint('owner', a.id, created.id)).endpoint;
+  assert.equal((await endpointRoute.PATCH(renameRequest('Renamed endpoint'), endpointContext)).status, 200);
+  const afterRename = (await service.getEndpoint('owner', a.id, created.id)).endpoint;
+  assert.deepEqual({ ...afterRename, name: beforeRename.name, updatedAt: beforeRename.updatedAt }, beforeRename);
+  assert.equal(afterRename.name, 'Renamed endpoint');
+  await service.createEndpoint('owner', a.id, { ...input, name: 'Collision', path: '/collision', pathParams: [] });
+  assert.equal((await endpointRoute.PATCH(renameRequest('collision'), endpointContext)).status, 409);
+  assert.equal((await projectRoute.PATCH(renameRequest('   '), projectContext)).status, 400);
+  assert.equal((await stashRoute.PATCH(renameRequest('x'.repeat(81)), stashContext)).status, 400);
+  assert.equal((await endpointRoute.PATCH(renameRequest('x'.repeat(121)), endpointContext)).status, 400);
+  assert.equal((await stashRoute.PATCH(renameRequest('Not yours'), { params: Promise.resolve({ projectId: a.id, stashId: otherStash.id }) })).status, 404);
+  assert.equal((await endpointRoute.PATCH(renameRequest('Not yours'), { params: Promise.resolve({ projectId: a.id, endpointId: secret.id }) })).status, 404);
+  testUser = { id: 'viewer', email: 'viewer@example.com' };
+  for (const [route, context] of [[projectRoute, projectContext], [stashRoute, stashContext], [endpointRoute, endpointContext]]) {
+    assert.equal((await route.PATCH(renameRequest('Forbidden rename'), context)).status, 403);
+  }
+  await pg.exec(`insert into project_members (project_id,user_id,role) values ('${a.id}','other','editor')`);
+  testUser = { id: 'other', email: 'other@example.com' };
+  assert.equal((await projectRoute.PATCH(renameRequest('Forbidden project rename'), projectContext)).status, 403);
+  assert.equal((await stashRoute.PATCH(renameRequest('Editor stash name'), stashContext)).status, 200);
+  assert.equal((await endpointRoute.PATCH(renameRequest('Editor endpoint name'), endpointContext)).status, 200);
   await pg.close();
 });

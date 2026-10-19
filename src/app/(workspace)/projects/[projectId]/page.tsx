@@ -43,7 +43,7 @@ function ProjectView({ projectId }: { projectId: string }) {
           0,
         );
         return (
-        <div className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
+        <div className="lumen-page flex flex-col gap-8">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -57,9 +57,9 @@ function ProjectView({ projectId }: { projectId: string }) {
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="flex min-w-0 max-w-2xl flex-1 flex-col gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight">{project.name}</h1>
+          <div className="flex flex-col items-start justify-between gap-5 xl:flex-row xl:items-end">
+            <div className="flex w-full min-w-0 max-w-2xl flex-1 flex-col gap-2 xl:w-auto">
+              <div className="flex min-w-0 items-center gap-2"><h1 className="min-w-0 break-words text-3xl font-semibold tracking-[-0.04em]">{project.name}</h1></div>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 {project.description || "No description yet."}
               </p>
@@ -81,7 +81,7 @@ function ProjectView({ projectId }: { projectId: string }) {
                 />
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               <Button asChild variant="outline" className="h-9">
                 <Link href={`/projects/${project.id}/settings`}>
                   <SettingsIcon data-icon="inline-start" />

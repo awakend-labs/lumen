@@ -24,14 +24,14 @@ import { useProject } from "@/features/projects/queries";
 export default function EndpointPage({
   params,
 }: {
-  params: Promise<{ projectId: string; endpointId: string }>;
+  params: Promise<{ projectId: string; endpointId: string; }>;
 }) {
   const { projectId, endpointId } = use(params);
   const project = useProject(projectId);
   const endpoint = useEndpoint(projectId, endpointId);
 
   return (
-    <div className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
+    <div className="lumen-page flex flex-col gap-8">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>

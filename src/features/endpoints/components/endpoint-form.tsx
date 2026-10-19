@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { pathParameterNames, validEndpointPath } from "@/lib/endpoint-path";
-import { endpointInputSchema } from "@/lib/validators";
+import { baseUrlSchema, endpointInputSchema } from "@/lib/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   BracesIcon,
@@ -24,11 +24,15 @@ import {
   TriangleAlertIcon,
   VariableIcon,
   XIcon,
+  TerminalSquare,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
+import { CurlImportDialog } from "./curl-import-dialog";
+import type { CurlDraft } from "@/lib/curl";
+import { SectionNav, sectionId } from "@/components/section-nav";
 import { MarkdownView } from "@/components/markdown-view";
 import { MethodBadge } from "@/components/method-badge";
 import { Button } from "@/components/ui/button";
@@ -64,10 +68,10 @@ import type { EndpointInput } from "@/lib/validators";
 import { cn } from "@/lib/utils";
 
 const sectionSurfaceClass =
-  "rounded-xl border border-border/40 bg-muted/25 p-5 shadow-sm dark:border-white/5 dark:bg-white/[0.02] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]";
+  "lumen-section";
 
 const insetSurfaceClass =
-  "rounded-lg border border-border/30 bg-background/70 dark:border-white/5 dark:bg-black/20 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]";
+  "lumen-inset";
 
 const jsonText = z.string().refine((value) => {
   if (!value.trim()) return true;
@@ -100,6 +104,9 @@ const responseFormSchema = z.object({
 });
 
 const endpointFormSchema = z.object({
+  baseUrl: baseUrlSchema,
+  bodyFormat: z.enum(["application/json", "application/x-www-form-urlencoded", "multipart/form-data", "text/plain"]),
+  requestRaw: z.string().max(20000),
   access: z.enum(ACCESS_LEVELS),
   bodyFields: z.array(paramFormSchema),
   stashId: z.string().min(1, "Choose a stash"),
@@ -152,10 +159,13 @@ function pretty(value: unknown) {
 }
 
 function toFormValues(
-  endpoint: EndpointRecord | undefined,
+  endpoint: Partial<EndpointRecord> | undefined,
   stashId: string,
 ): EndpointFormValues {
   return {
+    baseUrl: endpoint?.baseUrl ?? "",
+    bodyFormat: (endpoint?.requestBody?.contentType ?? "application/json") as EndpointFormValues["bodyFormat"],
+    requestRaw: endpoint?.requestBody?.raw ?? "",
     access: endpoint?.access ?? "public",
     bodyFields: (endpoint?.requestBody?.fields ?? []).map(fieldToForm),
     stashId: endpoint?.stashId ?? stashId,
@@ -169,7 +179,7 @@ function toFormValues(
     requestSchema: pretty(endpoint?.requestBody?.schema),
     requestExample: pretty(endpoint?.requestBody?.example),
     responses:
-      endpoint && endpoint.responses.length > 0
+      endpoint?.responses && endpoint.responses.length > 0
         ? endpoint.responses.map((response) => ({
             statusCode: response.statusCode,
             description: response.description,
@@ -177,7 +187,7 @@ function toFormValues(
             schema: pretty(response.schema),
           }))
         : [{ statusCode: 200, description: "Success", body: "", schema: "" }],
-    tags: endpoint?.tags.join(", ") ?? "",
+    tags: endpoint?.tags?.join(", ") ?? "",
     version: endpoint?.version ?? "v1",
     isDeprecated: endpoint?.isDeprecated ?? false,
   };
@@ -214,14 +224,18 @@ export function EndpointForm({
   endpoint,
   initialStashId,
   duplicateFrom,
+  importCurl = false,
 }: {
   projectId: string;
   stashes: StashRecord[];
   endpoint?: EndpointRecord;
   initialStashId?: string;
   duplicateFrom?: EndpointRecord;
+  importCurl?: boolean;
 }) {
   const router = useRouter();
+  const [importOpen, setImportOpen] = useState(importCurl);
+  const [imported, setImported] = useState(false);
   const save = useSaveEndpoint(projectId, endpoint?.id);
   const form = useForm<EndpointFormValues>({
     resolver: zodResolver(endpointFormSchema),
@@ -256,7 +270,12 @@ export function EndpointForm({
   const name = form.watch("name");
 
   const allowLeave = useRef(false);
-  const dirty = form.formState.isDirty || Boolean(duplicateFrom);
+  const dirty = form.formState.isDirty || Boolean(duplicateFrom) || imported;
+  function importRequest(draft: CurlDraft) {
+    form.reset(toFormValues(draft, form.getValues("stashId")));
+    setImported(true);
+    toast.success("Request imported. Review the fields and save your endpoint.");
+  }
   useEffect(() => {
     if (!dirty) return;
     const beforeUnload = (event: BeforeUnloadEvent) => {
@@ -301,7 +320,13 @@ export function EndpointForm({
   function submit(values: EndpointFormValues) {
     const requestSchema = parseJson(values.requestSchema);
     const requestExample = parseJson(values.requestExample);
+    if (["application/x-www-form-urlencoded", "multipart/form-data"].includes(values.bodyFormat) &&
+      (requestExample === null || typeof requestExample !== "object" || Array.isArray(requestExample))) {
+      toast.error("For form bodies, enter a JSON object of field names and values in Example.");
+      return;
+    }
     const payload: EndpointInput = {
+      baseUrl: values.baseUrl,
       access: values.access,
       stashId: values.stashId,
       name: values.name.trim(),
@@ -314,9 +339,12 @@ export function EndpointForm({
       requestBody:
         requestSchema === undefined &&
         requestExample === undefined &&
-        !values.bodyFields.length
+        !values.bodyFields.length &&
+        !values.requestRaw && values.bodyFormat === "application/json"
           ? null
           : {
+              contentType: values.bodyFormat,
+              ...(values.bodyFormat === "text/plain" ? { raw: values.requestRaw } : {}),
               schema: requestSchema,
               example: requestExample,
               fields: cleanParams(values.bodyFields),
@@ -353,10 +381,14 @@ export function EndpointForm({
   }
 
   return (
+    <div className="grid min-w-0 gap-7 lg:grid-cols-[155px_minmax(0,1fr)] lg:gap-10">
+      <SectionNav sections={["Route", "Access", "Description", "Headers", "Query parameters", "Path parameters", "Body fields", "Request body", "Responses"]} />
     <form
       className="flex min-w-0 max-w-full flex-col gap-5 pb-20"
       onSubmit={form.handleSubmit(submit)}
     >
+      {!endpoint && <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Start with a request you already use.</p><Button type="button" variant="outline" onClick={() => setImportOpen(true)}><TerminalSquare className="size-4" />Import cURL</Button></div>}
+      <CurlImportDialog open={importOpen} onOpenChange={setImportOpen} onImport={importRequest} />
       {duplicateFrom && (
         <p className="text-sm text-muted-foreground">
           Duplicating {duplicateFrom.name}. Choose a unique name and route
@@ -397,6 +429,7 @@ export function EndpointForm({
         description="Name the endpoint and place it in a stash."
       >
         <FieldGroup>
+          <Field data-invalid={Boolean(form.formState.errors.baseUrl) || undefined}><FieldLabel htmlFor="endpoint-base-url">Server URL</FieldLabel><Input id="endpoint-base-url" placeholder="https://api.example.com" aria-invalid={Boolean(form.formState.errors.baseUrl)} {...form.register("baseUrl")} /><FieldError errors={[form.formState.errors.baseUrl]} /></Field>
           <div className="grid gap-4 md:grid-cols-2">
             <Field
               data-invalid={Boolean(form.formState.errors.name) || undefined}
@@ -671,8 +704,37 @@ export function EndpointForm({
       <FormSection
         icon={BracesIcon}
         title="Request body"
-        description="Optional JSON schema and a sample payload."
+        description="Choose a request format and document a sample payload."
       >
+        <Field>
+          <FieldLabel>Body format</FieldLabel>
+          <Select value={form.watch("bodyFormat")} onValueChange={value => {
+            form.setValue("bodyFormat", value as EndpointFormValues["bodyFormat"], { shouldDirty: true });
+            const index = form.getValues("headers").findIndex(header => header.key.toLowerCase() === "content-type");
+            if (index >= 0) {
+              if (value === "multipart/form-data") headers.remove(index);
+              else form.setValue(`headers.${index}.value`, value, { shouldDirty: true });
+            }
+          }}>
+            <SelectTrigger className="w-full sm:w-72" aria-label="Body format"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="application/json">JSON</SelectItem>
+                <SelectItem value="application/x-www-form-urlencoded">URL-encoded form</SelectItem>
+                <SelectItem value="multipart/form-data">Multipart form</SelectItem>
+                <SelectItem value="text/plain">Plain text</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
+        {form.watch("bodyFormat") === "text/plain" ? (
+          <Field>
+            <FieldLabel htmlFor="request-raw">Raw body</FieldLabel>
+            <Textarea id="request-raw" rows={8} className="font-mono text-xs" {...form.register("requestRaw")} />
+            <FieldError errors={[form.formState.errors.requestRaw]} />
+          </Field>
+        ) : <>
+        {form.watch("bodyFormat") !== "application/json" && <p className="text-xs text-muted-foreground">In Example, use a JSON object of form field names and values. Arrays send repeated fields.</p>}
         <div className="grid gap-4 md:grid-cols-2">
           <Field
             data-invalid={
@@ -717,6 +779,7 @@ export function EndpointForm({
             <FieldError errors={[form.formState.errors.requestExample]} />
           </Field>
         </div>
+        </>}
       </FormSection>
 
       <FormSection
@@ -746,7 +809,7 @@ export function EndpointForm({
           {responses.fields.map((field, index) => (
             <div
               key={field.id}
-              className={cn("flex flex-col gap-3 p-4", insetSurfaceClass)}
+              className={cn("lumen-response flex flex-col gap-3 p-4", insetSurfaceClass)}
             >
               <div className="grid gap-3 md:grid-cols-[120px_1fr_auto] md:items-end">
                 <Field>
@@ -754,7 +817,7 @@ export function EndpointForm({
                   <Input
                     id={`status-${field.id}`}
                     type="number"
-                    className="font-mono"
+                    className="bg-background font-mono dark:bg-background"
                     value={form.watch(`responses.${index}.statusCode`)}
                     onChange={(event) =>
                       form.setValue(
@@ -772,6 +835,7 @@ export function EndpointForm({
                   <Input
                     id={`response-desc-${field.id}`}
                     placeholder="Success"
+                    className="bg-background dark:bg-background"
                     {...form.register(`responses.${index}.description`)}
                   />
                 </Field>
@@ -795,7 +859,7 @@ export function EndpointForm({
                   <FieldLabel>Example body</FieldLabel>
                   <Textarea
                     rows={6}
-                    className={cn("font-mono text-xs", insetSurfaceClass)}
+                    className={cn("bg-background font-mono text-xs dark:bg-background", insetSurfaceClass)}
                     {...form.register(`responses.${index}.body`)}
                   />
                   <FieldError
@@ -811,7 +875,7 @@ export function EndpointForm({
                   <FieldLabel>Schema</FieldLabel>
                   <Textarea
                     rows={6}
-                    className={cn("font-mono text-xs", insetSurfaceClass)}
+                    className={cn("bg-background font-mono text-xs dark:bg-background", insetSurfaceClass)}
                     {...form.register(`responses.${index}.schema`)}
                   />
                   <FieldError
@@ -828,7 +892,7 @@ export function EndpointForm({
         className={cn(
           "sticky bottom-4 z-20 flex items-center justify-end gap-2 p-3 shadow-lg backdrop-blur-md",
           sectionSurfaceClass,
-          "bg-background/90 dark:bg-white/[0.04]",
+          "bg-card",
         )}
       >
         <Button
@@ -854,6 +918,7 @@ export function EndpointForm({
         </Button>
       </div>
     </form>
+    </div>
   );
 }
 
@@ -871,19 +936,19 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className={cn("flex flex-col gap-4", sectionSurfaceClass)}>
+    <section id={sectionId(title)} className={cn("scroll-mt-24 flex flex-col gap-5", sectionSurfaceClass)}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           {Icon ? (
             <div
-              className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/15"
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
               aria-hidden
             >
               <Icon className="size-4" />
             </div>
           ) : null}
           <div className="flex flex-col gap-0.5">
-            <h2 className="text-sm font-semibold">{title}</h2>
+            <h2 className="text-base font-semibold tracking-tight">{title}</h2>
             {description ? (
               <p className="text-xs text-muted-foreground">{description}</p>
             ) : null}

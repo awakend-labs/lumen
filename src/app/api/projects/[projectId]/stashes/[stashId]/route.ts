@@ -1,3 +1,4 @@
+import { renameStash } from "@/server/rename";
 import { NextResponse } from "next/server";
 import { stashInputSchema } from "@/lib/validators";
 import { requireUser } from "@/server/access";
@@ -10,7 +11,12 @@ export function PATCH(request: Request, context: Context) {
   return handle(async () => {
     const user = await requireUser();
     const { projectId, stashId } = await context.params;
-    const input = stashInputSchema.parse(await readJson(request));
+    const body = await readJson(request);
+    if (body && typeof body === "object" && Object.keys(body).length === 1 && "name" in body) {
+      const name = stashInputSchema.shape.name.parse(body.name);
+      return NextResponse.json(await renameStash(user.id, projectId, stashId, name));
+    }
+    const input = stashInputSchema.parse(body);
     return NextResponse.json(await updateStash(user.id, projectId, stashId, input));
   });
 }

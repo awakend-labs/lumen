@@ -63,6 +63,8 @@ export type ParamField = {
 };
 
 export type RequestBodyDoc = {
+  contentType?: string;
+  raw?: string;
   schema?: unknown;
   fields?: ParamField[];
   example?: unknown;
@@ -83,6 +85,7 @@ export type EndpointRecord = {
   name: string;
   method: HttpMethod;
   path: string;
+  baseUrl: string;
   description: string;
   headers: ParamField[];
   queryParams: ParamField[];
@@ -123,9 +126,10 @@ export type ProjectDetail = {
   stashes: StashRecord[];
 };
 
-export type ProjectEndpointPreview = {
-  method: HttpMethod;
-  path: string;
+export type ProjectStashPreview = {
+  id: string;
+  name: string;
+  color: StashColor;
 };
 
 export type ProjectListItem = {
@@ -137,7 +141,7 @@ export type ProjectListItem = {
   status: ProjectStatus;
   stashCount: number;
   endpointCount: number;
-  previewEndpoints: ProjectEndpointPreview[];
+  previewStashes: ProjectStashPreview[];
   createdAt: string;
   updatedAt: string;
 };

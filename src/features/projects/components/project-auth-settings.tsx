@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 export const authLabels = { none: "Not configured", bearer: "Bearer / JWT", api_key: "API key", basic: "Basic" };
 
-export function ProjectAuthSettings({ project }: { project: ProjectDetail }) {
+export function ProjectAuthSettings({ project }: { project: ProjectDetail; }) {
   const [value, setValue] = useState<ProjectAuth>(project.auth);
   const client = useQueryClient();
   const save = useMutation({
@@ -24,21 +24,28 @@ export function ProjectAuthSettings({ project }: { project: ProjectDetail }) {
     },
     onError: (error: Error) => toast.error(error.message),
   });
-  return <section className="rounded-xl border border-border/40 bg-muted/25 p-5 dark:border-white/5">
-    <h2 className="mb-2 flex items-center gap-2 font-semibold"><Shield className="size-4 text-primary" /> API authentication</h2>
+  return <section className="lumen-section">
+    <h2 className="mb-2 flex items-center gap-2 font-semibold">
+      <Shield className="size-4 text-muted-foreground" /> API authentication</h2>
     <p className="mb-4 text-sm text-muted-foreground">Document how callers authenticate. Use placeholders in examples; credentials are not needed here.</p>
     <form className="grid gap-4" onSubmit={event => { event.preventDefault(); save.mutate(); }}>
       <fieldset disabled={project.role !== "owner" || save.isPending} className="grid gap-4 disabled:opacity-60">
         <label className="grid gap-2 text-sm">Scheme
-          <select className="h-9 rounded-md border bg-background px-3" value={value.scheme} onChange={event => setValue({ ...value, scheme: event.target.value as ProjectAuth["scheme"] })}>
+          <select className="h-11 rounded-lg border border-input bg-card px-3" value={value.scheme} onChange={event => setValue({ ...value, scheme: event.target.value as ProjectAuth["scheme"] })}>
             {AUTH_SCHEMES.map(scheme => <option key={scheme} value={scheme}>{authLabels[scheme]}</option>)}
           </select>
         </label>
         {value.scheme === "api_key" && <div className="grid gap-4 sm:grid-cols-2">
-          <label className="grid gap-2 text-sm">Parameter name<Input required value={value.headerName} onChange={event => setValue({ ...value, headerName: event.target.value })} /></label>
-          <label className="grid gap-2 text-sm">Location<select className="h-9 rounded-md border bg-background px-3" value={value.location} onChange={event => setValue({ ...value, location: event.target.value as ProjectAuth["location"] })}><option value="header">Header</option><option value="query">Query parameter</option></select></label>
+          <label className="grid gap-2 text-sm">Parameter name<Input required value={value.headerName} onChange={event => setValue({ ...value, headerName: event.target.value })} />
+          </label>
+          <label className="grid gap-2 text-sm">Location<select className="h-11 rounded-lg border border-input bg-card px-3" value={value.location} onChange={event => setValue({ ...value, location: event.target.value as ProjectAuth["location"] })}>
+            <option value="header">Header</option>
+            <option value="query">Query parameter</option>
+          </select>
+          </label>
         </div>}
-        <label className="grid gap-2 text-sm">Instructions<Textarea value={value.description} maxLength={2000} onChange={event => setValue({ ...value, description: event.target.value })} placeholder="Where to obtain a token, required scopes, and admin requirements." /></label>
+        <label className="grid gap-2 text-sm">Instructions<Textarea value={value.description} maxLength={2000} onChange={event => setValue({ ...value, description: event.target.value })} placeholder="Where to obtain a token, required scopes, and admin requirements." />
+        </label>
         {project.role === "owner" && <Button type="submit" className="w-fit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save authentication"}</Button>}
       </fieldset>
     </form>

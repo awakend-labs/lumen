@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -13,6 +14,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useProject } from "@/features/projects/queries";
 import type { ProjectDetail } from "@/lib/types";
 
+const subscribeToHydration = () => () => {};
+const clientHydrated = () => true;
+const serverHydrated = () => false;
+
 export function ProjectFrame({
   projectId,
   children,
@@ -21,10 +26,13 @@ export function ProjectFrame({
   children: (project: ProjectDetail) => React.ReactNode;
 }) {
   const project = useProject(projectId);
+  // The sidebar can populate this query before a streamed page hydrates.
+  // Keep its first render consistent with the server's loading skeleton.
+  const hydrated = useSyncExternalStore(subscribeToHydration, clientHydrated, serverHydrated);
 
-  if (project.isLoading) {
+  if (!hydrated || project.isLoading) {
     return (
-      <div className="mx-auto flex w-full flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
+      <div className="lumen-page flex flex-col gap-4">
         <Skeleton className="h-4 w-40" />
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-64 w-full rounded-xl" />
@@ -34,7 +42,7 @@ export function ProjectFrame({
 
   if (project.isError || !project.data) {
     return (
-      <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
+      <div className="lumen-page">
         <Empty className="border">
           <EmptyHeader>
             <EmptyTitle>Project unavailable</EmptyTitle>

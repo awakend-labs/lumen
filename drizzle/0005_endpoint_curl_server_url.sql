@@ -1,0 +1,1 @@
+ALTER TABLE "endpoints" ADD COLUMN "base_url" text DEFAULT '' NOT NULL;

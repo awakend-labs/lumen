@@ -7,7 +7,6 @@ import {
   Braces,
   CircleCheck,
   Clock,
-  FolderOpen,
   Hourglass,
   Layers,
   LayoutGridIcon,
@@ -20,6 +19,7 @@ import {
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { RenameDialog } from "@/components/rename-dialog";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -57,9 +57,8 @@ import {
   useProjects,
   useUpdateProject,
 } from "@/features/projects/queries";
-import { formatUpdatedLabel } from "@/lib/format";
+import { formatUpdatedLabel, stashDotClass } from "@/lib/format";
 import { canManageProject } from "@/lib/permissions";
-import { accentFor } from "@/lib/project-accent";
 import { cn } from "@/lib/utils";
 import type { ProjectListItem, ProjectStatus } from "@/lib/types";
 import type { ProjectInput } from "@/lib/validators";
@@ -68,7 +67,7 @@ type ProjectFilter = "all" | ProjectStatus;
 type ProjectSort = "updated" | "name";
 type BoardView = "grid" | "list";
 
-const FILTER_OPTIONS: { value: ProjectFilter; label: string }[] = [
+const FILTER_OPTIONS: { value: ProjectFilter; label: string; }[] = [
   { value: "all", label: "All projects" },
   { value: "documented", label: "Documented" },
   { value: "in_progress", label: "In progress" },
@@ -117,39 +116,43 @@ export function ProjectBoard() {
   const totalCount = projects.data?.length ?? 0;
 
   return (
-    <div className="mx-auto flex w-full flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
-      <PageHeader
-        icon={FolderOpen}
-        title="Projects"
-        description="The APIs you document, grouped into calm, readable projects."
-        badge={
-          totalCount > 0 ? (
-            <Badge
-              variant="outline"
-              className="gap-1.5 rounded-full border-primary/40 bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-foreground"
-            >
-              {totalCount} {totalCount === 1 ? "project" : "projects"}
-            </Badge>
-          ) : null
-        }
-        actions={
-          <Button className="h-9 shadow-sm" onClick={() => setCreating(true)}>
-            <PlusIcon data-icon="inline-start" />
-            New project
-          </Button>
-        }
-      />
+    <div className="lumen-page flex flex-col gap-8">
+      <div>
+        <p className="eyebrow mb-3">Your workspace / Overview</p>
+        <PageHeader
+          title="Projects"
+          description="A clear view of everything you’re building."
+          badge={
+            totalCount > 0 ? (
+              <Badge
+                variant="outline"
+                className="gap-1.5 rounded-full border-primary/40 bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-foreground"
+              >
+                {totalCount} {totalCount === 1 ? "project" : "projects"}
+              </Badge>
+            ) : null
+          }
+          actions={
+            <Button className="h-9 shadow-sm" onClick={() => setCreating(true)}>
+              <PlusIcon data-icon="inline-start" />
+              New project
+            </Button>
+          }
+        />
+      </div>
+
+      {projects.data && projects.data.length > 0 ? <WorkspaceSummary projects={projects.data} /> : null}
 
       {projects.data && projects.data.length > 0 ? (
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-1 rounded-lg border bg-muted/40 p-1">
+        <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-1 border-b border-border pb-1">
             {FILTER_OPTIONS.map(({ value, label }) => (
               <Button
                 key={value}
                 type="button"
                 size="sm"
                 variant={filter === value ? "secondary" : "ghost"}
-                className="h-8 gap-2 rounded-md px-3 text-xs font-medium"
+                className={cn("h-9 gap-2 rounded-none border-x-0 border-t-0 border-b-2 px-3 text-xs font-medium", filter === value ? "border-primary bg-transparent shadow-none hover:bg-muted/50" : "border-transparent")}
                 onClick={() => setFilter(value)}
                 aria-pressed={filter === value}
               >
@@ -167,7 +170,7 @@ export function ProjectBoard() {
             ))}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative min-w-48 flex-1 sm:max-w-xs">
+            <div className="relative min-w-48 flex-1 sm:min-w-64 sm:max-w-sm xl:min-w-72">
               <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
@@ -252,8 +255,8 @@ export function ProjectBoard() {
       ) : null}
 
       {projects.data &&
-      projects.data.length > 0 &&
-      filteredProjects.length === 0 ? (
+        projects.data.length > 0 &&
+        filteredProjects.length === 0 ? (
         <Empty className="min-h-48 border border-dashed">
           <EmptyHeader>
             <EmptyTitle>No projects match</EmptyTitle>
@@ -280,7 +283,7 @@ export function ProjectBoard() {
           className={cn(
             "gap-4",
             view === "grid"
-              ? "grid items-stretch [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))]"
+              ? "grid items-stretch [grid-template-columns:repeat(auto-fill,minmax(min(100%,19rem),1fr))]"
               : "flex flex-col",
           )}
         >
@@ -362,13 +365,13 @@ function CreateProjectCard({
       type="button"
       onClick={onCreate}
       className={cn(
-        "group flex h-full min-h-56 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-primary/35 bg-linear-to-br from-primary/10 via-background to-muted/30 px-6 py-8 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:from-primary/15 hover:shadow-md",
+        "create-tile group col-span-full flex w-full cursor-pointer items-center gap-4 px-5 py-4 text-left transition-colors",
         view === "list" && "min-h-0 flex-row justify-start px-5 py-4 text-left",
       )}
     >
       <span
         className={cn(
-          "flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-transform group-hover:scale-105",
+          "flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground",
           view === "list" && "size-9 shrink-0",
         )}
       >
@@ -379,7 +382,7 @@ function CreateProjectCard({
       >
         <span className="text-sm font-medium">Create another project</span>
         <span className="text-xs text-muted-foreground">
-          Start from scratch and add stashes as you document endpoints.
+          A new space for your next API.
         </span>
       </div>
     </button>
@@ -403,7 +406,7 @@ function ProjectCard({
   onDelete: () => void;
   deleting: boolean;
 }) {
-  const accent = accentFor(project.id);
+  const [renaming, setRenaming] = useState(false);
   const stashLabel = project.stashCount === 1 ? "stash" : "stashes";
   const endpointLabel = project.endpointCount === 1 ? "endpoint" : "endpoints";
   return (
@@ -428,8 +431,7 @@ function ProjectCard({
           }
         }}
         className={cn(
-          "group relative h-full cursor-pointer gap-0 overflow-hidden border-border/60 bg-linear-to-br from-muted/20 via-card to-background py-0 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-          accent.hover,
+          "project-card group relative h-full cursor-pointer gap-0 overflow-hidden py-0 transition-[border-color,box-shadow] duration-200 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
           view === "list" && "flex flex-row items-stretch",
         )}
       >
@@ -437,8 +439,7 @@ function ProjectCard({
           <div className="flex items-start gap-3">
             <span
               className={cn(
-                "flex size-10 shrink-0 items-center justify-center rounded-xl",
-                accent.tile,
+                "flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-foreground",
               )}
               aria-hidden
             >
@@ -470,6 +471,7 @@ function ProjectCard({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuGroup>
+                      <DropdownMenuItem onSelect={() => setRenaming(true)}>Rename</DropdownMenuItem>
                       <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
                       <ConfirmDelete
                         title="Delete project?"
@@ -492,16 +494,16 @@ function ProjectCard({
             ) : null}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground">
-              <Layers className={cn("size-3.5", accent.icon)} />
+          <div className="flex flex-wrap gap-4">
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Layers className="size-3.5 text-muted-foreground" />
               <span className="font-medium text-foreground">
                 {project.stashCount}
               </span>
               {stashLabel}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground">
-              <Route className={cn("size-3.5", accent.icon)} />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-transparent py-1 text-xs text-muted-foreground">
+              <Route className="size-3.5 text-muted-foreground" />
               <span className="font-medium text-foreground">
                 {project.endpointCount}
               </span>
@@ -509,18 +511,41 @@ function ProjectCard({
             </span>
           </div>
 
+          {view === "grid" && project.previewStashes.length > 0 ? (
+            <div role="group" aria-label="Latest stashes" className="space-y-2 rounded-lg bg-background p-3">
+              {project.previewStashes.map((stash) => (
+                <div key={stash.id} className="flex min-w-0 items-center gap-2">
+                  <span aria-hidden className={cn("size-2 shrink-0 rounded-full", stashDotClass(stash.color))} />
+                  <span className="truncate text-xs text-muted-foreground">{stash.name}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <div className="mt-auto flex items-center justify-between border-t border-border/50 pt-3">
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Clock className="size-3.5 text-stash-green" />
+              <span className={cn("size-1.5 rounded-full", project.status === "documented" ? "bg-stash-green" : "bg-primary")} />
               {formatUpdatedLabel(project.updatedAt)}
             </span>
             <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground">
-              Open
+              {project.status === "documented" ? "Documented" : "In progress"}
               <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
             </span>
           </div>
         </div>
       </Card>
+      <RenameDialog kind="project" projectId={project.id} name={project.name} open={renaming} onOpenChange={setRenaming} />
     </motion.div>
   );
+}
+
+function WorkspaceSummary({ projects }: { projects: ProjectListItem[]; }) {
+  const endpoints = projects.reduce((sum, project) => sum + project.endpointCount, 0);
+  const documented = projects.filter((project) => project.status === "documented").length;
+  return <section aria-label="Workspace overview" className="grid grid-cols-3 gap-4 border-y border-border py-6 sm:gap-8">{[{ label: "Projects", value: projects.length, note: "In your workspace" }, { label: "Endpoints", value: endpoints, note: "Details worth documenting" }, { label: "Documented", value: documented, note: "Projects marked complete" }].map(({ label, value, note }) =>
+    <div key={label} className="min-w-0">
+      <p className="eyebrow text-[9px] sm:text-[10px]">{label}</p>
+      <p className="mt-2 text-3xl font-medium tracking-[-0.06em] tabular-nums sm:text-4xl">{String(value).padStart(2, "0")}<span className="ml-1 text-primary">.</span>
+      </p>
+      <p className="mt-1 hidden text-xs text-muted-foreground sm:block">{note}</p>
+    </div>)}</section>;
 }

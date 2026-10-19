@@ -26,6 +26,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Production deploy targets Cloudflare Workers using `@opennextjs/cloudflare` (`pnpm preview`, `pnpm deploy`, Wrangler).
 - Drizzle migrations run from the local machine via `pnpm db:migrate` (`drizzle-kit migrate`) against Neon, not inside the Worker.
 - Cloudflare Worker env must have its own secrets (e.g. `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`); a missing variable there caused sign-up 500 errors in production.
-- Project status (`documented` or `in_progress`) is stored in the Postgres `projects.status` column, toggled from project cards, and filterable on the dashboard.
+- Project status (`documented` or `in_progress`) is stored in the Postgres `projects.status` column, changed from the project page and create/edit dialog (dashboard cards show status read-only), and filterable on the dashboard.
 - Stash status (`in_development`, `active`, `testing`, or `deprecated`) is stored in Postgres on `stashes.status` and is editable per stash.
 - Endpoints have a `version` field (e.g. `v1`, `v2`) for route versioning, stored in Postgres on `endpoints.version`.

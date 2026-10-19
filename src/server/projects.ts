@@ -6,6 +6,7 @@ import type {
   EndpointRecord,
   ProjectDetail,
   ProjectListItem,
+  ProjectStashPreview,
   ProjectStatus,
   StashRecord,
 } from "@/lib/types";
@@ -83,32 +84,26 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
 
   db
     .select({
-      projectId: endpoints.projectId,
-      method: endpoints.method,
-      path: endpoints.path,
-      updatedAt: endpoints.updatedAt,
+      projectId: stashes.projectId,
+      id: stashes.id,
+      name: stashes.name,
+      color: stashes.color,
     })
-    .from(endpoints)
-    .where(inArray(endpoints.projectId, ids))]);
+    .from(stashes)
+    .where(inArray(stashes.projectId, ids))
+    .orderBy(desc(stashes.createdAt), desc(stashes.id))]);
 
   const stashMap = new Map(stashCounts.map((row) => [row.projectId, row.count]));
   const endpointMap = new Map(
     endpointCounts.map((row) => [row.projectId, row.count]),
   );
-
-
-
-  const previewMap = new Map<
-    string,
-    { method: (typeof previewRows)[number]["method"]; path: string }[]
-  >();
-  for (const projectId of ids) {
-    const projectEndpoints = previewRows
-      .filter((row) => row.projectId === projectId)
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-      .slice(0, 3)
-      .map((row) => ({ method: row.method, path: row.path }));
-    previewMap.set(projectId, projectEndpoints);
+  const previewMap = new Map<string, ProjectStashPreview[]>();
+  for (const stash of previewRows) {
+    const previews = previewMap.get(stash.projectId) ?? [];
+    if (previews.length < 2) {
+      previews.push({ id: stash.id, name: stash.name, color: stash.color ?? "slate" });
+      previewMap.set(stash.projectId, previews);
+    }
   }
 
   return rows.map((row) => ({
@@ -120,7 +115,7 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
     role: row.role,
     stashCount: stashMap.get(row.id) ?? 0,
     endpointCount: endpointMap.get(row.id) ?? 0,
-    previewEndpoints: previewMap.get(row.id) ?? [],
+    previewStashes: previewMap.get(row.id) ?? [],
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }));
@@ -275,6 +270,7 @@ export async function createEndpoint(
       name: input.name,
       method: input.method,
       path: input.path,
+      baseUrl: input.baseUrl,
       description: input.description,
       headers: input.headers,
       queryParams: input.queryParams,
@@ -333,6 +329,7 @@ export async function updateEndpoint(
       name: input.name,
       method: input.method,
       path: input.path,
+      baseUrl: input.baseUrl,
       description: input.description,
       headers: input.headers,
       queryParams: input.queryParams,

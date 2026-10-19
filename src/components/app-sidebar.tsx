@@ -1,5 +1,7 @@
 "use client";
 
+import { LumenMark } from "@/components/lumen-mark";
+
 import { authClient } from "@/lib/auth-client";
 import { stashDotClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -7,7 +9,6 @@ import { useProject, useProjects } from "@/features/projects/queries";
 import {
   ChevronsUpDown,
   FolderOpen,
-  CodeXml,
   LayoutDashboard,
   LogOutIcon,
   MonitorIcon,
@@ -81,10 +82,12 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild tooltip="Lumen">
               <Link href="/dashboard">
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                  <CodeXml className="size-4" aria-hidden />
+                <LumenMark className="group-data-[collapsible=icon]:size-8" />
+                <span className="flex flex-col gap-0.5">
+                  <span className="truncate text-lg font-semibold tracking-[-0.04em]">Lumen<span className="text-primary">.</span>
+                  </span>
+                  <span className="text-[10px] font-normal tracking-wide text-muted-foreground">API WORKSPACE</span>
                 </span>
-                <span className="truncate font-semibold tracking-tight">Lumen</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -97,10 +100,10 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={onDashboard} tooltip="All projects">
+                <SidebarMenuButton asChild isActive={onDashboard} tooltip="Overview">
                   <Link href="/dashboard">
                     <LayoutDashboard />
-                    <span>All projects</span>
+                    <span>Overview</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -114,10 +117,10 @@ export function AppSidebar() {
             <SidebarMenu>
               {projects.isLoading
                 ? Array.from({ length: 3 }).map((_, index) => (
-                    <SidebarMenuItem key={index}>
-                      <SidebarMenuSkeleton showIcon />
-                    </SidebarMenuItem>
-                  ))
+                  <SidebarMenuItem key={index}>
+                    <SidebarMenuSkeleton showIcon />
+                  </SidebarMenuItem>
+                ))
                 : null}
               {projects.data?.map((project) => {
                 const href = `/projects/${project.id}`;
@@ -140,10 +143,10 @@ export function AppSidebar() {
                       <SidebarMenuSub>
                         {current.isLoading
                           ? Array.from({ length: 2 }).map((_, index) => (
-                              <SidebarMenuSubItem key={index}>
-                                <SidebarMenuSkeleton />
-                              </SidebarMenuSubItem>
-                            ))
+                            <SidebarMenuSubItem key={index}>
+                              <SidebarMenuSkeleton />
+                            </SidebarMenuSubItem>
+                          ))
                           : null}
                         {current.data && current.data.stashes.length === 0 ? (
                           <SidebarMenuSubItem>
@@ -209,8 +212,8 @@ function AccountMenu() {
   return (
     <div
       className={cn(
-        "rounded-lg border border-sidebar-border/50 bg-sidebar-accent/25 p-1",
-        "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] dark:bg-white/3",
+        "rounded-xl p-1",
+
       )}
     >
       <SidebarMenu>
