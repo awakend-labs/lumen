@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "cn";
 import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -17,13 +18,21 @@ const options = [
   { value: "system", label: "System", icon: MonitorIcon },
 ] as const;
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Change theme">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Change theme"
+          className={cn(
+            "border-transparent shadow-none outline-none ring-0 focus-visible:border-transparent focus-visible:ring-0 focus-visible:outline-none",
+            className,
+          )}
+        >
           <SunIcon className="dark:hidden" />
           <MoonIcon className="hidden dark:block" />
         </Button>

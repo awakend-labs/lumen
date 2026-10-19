@@ -25,7 +25,7 @@ export default function HomePage() {
     <header className={styles.header}>
       <Link href="/" className={styles.logo} aria-label="Lumen home"><LumenMark /><span>Lumen.</span></Link>
       <nav className={styles.sectionNav} aria-label="Explore Lumen"><a href="#workspace">Workspace</a><a href="#collaboration">Collaboration</a><a href="#questions">FAQs</a></nav>
-      <div className={styles.headerActions}><ThemeToggle /><Link href="/login" className={styles.signIn}>Sign in</Link><Button asChild><Link href="/signup">Get started<ArrowUpRight /></Link></Button></div>
+      <div className={styles.headerActions}><span className={styles.themeToggle}><ThemeToggle /></span><Link href="/login" className={styles.signIn}>Sign in</Link><Button asChild><Link href="/signup">Get started<ArrowUpRight /></Link></Button></div>
     </header>
     <main id="main">
       <section className={styles.hero} aria-labelledby="hero-title">
@@ -47,9 +47,35 @@ export default function HomePage() {
       <section className={styles.workflow} aria-labelledby="workflow-title">
         <div className={styles.workflowHeading}><p className={styles.eyebrow}>02 / FROM REQUEST TO REFERENCE</p><h2 id="workflow-title">Less explaining.<br /><span>More building.</span></h2><p className={styles.body}>Give the next person everything they need to work with your API, right where they expect to find it.</p></div>
         <div className={styles.workflowRows}>
-          <article><span className={styles.step}>01</span><div><h3>Start with what you have.</h3><p>Import cURL or add an endpoint manually. Define the method, route, base URL, and version.</p></div><Terminal size={22} /></article>
-          <article><span className={styles.step}>02</span><div><h3>Make the contract clear.</h3><p>Document headers, parameters, and body fields. Add schemas and examples for each response.</p></div><span className={styles.codeGlyph} aria-hidden>{"{ }"}</span></article>
-          <article><span className={styles.step}>03</span><div><h3>Keep the context close.</h3><p>Explain authentication and access. Mark required fields, describe enum values, and track stash status.</p></div><ListTree size={22} /></article>
+          {[
+            {
+              step: "01",
+              title: "Start with what you have.",
+              body: "Import cURL or add an endpoint manually. Define the method, route, base URL, and version.",
+              icon: <Terminal size={22} aria-hidden />,
+            },
+            {
+              step: "02",
+              title: "Make the contract clear.",
+              body: "Document headers, parameters, and body fields. Add schemas and examples for each response.",
+              icon: <span className={styles.workflowIconGlyph} aria-hidden>{"{ }"}</span>,
+            },
+            {
+              step: "03",
+              title: "Keep the context close.",
+              body: "Explain authentication and access. Mark required fields, describe enum values, and track stash status.",
+              icon: <ListTree size={22} aria-hidden />,
+            },
+          ].map((item) => (
+            <article key={item.step} className={styles.workflowRow}>
+              <span className={styles.step}>{item.step}</span>
+              <div className={styles.workflowCopy}>
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </div>
+              <span className={styles.workflowIcon}>{item.icon}</span>
+            </article>
+          ))}
         </div>
       </section>
       <section id="collaboration" className={styles.collaboration} aria-labelledby="team-title">
