@@ -42,6 +42,9 @@ export function requestBodyFields(fields: ParamField[] | undefined, schema: unkn
       required: contract.required || field.required,
     } : field;
   });
-  const keys = new Set(documented.map(field => field.key));
-  return [...documented, ...fromSchema.filter(field => !keys.has(field.key))];
+  const documentedByKey = new Map(documented.map(field => [field.key, field]));
+  return [
+    ...fromSchema.map(field => documentedByKey.get(field.key) ?? field),
+    ...documented.filter(field => !schemaByKey.has(field.key)),
+  ];
 }

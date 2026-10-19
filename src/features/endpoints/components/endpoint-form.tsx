@@ -254,6 +254,8 @@ export function EndpointForm({
   importCurl?: boolean;
 }) {
   const router = useRouter();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
   const [importOpen, setImportOpen] = useState(importCurl);
   const [imported, setImported] = useState(false);
   const [pathDialogOpen, setPathDialogOpen] = useState(false);
@@ -354,6 +356,10 @@ export function EndpointForm({
   }, [path, form]);
 
   function submit(values: EndpointFormValues) {
+    if (draft.loading || draft.hasRecoveredDraft) {
+      toast.error(draft.loading ? "Wait for the saved-draft check before saving." : "Choose which draft to keep before saving.");
+      return;
+    }
     const requestSchema = parseJson(values.requestSchema);
     const requestExample = parseJson(values.requestExample);
     if (["application/x-www-form-urlencoded", "multipart/form-data"].includes(values.bodyFormat) &&
@@ -430,7 +436,13 @@ export function EndpointForm({
     >
       <div className="flex flex-wrap items-center justify-between gap-2"><p role={draft.error ? "alert" : "status"} className={cn("text-xs", draft.error ? "text-destructive" : "text-muted-foreground")}>{draft.status}</p>
         <Button type="button" size="sm" variant="ghost" disabled={draft.loading} onClick={() => { if (window.confirm("Discard this saved draft and reset the form?")) void draft.discard(toFormValues(endpoint ?? duplicateFrom, fixedStashId, projectBaseUrl)).catch(() => toast.error("Could not discard the draft. Please try again.")); }}>Discard draft</Button></div>
-      <fieldset disabled={draft.loading} className="contents">
+      {draft.hasRecoveredDraft && <div className="flex flex-wrap gap-2 rounded-lg border border-border bg-muted/30 p-3">
+        <Button type="button" size="sm" variant="outline" onClick={() => {
+          if (window.confirm("Replace your current edits with the saved draft?")) draft.restore();
+        }}>Restore saved draft</Button>
+        <Button type="button" size="sm" variant="outline" onClick={draft.keepCurrent}>Keep current edits</Button>
+      </div>}
+      <fieldset disabled={!hydrated} className="contents">
       {!endpoint && <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Start with a request you already use.</p><Button type="button" variant="outline" onClick={() => setImportOpen(true)}><TerminalSquare className="size-4" />Import cURL</Button></div>}
       <CurlImportDialog open={importOpen} onOpenChange={setImportOpen} onImport={importRequest} />
       <Dialog open={pathDialogOpen} onOpenChange={setPathDialogOpen}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Add path parameter</DialogTitle><DialogDescription>The parameter will be added to your route and marked required.</DialogDescription></DialogHeader>
@@ -935,7 +947,7 @@ export function EndpointForm({
           <XIcon data-icon="inline-start" />
           Cancel
         </Button>
-        <Button type="submit" disabled={save.isPending}>
+        <Button type="submit" disabled={save.isPending || draft.loading || draft.hasRecoveredDraft}>
           {save.isPending ? (
             <Spinner data-icon="inline-start" />
           ) : (

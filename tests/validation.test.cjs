@@ -50,9 +50,26 @@ test('schema-required body fields remain required when separate rows exist', () 
 test('response status codes are unique and Add response chooses an unused code', () => {
   const { nextResponseStatus } = require('../src/lib/response-status.ts');
   assert.equal(nextResponseStatus([], 'POST'), 201);
-  assert.equal(nextResponseStatus([{ statusCode: 201 }], 'POST'), 200);
+  assert.equal(nextResponseStatus([{ statusCode: 201 }], 'POST'), 202);
+  assert.equal(nextResponseStatus([{ statusCode: 201 }, { statusCode: 202 }, { statusCode: 204 }], 'POST'), 203);
+  assert.equal(nextResponseStatus([{ statusCode: 200 }, { statusCode: 202 }], 'GET'), 201);
   const result = endpointInputSchema.safeParse({ ...base, responses: [{ statusCode: 200 }, { statusCode: 200 }] });
   assert.equal(result.success, false); assert.match(result.error.issues[0].message, /different status code/);
   assert.equal(endpointInputSchema.safeParse({ ...base, responses: [{ statusCode: 200 }, { statusCode: 400 }] }).success, true);
   assert.equal(nextResponseStatus(Array.from({length:500}, (_,i)=>({statusCode:100+i})), 'GET'), undefined);
+});
+
+test('body field table follows schema order while retaining metadata and undocumented fields', () => {
+  const fields = requestBodyFields([
+    { key: 'email', type: 'string', required: false, value: 'example@example.com', description: 'Account email' },
+    { key: 'password', type: 'string', required: false, value: '', description: 'Password notes' },
+    { key: 'role', type: 'string', required: false, value: '', description: '' },
+    { key: 'extra', type: 'string', required: false, value: '', description: 'Extra notes' },
+  ], { type:'object', required:['password','email'], properties: { password:{type:'string'}, email:{type:'string',format:'email'}, role:{type:'string'} } });
+  assert.deepEqual(fields.map(field => field.key), ['password','email','role','extra']);
+  assert.equal(fields[1].value, 'example@example.com'); assert.equal(fields[1].description, 'Account email');
+  assert.equal(fields[0].required, true);
+  const html = renderToStaticMarkup(React.createElement(FieldTable, { fields }));
+  assert.ok(html.indexOf('>password</td>') < html.indexOf('>email</td>'));
+  assert.deepEqual(requestBodyFields(fields, undefined).map(field => field.key), fields.map(field => field.key));
 });

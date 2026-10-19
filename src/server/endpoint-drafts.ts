@@ -1,27 +1,46 @@
-import { and, eq, lt } from "drizzle-orm";
+import { and, eq, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { endpointDrafts, endpoints, stashes } from "@/db/schema";
-import { requireEditor } from "./access";
+import { endpointDrafts, endpoints, projectMembers, stashes } from "@/db/schema";
+import { canEditContent } from "@/lib/permissions";
+import type { ProjectRole } from "@/lib/types";
 import { HttpError } from "./http";
 
 export const draftKeySchema = z.string().regex(/^(?:new|endpoint):[0-9a-f-]{36}(?::[0-9a-f-]{36})?$/i);
 export const draftInputSchema = z.object({ revision: z.uuid(), writeOrder: z.number().int().min(1).max(2147483647), payload: z.string().max(120000, "This draft is too large to autosave. Save the endpoint directly.") });
 
-async function checkScope(userId: string, projectId: string, key: string) {
-  await requireEditor(userId, projectId);
+function scopeQuery(userId: string, projectId: string, key: string) {
   const [kind, id] = draftKeySchema.parse(key).split(":");
   if (!z.uuid().safeParse(id).success) throw new HttpError(400, "Invalid draft location");
   const table = kind === "new" ? stashes : endpoints;
-  const [target] = await db.select({ id: table.id }).from(table).where(and(eq(table.id, id), eq(table.projectId, projectId))).limit(1);
+  return db.select({ projectId: table.projectId, role: projectMembers.role }).from(table)
+    .innerJoin(projectMembers, and(eq(projectMembers.projectId, table.projectId), eq(projectMembers.userId, userId)))
+    .where(and(eq(table.id, id), eq(table.projectId, projectId))).limit(1);
+}
+
+async function checkScope(userId: string, projectId: string, key: string) {
+  const [target] = await scopeQuery(userId, projectId, key);
   if (!target) throw new HttpError(404, "Draft location not found");
+  if (!canEditContent(target.role)) throw new HttpError(403, "You don't have permission to do that");
 }
 
 export async function getEndpointDraft(userId: string, projectId: string, key: string) {
-  await checkScope(userId, projectId, key);
-  const [draft] = await db.insert(endpointDrafts).values({ userId, projectId, key })
-    .onConflictDoUpdate({ target: [endpointDrafts.userId, endpointDrafts.projectId, endpointDrafts.key], set: { key } }).returning();
-  return { payload: draft.payload, revision: draft.revision, writeOrder: draft.writeOrder };
+  // Authorize the location and retrieve/create its revision in one database trip.
+  // A viewer never enters the INSERT, and another editor's draft is never selected.
+  const result = await db.execute<{ role: ProjectRole; payload: string | null; revision: string | null; write_order: number | null }>(sql`
+    with target(project_id, role) as (${scopeQuery(userId, projectId, key)}), saved as (
+      insert into endpoint_drafts (user_id, project_id, draft_key)
+      select ${userId}, target.project_id, ${key} from target where role in ('owner', 'editor')
+      on conflict (user_id, project_id, draft_key) do update set draft_key = excluded.draft_key
+      returning payload, revision, write_order
+    )
+    select target.role, saved.payload, saved.revision, saved.write_order from target left join saved on true
+  `);
+  const draft = result.rows[0];
+  if (!draft) throw new HttpError(404, "Draft location not found");
+  if (!canEditContent(draft.role)) throw new HttpError(403, "You don't have permission to do that");
+  if (!draft.revision || draft.write_order === null) throw new HttpError(500, "Could not load the draft");
+  return { payload: draft.payload, revision: draft.revision, writeOrder: draft.write_order };
 }
 
 export async function saveEndpointDraft(userId: string, projectId: string, key: string, input: z.infer<typeof draftInputSchema>) {

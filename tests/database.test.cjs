@@ -325,6 +325,7 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   assert.equal((await drafts.getEndpointDraft('other', a.id, key)).payload, null);
   await assert.rejects(drafts.saveEndpointDraft('other', a.id, key, { revision: token.revision, writeOrder: 3, payload: '{}' }), /changed in another tab/);
   await assert.rejects(drafts.getEndpointDraft('viewer', a.id, key), /permission/);
+  assert.equal((await pg.query('select count(*)::int as count from endpoint_drafts where user_id=$1', ['viewer'])).rows[0].count, 0);
   await assert.rejects(drafts.getEndpointDraft('owner', a.id, `new:${otherStash.id}`), /not found/);
   await service.createEndpoint('owner', a.id, { ...storedInput, name: 'Published draft', path: '/published', draft: { key, revision: token.revision } });
   const cleared = await drafts.getEndpointDraft('owner', a.id, key);
