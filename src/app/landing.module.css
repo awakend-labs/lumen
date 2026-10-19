@@ -17,6 +17,7 @@
 .eyebrow > span { width: 7px; height: 7px; border-radius: 2px; background: var(--primary); }
 .hero h1 { margin-top: 20px; font-size: clamp(38px, 4.6vw, 60px); font-weight: 620; line-height: 1.06; letter-spacing: -.055em; }
 .heroCopy > p:first-child { font-size: 21px; line-height: 1.4; letter-spacing: -.025em; }
+@media (min-width: 761px) { .heroCopy { width: min(100%, 400px); justify-self: end; } }
 .body { color: var(--muted-foreground); font-size: 15px; line-height: 1.8; max-width: 430px; }
 .heroCopy .body { margin-top: 12px; max-width: 390px; }
 .actions { margin-top: 25px; display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
@@ -119,6 +120,14 @@
 .checkList li { display: flex; gap: 10px; align-items: center; font-size: 12px; }
 .checkList svg { width: 15px; height: 15px; color: var(--ring); flex-shrink: 0; }
 .faq { display: grid; grid-template-columns: 1fr 1.3fr; gap: 70px; padding: 52px 0 75px; border-top: 1px solid var(--border); }
+.faqIntro { align-self: start; max-width: 370px; }
+.faqLabel { display: flex; align-items: center; gap: 12px; }
+.questionMark { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid color-mix(in srgb, var(--ring) 30%, transparent); border-radius: 10px; background: var(--accent); color: var(--accent-foreground); font-size: 19px; font-weight: 550; }
+.faqIntro h2 { margin: 18px 0 14px; }
+.faqIntro h2 span { color: var(--muted-foreground); }
+.faqDescription { max-width: 330px; color: var(--muted-foreground); font-size: 13px; line-height: 1.8; }
+.faqIntro > a { margin-top: 22px; }
+@media (max-width: 760px) { .faqIntro { margin-bottom: 20px; } }
 .faq details { border-bottom: 1px solid var(--border); }
 .faq summary { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 20px 0; font-size: 14px; font-weight: 550; cursor: pointer; list-style: none; }
 .faq summary::-webkit-details-marker { display: none; }
