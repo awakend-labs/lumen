@@ -2,7 +2,7 @@ import { LumenMark } from "@/components/lumen-mark";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowDownRight, ArrowRight, Braces, FolderOpen, Layers, ListTree, ShieldCheck, TerminalSquare, Users } from "lucide-react";
+import { ArrowDownRight, ArrowRight, Braces, FolderOpen, Layers, ListTree, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ProductPreview } from "@/components/product-preview";
@@ -117,15 +117,6 @@ export default async function HomePage() {
                   <p className="mt-4 border-t border-border pt-3 text-[11px] leading-5 text-muted-foreground">Use groups when they help. Your stash works just as well without them.</p>
                 </div>
               </div>
-            </div>
-            <div className="grid gap-6 border-t border-border p-6 sm:p-8 md:grid-cols-3 lg:px-10">
-              {[
-                { icon: TerminalSquare, title: "Start with a real request", detail: "Import cURL or add an endpoint manually. Set its method, path, base URL, and version." },
-                { icon: Braces, title: "Document the full contract", detail: "Describe headers, query and path parameters, typed body fields, response codes, schemas, and examples." },
-                { icon: ShieldCheck, title: "Share with the right access", detail: "Copy a project invitation link for an editor or viewer. Document authentication and each endpoint’s access level." },
-              ].map(({ icon: Icon, title, detail }) => <article key={title}>
-                <Icon aria-hidden className="mb-3 size-5 text-primary" /><h3 className="text-sm font-semibold">{title}</h3><p className="mt-2 text-xs leading-6 text-muted-foreground">{detail}</p>
-              </article>)}
             </div>
             <div className="flex flex-col items-start justify-between gap-4 border-t border-border bg-background/40 px-6 py-5 sm:flex-row sm:items-center sm:px-8 lg:px-10">
               <div><p className="text-sm font-semibold">Give your next API a clear home.</p><p className="mt-1 text-xs text-muted-foreground">Create a project, add a stash, and document your first endpoint.</p></div>
