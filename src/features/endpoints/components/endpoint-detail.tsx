@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { canEditContent } from "@/lib/permissions";
 import type { EndpointRecord, ParamField, ProjectRole } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { DeleteEndpointButton } from "./delete-endpoint-button";
 
 const sectionSurfaceClass =
   "border-b border-border py-7 first:pt-0 last:border-b-0";
@@ -86,6 +87,7 @@ export function EndpointDetail({
             </div>
             {canEditContent(role) ? (
               <div className="flex flex-wrap items-center gap-2 xl:justify-end xl:pt-9">
+                <DeleteEndpointButton projectId={projectId} endpoint={endpoint} />
                 <Button asChild variant="outline" size="sm" className="h-8 px-3 text-xs">
                   <Link href={`/projects/${projectId}/endpoints/new?duplicate=${endpoint.id}`}>
                     <Copy data-icon="inline-start" />

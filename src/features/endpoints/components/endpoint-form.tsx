@@ -72,6 +72,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { nextResponseStatus } from "@/lib/response-status";
 import { ResponseStatusField } from "./response-status-field";
+import { DeleteEndpointButton } from "./delete-endpoint-button";
 
 const sectionSurfaceClass =
   "lumen-section";
@@ -103,7 +104,7 @@ const paramFormSchema = z.object({
 });
 
 const responseFormSchema = z.object({
-  statusCode: z.number().int().min(100).max(599),
+  statusCode: z.union([z.number().int().min(100).max(599), z.literal("")]).refine((value): boolean => value !== "", "Enter a status code."),
   description: z.string(),
   body: jsonText,
   schema: jsonText,
@@ -137,6 +138,7 @@ const endpointFormSchema = z.object({
   responses: z.array(responseFormSchema).superRefine((responses, ctx) => {
     const used = new Set<number>();
     responses.forEach((response, index) => {
+      if (response.statusCode === "") return;
       if (used.has(response.statusCode)) ctx.addIssue({ code: "custom", path: [index, "statusCode"], message: "Each response must have a different status code." });
       used.add(response.statusCode);
     });
@@ -156,7 +158,7 @@ type EndpointFormValues = z.infer<typeof endpointFormSchema>;
 const endpointDraftFormSchema = endpointFormSchema.extend({
   baseUrl: z.string(), name: z.string(), path: z.string(), version: z.string(),
   requestSchema: z.string(), requestExample: z.string(),
-  responses: z.array(responseFormSchema.extend({ statusCode: z.number(), body: z.string(), schema: z.string() })),
+  responses: z.array(responseFormSchema.extend({ statusCode: z.union([z.number(), z.literal("")]), body: z.string(), schema: z.string() })),
 });
 
 const emptyParam = {
@@ -255,6 +257,7 @@ export function EndpointForm({
   importCurl?: boolean;
 }) {
   const router = useRouter();
+  const formElement = useRef<HTMLFormElement>(null);
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
   const [importOpen, setImportOpen] = useState(importCurl);
@@ -300,7 +303,7 @@ export function EndpointForm({
   useEffect(() => {
     if (endpoint || draft.loading || !form.getFieldState("method").isDirty) return;
     const current = form.getValues("responses");
-    if (current.length === 1 && [200, 201].includes(current[0].statusCode) && ["Success", "Created"].includes(current[0].description) && !current[0].body && !current[0].schema && !form.getFieldState("responses").isDirty) {
+    if (current.length === 1 && (current[0].statusCode === 200 || current[0].statusCode === 201) && ["Success", "Created"].includes(current[0].description) && !current[0].body && !current[0].schema && !form.getFieldState("responses").isDirty) {
       form.setValue("responses.0.statusCode", method === "POST" ? 201 : 200);
       form.setValue("responses.0.description", method === "POST" ? "Created" : "Success");
     }
@@ -395,7 +398,7 @@ export function EndpointForm({
               fields: cleanParams(values.bodyFields),
             },
       responses: values.responses.map((response) => ({
-        statusCode: response.statusCode,
+        statusCode: Number(response.statusCode),
         description: response.description,
         body: parseJson(response.body),
         schema: parseJson(response.schema),
@@ -432,8 +435,17 @@ export function EndpointForm({
     <div className="grid min-w-0 gap-7 lg:grid-cols-[155px_minmax(0,1fr)] lg:gap-10">
       <SectionNav sections={["Route", "Access", "Description", "Headers", "Query parameters", "Path parameters", "Body fields", "Request body", "Responses"]} />
     <form
+      ref={formElement}
+      noValidate
       className="flex min-w-0 max-w-full flex-col gap-5 pb-20"
-      onSubmit={form.handleSubmit(submit)}
+      onSubmit={form.handleSubmit(submit, () => {
+        toast.error("Could not save. Check the highlighted fields.");
+        requestAnimationFrame(() => {
+          const invalid = formElement.current?.querySelector<HTMLElement>('[aria-invalid="true"], [data-invalid="true"] input, [data-invalid="true"] textarea, [data-invalid="true"] button');
+          invalid?.scrollIntoView({ block: "center", behavior: "instant" });
+          invalid?.focus({ preventScroll: true });
+        });
+      })}
     >
       <div className="flex flex-wrap items-center justify-between gap-2"><p role={draft.error ? "alert" : "status"} className={cn("text-xs", draft.error ? "text-destructive" : "text-muted-foreground")}>{draft.status}</p>
         <Button type="button" size="sm" variant="ghost" disabled={draft.loading} onClick={() => { if (window.confirm("Discard this saved draft and reset the form?")) void draft.discard(toFormValues(endpoint ?? duplicateFrom, fixedStashId, projectBaseUrl)).catch(() => toast.error("Could not discard the draft. Please try again.")); }}>Discard draft</Button></div>
@@ -927,6 +939,8 @@ export function EndpointForm({
           "bg-card",
         )}
       >
+        {endpoint && <DeleteEndpointButton projectId={projectId} endpoint={endpoint} disabled={save.isPending}
+          className="mr-auto" onDeleted={() => { allowLeave.current = true; form.reset(form.getValues()); }} />}
         {(draft.loading || draft.hasRecoveredDraft) && <p id="endpoint-save-hint" role="status" className="mr-auto text-xs text-muted-foreground">
           {draft.hasRecoveredDraft ? "Choose Restore saved draft or Keep current edits above to enable Save." : "Save will be available when the saved-draft check finishes."}
         </p>}

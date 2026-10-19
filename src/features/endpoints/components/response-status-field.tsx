@@ -5,12 +5,12 @@ import { Input } from "@/components/ui/input";
 
 export function ResponseStatusField({ id, value, usedCodes, onChange, error }: {
   id: string;
-  value: number;
-  usedCodes: number[];
-  onChange: (value: number) => void;
+  value: number | "";
+  usedCodes: (number | "")[];
+  onChange: (value: number | "") => void;
   error?: { message?: string };
 }) {
-  const duplicate = usedCodes.includes(value) ? value : null;
+  const duplicate = value !== "" && usedCodes.includes(value) ? value : null;
   const message = duplicate !== null
     ? `Status ${duplicate} is already used by another response. Choose a different code.`
     : error?.message;
@@ -21,7 +21,7 @@ export function ResponseStatusField({ id, value, usedCodes, onChange, error }: {
     <Input id={id} type="number" min={100} max={599}
       className="bg-background font-mono dark:bg-background" value={value}
       aria-invalid={Boolean(message)} aria-describedby={message ? errorId : undefined}
-      onChange={event => onChange(Number(event.target.value))} />
+      onChange={event => onChange(event.target.value === "" ? "" : Number(event.target.value))} />
   </Field>
     <FieldError id={errorId} className="order-last col-span-full" errors={[{ message }]} />
   </>;

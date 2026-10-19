@@ -58,3 +58,21 @@ test('existing duplicate draft codes are flagged and clear when the other row ch
   assert.equal(renderer.root.findByType('input').props['aria-invalid'],false);
   assert.equal(renderer.root.findAllByProps({role:'alert'}).length,0);
 });
+
+test('clearing a status remains blank and subsequent typing has no leading zero', async t => {
+  let renderer;
+  const changes=[];
+  function Editor() {
+    const [value,setValue]=React.useState(202);
+    return React.createElement(ResponseStatusField,{id:'empty-status',value,usedCodes:[201],onChange:next=>{changes.push(next);setValue(next);}});
+  }
+  await act(async()=>{renderer=create(React.createElement(Editor));});
+  t.after(async()=>{await act(async()=>{renderer.unmount();});});
+  const input=()=>renderer.root.findByType('input');
+  await act(async()=>{input().props.onChange({target:{value:''}});});
+  assert.equal(input().props.value,'');
+  for(const text of ['2','20','201']) await act(async()=>{input().props.onChange({target:{value:text}});});
+  assert.deepEqual(changes,['',2,20,201]);
+  assert.equal(input().props.value,201);
+  assert.equal(input().props['aria-invalid'],true);
+});
