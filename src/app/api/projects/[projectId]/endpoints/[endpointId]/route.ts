@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { endpointInputSchema } from "@/lib/validators";
 import { requireUser } from "@/server/access";
 import { handle, readJson } from "@/server/http";
-import { deleteEndpoint, getEndpoint, updateEndpoint } from "@/server/projects";
+import { deleteEndpoint, getEndpoint, moveEndpoint, updateEndpoint } from "@/server/projects";
 
 type Context = { params: Promise<{ projectId: string; endpointId: string }> };
 
@@ -23,6 +23,10 @@ export function PATCH(request: Request, context: Context) {
     if (body && typeof body === "object" && Object.keys(body).length === 1 && "name" in body) {
       const name = endpointInputSchema.shape.name.parse(body.name);
       return NextResponse.json(await renameEndpoint(user.id, projectId, endpointId, name));
+    }
+    if (body && typeof body === "object" && Object.keys(body).length === 1 && "stashId" in body) {
+      const stashId = endpointInputSchema.shape.stashId.parse(body.stashId);
+      return NextResponse.json(await moveEndpoint(user.id, projectId, endpointId, stashId));
     }
     const input = endpointInputSchema.parse(body);
     return NextResponse.json(

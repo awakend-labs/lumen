@@ -32,6 +32,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { MoveEndpointDialog } from "./move-endpoint-dialog";
 import { RenameDialog } from "@/components/rename-dialog";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import ReactMarkdown from "react-markdown";
@@ -679,6 +680,7 @@ function EndpointMenu({
 }) {
   const router = useRouter();
   const [renaming, setRenaming] = useState(false);
+  const [moving, setMoving] = useState(false);
   return (
     <>
     <DropdownMenu>
@@ -690,6 +692,7 @@ function EndpointMenu({
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
           <DropdownMenuItem onSelect={() => setRenaming(true)}>Rename</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setMoving(true)}>Move to stash…</DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() =>
               router.push(`/projects/${projectId}/endpoints/${endpoint.id}/edit`)
@@ -715,6 +718,7 @@ function EndpointMenu({
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
+    {moving && <MoveEndpointDialog projectId={projectId} endpoint={endpoint} onClose={() => setMoving(false)} />}
     <RenameDialog kind="endpoint" projectId={projectId} itemId={endpoint.id} name={endpoint.name} open={renaming} onOpenChange={setRenaming} />
     </>
   );

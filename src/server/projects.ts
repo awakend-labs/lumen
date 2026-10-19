@@ -313,19 +313,9 @@ export async function updateEndpoint(
   input: EndpointInput,
 ) {
   await requireEditor(userId, projectId);
-  const [stash] = await db
-    .select({ id: stashes.id, projectId: stashes.projectId })
-    .from(stashes)
-    .where(eq(stashes.id, input.stashId))
-    .limit(1);
-  if (!stash || stash.projectId !== projectId) {
-    throw new HttpError(400, "Choose a stash in this project");
-  }
-
   const [[updated]] = await db.batch([db
     .update(endpoints)
     .set({
-      stashId: input.stashId,
       name: input.name,
       method: input.method,
       path: input.path,
@@ -349,6 +339,24 @@ export async function updateEndpoint(
     throw new HttpError(404, "Endpoint not found");
   }
   return toEndpoint(updated);
+}
+
+export async function moveEndpoint(userId: string, projectId: string, endpointId: string, stashId: string) {
+  await requireEditor(userId, projectId);
+  const { endpoint } = await getEndpoint(userId, projectId, endpointId);
+  const [destination] = await db.select({ id: stashes.id }).from(stashes)
+    .where(and(eq(stashes.id, stashId), eq(stashes.projectId, projectId))).limit(1);
+  if (!destination) throw new HttpError(400, "Choose a stash in this project");
+  if (endpoint.stashId === stashId) return endpoint;
+  const [[moved]] = await db.batch([
+    db.update(endpoints).set({ stashId,
+      order: sql`(select coalesce(max(sort_order), -1) + 1 from endpoints where stash_id = ${stashId})`,
+      updatedAt: new Date(),
+    }).where(and(eq(endpoints.id, endpointId), eq(endpoints.projectId, projectId))).returning(),
+    db.update(projects).set({ updatedAt: new Date() }).where(eq(projects.id, projectId)),
+  ]);
+  if (!moved) throw new HttpError(404, "Endpoint not found");
+  return toEndpoint(moved);
 }
 
 export async function deleteEndpoint(

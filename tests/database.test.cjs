@@ -131,5 +131,29 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   assert.equal((await projectRoute.PATCH(renameRequest('Forbidden project rename'), projectContext)).status, 403);
   assert.equal((await stashRoute.PATCH(renameRequest('Editor stash name'), stashContext)).status, 200);
   assert.equal((await endpointRoute.PATCH(renameRequest('Editor endpoint name'), endpointContext)).status, 200);
+  // Moving changes membership/order only; editing a stale form must not move it back.
+  const moveRequest = stashId => new Request('http://localhost', { method: 'PATCH', body: JSON.stringify({ stashId }) });
+  const beforeMove = (await service.getEndpoint('owner', a.id, created.id)).endpoint;
+  const destinationEndpoint = await service.createEndpoint('owner', a.id, { ...input, stashId: secondStash.id, name: 'Destination route', path: '/destination', pathParams: [] });
+  const movedResponse = await endpointRoute.PATCH(moveRequest(secondStash.id), endpointContext);
+  assert.equal(movedResponse.status, 200); // Editors can move, too.
+  const moved = await movedResponse.json();
+  assert.equal(moved.stashId, secondStash.id);
+  assert.equal(moved.order, destinationEndpoint.order + 1);
+  assert.deepEqual({ ...moved, stashId: beforeMove.stashId, order: beforeMove.order, updatedAt: beforeMove.updatedAt }, beforeMove);
+  const detail = await service.getProjectDetail('owner', a.id);
+  assert.ok(!detail.stashes.find(item => item.id === stash.id).endpoints.some(item => item.id === created.id));
+  assert.ok(detail.stashes.find(item => item.id === secondStash.id).endpoints.some(item => item.id === created.id));
+  const repeated = await service.moveEndpoint('owner', a.id, created.id, secondStash.id);
+  assert.deepEqual(repeated, moved);
+  const edited = await service.updateEndpoint('owner', a.id, created.id, { ...input, description: 'Edited after moving' });
+  assert.equal(edited.stashId, secondStash.id);
+  assert.equal((await endpointRoute.PATCH(moveRequest(otherStash.id), endpointContext)).status, 400);
+  assert.equal((await endpointRoute.PATCH(moveRequest('00000000-0000-4000-8000-000000000000'), endpointContext)).status, 400);
+  assert.equal((await endpointRoute.PATCH(moveRequest('invalid'), endpointContext)).status, 400);
+  assert.equal((await endpointRoute.PATCH(moveRequest(secondStash.id), { params: Promise.resolve({ projectId: a.id, endpointId: secret.id }) })).status, 404);
+  testUser = { id: 'viewer', email: 'viewer@example.com' };
+  assert.equal((await endpointRoute.PATCH(moveRequest(stash.id), endpointContext)).status, 403);
+  assert.equal((await service.getEndpoint('owner', a.id, created.id)).endpoint.stashId, secondStash.id);
   await pg.close();
 });

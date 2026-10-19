@@ -34,6 +34,7 @@ export default function EditEndpointPage({
                   <Link href={`/projects/${project.id}`}>{project.name}</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
+              {endpoint.data && <><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbLink asChild><Link href={`/projects/${project.id}/stashes/${endpoint.data.endpoint.stashId}`}>{project.stashes.find(stash => stash.id === endpoint.data.endpoint.stashId)?.name ?? "Stash"}</Link></BreadcrumbLink></BreadcrumbItem></>}
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>Edit endpoint</BreadcrumbPage>
@@ -43,7 +44,7 @@ export default function EditEndpointPage({
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-semibold tracking-[-0.04em]">Edit endpoint</h1>
             <p className="text-sm text-muted-foreground">
-              Update the route, parameters, and responses. Saving keeps this endpoint in the same project.
+              Update the route, parameters, and responses. Saving keeps this endpoint in its current stash.
             </p>
           </div>
           {endpoint.isLoading ? <Skeleton className="h-96 w-full" /> : null}

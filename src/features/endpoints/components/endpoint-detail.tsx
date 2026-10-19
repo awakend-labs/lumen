@@ -71,11 +71,17 @@ export function EndpointDetail({
                 ))}
               </div>
               <div className="flex min-w-0 items-center gap-2"><h1 className="min-w-0 break-words text-3xl font-semibold tracking-[-0.04em]">{endpoint.name}</h1></div>
-              <div className="flex min-w-0 items-center gap-1">
-                <code className={cn("truncate px-2.5 py-1 font-mono text-sm", insetSurfaceClass)}>
-                  {endpoint.path}
-                </code>
-                <CopyButton value={endpoint.path} label="Copy path" />
+              <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5" style={{ backgroundImage: "var(--surface-gradient)" }}>
+                <Code2Icon aria-hidden className="hidden size-4 shrink-0 text-muted-foreground/70 sm:block" />
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-[9px] font-medium tracking-[0.12em] text-muted-foreground uppercase">Endpoint path</span>
+                  <code className="block overflow-x-auto font-mono text-[13px] leading-6 whitespace-nowrap [scrollbar-width:thin]">
+                    {endpoint.path}
+                  </code>
+                </div>
+                <div className="flex shrink-0 items-center self-stretch border-l border-border pl-2">
+                  <CopyButton value={endpoint.path} label="Copy path" />
+                </div>
               </div>
             </div>
             {canEditContent(role) ? (

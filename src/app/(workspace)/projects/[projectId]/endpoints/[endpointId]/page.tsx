@@ -41,6 +41,7 @@ export default function EndpointPage({
               </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
+          {endpoint.data && <><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbLink asChild><Link href={`/projects/${projectId}/stashes/${endpoint.data.endpoint.stashId}`}>{project.data?.stashes.find(stash => stash.id === endpoint.data.endpoint.stashId)?.name ?? "Stash"}</Link></BreadcrumbLink></BreadcrumbItem></>}
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbPage>{endpoint.data?.endpoint.name ?? "Endpoint"}</BreadcrumbPage>

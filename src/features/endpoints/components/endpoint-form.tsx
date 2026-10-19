@@ -10,7 +10,6 @@ import {
   Code2Icon,
   EyeIcon,
   FileTextIcon,
-  FolderIcon,
   InboxIcon,
   ListTreeIcon,
   MapPinIcon,
@@ -237,6 +236,7 @@ export function EndpointForm({
   const [importOpen, setImportOpen] = useState(importCurl);
   const [imported, setImported] = useState(false);
   const save = useSaveEndpoint(projectId, endpoint?.id);
+  const fixedStashId = endpoint?.stashId ?? duplicateFrom?.stashId ?? initialStashId ?? "";
   const form = useForm<EndpointFormValues>({
     resolver: zodResolver(endpointFormSchema),
     defaultValues: toFormValues(
@@ -247,7 +247,7 @@ export function EndpointForm({
               name: `${duplicateFrom.name.slice(0, 113)} (copy)`,
             }
           : undefined),
-      initialStashId ?? stashes[0]?.id ?? "",
+      fixedStashId,
     ),
   });
   const headers = useFieldArray({ control: form.control, name: "headers" });
@@ -328,7 +328,7 @@ export function EndpointForm({
     const payload: EndpointInput = {
       baseUrl: values.baseUrl,
       access: values.access,
-      stashId: values.stashId,
+      stashId: fixedStashId,
       name: values.name.trim(),
       method: values.method,
       path: values.path.trim(),
@@ -380,6 +380,10 @@ export function EndpointForm({
     });
   }
 
+  if (!stashes.some(stash => stash.id === fixedStashId)) {
+    return <p role="alert" className="text-sm text-muted-foreground">This stash is unavailable. Return to the project and open an existing stash to create an endpoint.</p>;
+  }
+
   return (
     <div className="grid min-w-0 gap-7 lg:grid-cols-[155px_minmax(0,1fr)] lg:gap-10">
       <SectionNav sections={["Route", "Access", "Description", "Headers", "Query parameters", "Path parameters", "Body fields", "Request body", "Responses"]} />
@@ -426,10 +430,10 @@ export function EndpointForm({
       <FormSection
         icon={RouteIcon}
         title="Route"
-        description="Name the endpoint and place it in a stash."
+        description="Define the endpoint name, method, and route."
       >
         <FieldGroup>
-          <Field data-invalid={Boolean(form.formState.errors.baseUrl) || undefined}><FieldLabel htmlFor="endpoint-base-url">Server URL</FieldLabel><Input id="endpoint-base-url" placeholder="https://api.example.com" aria-invalid={Boolean(form.formState.errors.baseUrl)} {...form.register("baseUrl")} /><FieldError errors={[form.formState.errors.baseUrl]} /></Field>
+          <Field data-invalid={Boolean(form.formState.errors.baseUrl) || undefined}><FieldLabel htmlFor="endpoint-base-url">Base URL</FieldLabel><Input id="endpoint-base-url" placeholder="https://api.example.com" aria-invalid={Boolean(form.formState.errors.baseUrl)} {...form.register("baseUrl")} /><FieldError errors={[form.formState.errors.baseUrl]} /></Field>
           <div className="grid gap-4 md:grid-cols-2">
             <Field
               data-invalid={Boolean(form.formState.errors.name) || undefined}
@@ -448,43 +452,6 @@ export function EndpointForm({
                 {...form.register("name")}
               />
               <FieldError errors={[form.formState.errors.name]} />
-            </Field>
-            <Field
-              data-invalid={Boolean(form.formState.errors.stashId) || undefined}
-            >
-              <FieldLabel className="gap-1.5">
-                <FolderIcon
-                  className="size-3.5 text-muted-foreground"
-                  aria-hidden
-                />
-                Stash
-              </FieldLabel>
-              <Select
-                value={form.watch("stashId")}
-                onValueChange={(value) =>
-                  form.setValue("stashId", value, {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                  })
-                }
-              >
-                <SelectTrigger
-                  className="w-full"
-                  aria-invalid={Boolean(form.formState.errors.stashId)}
-                >
-                  <SelectValue placeholder="Choose a stash" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {stashes.map((stash) => (
-                      <SelectItem key={stash.id} value={stash.id}>
-                        {stash.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <FieldError errors={[form.formState.errors.stashId]} />
             </Field>
             <Field
               data-invalid={Boolean(form.formState.errors.method) || undefined}
