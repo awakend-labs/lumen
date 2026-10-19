@@ -14,7 +14,7 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Shield, Copy } from "lucide-react";
 import { CurlExample } from "./curl-example";
-import { FieldTable, schemaFields } from "./field-table";
+import { FieldTable, requestBodyFields, schemaFields } from "./field-table";
 import { authLabels } from "@/features/projects/components/project-auth-settings";
 import { useProject } from "@/features/projects/queries";
 import { SectionNav, sectionId } from "@/components/section-nav";
@@ -157,7 +157,7 @@ export function EndpointDetail({
             <div className="grid min-w-0 gap-3">
               {endpoint.requestBody.contentType && <p className="font-mono text-xs text-muted-foreground">{endpoint.requestBody.contentType}</p>}
               {endpoint.requestBody.raw !== undefined && <pre className="lumen-inset overflow-auto p-4 font-mono text-xs">{endpoint.requestBody.raw}</pre>}
-              <FieldTable fields={endpoint.requestBody.fields?.length ? endpoint.requestBody.fields : schemaFields(endpoint.requestBody.schema)} />
+              <FieldTable fields={requestBodyFields(endpoint.requestBody.fields, endpoint.requestBody.schema)} />
               <JsonBlock title="Schema" value={endpoint.requestBody.schema} />
               <JsonBlock title="Example" value={endpoint.requestBody.example} />
             </div>

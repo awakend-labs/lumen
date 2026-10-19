@@ -73,6 +73,7 @@ export const projects = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     name: text("name").notNull(),
     description: text("description"),
+    baseUrl: text("base_url").notNull().default(""),
     slug: text("slug").notNull().unique(),
     status: projectStatus("status").$type<ProjectStatus>().notNull().default("in_progress"),
     auth: jsonb("auth").$type<ProjectAuth>().notNull().default({ scheme: "none", headerName: "X-API-Key", location: "header", description: "" }),

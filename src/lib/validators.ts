@@ -27,10 +27,20 @@ export const signUpSchema = z.object({
   password: z.string().min(8, "Use at least 8 characters").max(128),
 });
 
+export const baseUrlSchema = z.string().trim().max(2000).refine(value => {
+  if (!value) return true;
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password &&
+      !url.search && !url.hash;
+  } catch { return false; }
+}, "Use an HTTP or HTTPS base URL without credentials, query parameters, or fragments.").transform(value => value.replace(/\/+$/, ""));
+
 export const projectInputSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80, "Name must be 80 characters or fewer."),
   description: z.string().trim().max(500).optional().default(""),
   status: z.enum(PROJECT_STATUSES).optional(),
+  baseUrl: baseUrlSchema.optional(),
 });
 
 export const projectStatusSchema = z.object({
@@ -95,15 +105,6 @@ const responseDocSchema = z.object({
   schema: z.unknown().optional(),
 });
 
-export const baseUrlSchema = z.string().trim().max(2000).refine(value => {
-  if (!value) return true;
-  try {
-    const url = new URL(value);
-    return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password &&
-      !url.search && !url.hash;
-  } catch { return false; }
-}, "Use an HTTP or HTTPS base URL without credentials, query parameters, or fragments.").transform(value => value.replace(/\/+$/, ""));
-
 export const endpointInputSchema = z.object({
   draft: z.object({ key: z.string().max(120), revision: z.uuid() }).optional(),
   groupId: z.uuid().nullable().optional(),
@@ -128,6 +129,11 @@ export const endpointInputSchema = z.object({
   version: routeVersionSchema.optional().default("v1"),
   isDeprecated: z.boolean().optional().default(false),
 }).superRefine((value, ctx) => {
+  const statuses = new Set<number>();
+  value.responses.forEach((response, index) => {
+    if (statuses.has(response.statusCode)) ctx.addIssue({ code: "custom", path: ["responses", index, "statusCode"], message: "Each response must have a different status code." });
+    statuses.add(response.statusCode);
+  });
   const names = pathParameterNames(value.path);
   if (value.pathParams.length !== names.length || names.some(name => !value.pathParams.some(param => param.key === name && param.required))) {
     ctx.addIssue({ code: "custom", path: ["pathParams"], message: "Path parameters must match the route and be required" });

@@ -4,7 +4,7 @@ import { invitations, projectMembers, projects, user } from "@/db/schema";
 import { appUrl } from "@/lib/app-url";
 import type { InvitationPreview, InvitationRecord, MemberRecord } from "@/lib/types";
 import type { InvitationInput } from "@/lib/validators";
-import { requireOwner, requireReader } from "./access";
+import { requireEditor, requireOwner } from "./access";
 import { HttpError } from "./http";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -25,7 +25,7 @@ export async function listMembers(
   userId: string,
   projectId: string,
 ): Promise<MemberRecord[]> {
-  await requireReader(userId, projectId);
+  await requireEditor(userId, projectId);
   const rows = await db
     .select({
       id: projectMembers.id,

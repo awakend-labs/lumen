@@ -38,6 +38,7 @@ export function ProjectDialog({
     name: string;
     description: string | null;
     status?: ProjectStatus;
+    baseUrl?: string;
   };
   onSubmit: (values: ProjectInput) => void;
 }) {
@@ -47,6 +48,7 @@ export function ProjectDialog({
       name: initial?.name ?? "",
       description: initial?.description ?? "",
       status: initial?.status ?? "in_progress",
+      baseUrl: initial?.baseUrl ?? "",
     },
   });
 
@@ -56,9 +58,10 @@ export function ProjectDialog({
         name: initial?.name ?? "",
         description: initial?.description ?? "",
         status: initial?.status ?? "in_progress",
+        baseUrl: initial?.baseUrl ?? "",
       });
     }
-  }, [open, initial?.name, initial?.description, initial?.status, form]);
+  }, [open, initial?.name, initial?.description, initial?.status, initial?.baseUrl, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -88,6 +91,12 @@ export function ProjectDialog({
                 rows={3}
                 {...form.register("description")}
               />
+            </Field>
+            <Field data-invalid={Boolean(form.formState.errors.baseUrl) || undefined}>
+              <FieldLabel htmlFor="project-base-url">Default Base URL <span className="text-muted-foreground">(optional)</span></FieldLabel>
+              <Input id="project-base-url" placeholder="https://api.example.com/v1" {...form.register("baseUrl")} />
+              <p className="text-xs text-muted-foreground">New endpoints start with this URL. Each endpoint can use its own.</p>
+              <FieldError errors={[form.formState.errors.baseUrl]} />
             </Field>
             <Controller
               control={form.control}

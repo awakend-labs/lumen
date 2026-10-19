@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -15,10 +14,6 @@ import { useProject } from "@/features/projects/queries";
 import type { ProjectDetail } from "@/lib/types";
 import { canEditContent } from "@/lib/permissions";
 
-const subscribeToHydration = () => () => {};
-const clientHydrated = () => true;
-const serverHydrated = () => false;
-
 export function ProjectFrame({
   projectId,
   children,
@@ -29,11 +24,7 @@ export function ProjectFrame({
   editable?: boolean;
 }) {
   const project = useProject(projectId);
-  // The sidebar can populate this query before a streamed page hydrates.
-  // Keep its first render consistent with the server's loading skeleton.
-  const hydrated = useSyncExternalStore(subscribeToHydration, clientHydrated, serverHydrated);
-
-  if (!hydrated || project.isLoading) {
+  if (project.isLoading) {
     return (
       <div className="lumen-page flex flex-col gap-4">
         <Skeleton className="h-4 w-40" />

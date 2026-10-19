@@ -24,7 +24,7 @@ export default function SettingsPage({
   const { projectId } = use(params);
 
   return (
-    <ProjectFrame projectId={projectId}>
+    <ProjectFrame projectId={projectId} editable>
       {(project) => (
         <div className="lumen-page flex flex-col gap-8">
           <Breadcrumb>

@@ -28,11 +28,17 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
         insert into projects (id,name,slug,owner_id) values ('00000000-0000-4000-8000-000000000001','Migration check','migration-check','migration-user');
         insert into stashes (project_id,name) values ('00000000-0000-4000-8000-000000000001','Temp'), ('00000000-0000-4000-8000-000000000001','temp'), ('00000000-0000-4000-8000-000000000001','Temp (2)');`);
     }
+    if (file === '0008_dazzling_rocket_raccoon.sql') {
+      await pg.exec(`insert into endpoints (project_id,stash_id,name,method,path,base_url)
+        select project_id,id,'Default URL fixture','GET','/default','https://api.example.com/v1' from stashes
+        where project_id = '00000000-0000-4000-8000-000000000001' limit 1;`);
+    }
     await pg.exec(fs.readFileSync(path.join(dir, file), 'utf8'));
   }
   const migratedNames = (await pg.query("select name from stashes where project_id = '00000000-0000-4000-8000-000000000001'")).rows.map(row => row.name.toLowerCase());
   assert.equal(migratedNames.length, 3); assert.equal(new Set(migratedNames).size, 3);
   assert.ok(migratedNames.includes('temp (2)')); assert.ok(migratedNames.includes('temp (3)'));
+  assert.equal((await pg.query("select base_url from projects where id = '00000000-0000-4000-8000-000000000001'")).rows[0].base_url, 'https://api.example.com/v1');
   await pg.exec("delete from projects where id = '00000000-0000-4000-8000-000000000001'; delete from \"user\" where id = 'migration-user';");
   await pg.exec(`insert into "user" (id,name,email) values ('owner','Owner','owner@example.com'), ('other','Other','other@example.com'), ('viewer','Viewer','viewer@example.com')`);
   const service = require('../src/server/projects.ts');
@@ -242,15 +248,23 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   const ProjectLayout = require('../src/app/(workspace)/projects/[projectId]/layout.tsx').default;
   const EditLayout = require('../src/app/(workspace)/projects/[projectId]/endpoints/[endpointId]/edit/layout.tsx').default;
   const NewLayout = require('../src/app/(workspace)/projects/[projectId]/endpoints/new/layout.tsx').default;
+  const SettingsLayout = require('../src/app/(workspace)/projects/[projectId]/settings/layout.tsx').default;
   const pageProps = { children: 'protected content', params: Promise.resolve({ projectId: inviteProject.id, endpointId: inviteEndpoint.id }) };
-  assert.equal(await ProjectLayout(pageProps), 'protected content');
+  const projectPage = await ProjectLayout(pageProps);
+  assert.equal(projectPage.props.children, 'protected content');
+  assert.equal(projectPage.props.state.queries[0].state.data.stashes[0].endpoints[0].id, inviteEndpoint.id);
   const redirectsToProject = error => error.digest?.startsWith('NEXT_REDIRECT;') && error.digest.includes(`/projects/${inviteProject.id}`);
   await assert.rejects(EditLayout(pageProps), redirectsToProject);
   await assert.rejects(NewLayout(pageProps), redirectsToProject);
+  await assert.rejects(SettingsLayout(pageProps), redirectsToProject);
+  await assert.rejects(collaboration.listMembers('invitee', inviteProject.id), /permission/);
+  const membersRoute = require('../src/app/api/projects/[projectId]/members/route.ts');
+  assert.equal((await membersRoute.GET(new Request('http://localhost'), { params: Promise.resolve({ projectId: inviteProject.id }) })).status, 403);
   const viewerEndpointContext = { params: Promise.resolve({ projectId: inviteProject.id, endpointId: inviteEndpoint.id }) };
   assert.equal((await endpointRoute.PATCH(renameRequest('Denied'), viewerEndpointContext)).status, 403);
   testUser = { id: 'owner', email: 'owner@example.com' };
   assert.equal(await EditLayout(pageProps), 'protected content');
+  assert.equal(await SettingsLayout(pageProps), 'protected content');
   const membersBeforeRemoval = await collaboration.listMembers('owner', inviteProject.id);
   const inviteeMember = membersBeforeRemoval.find(member => member.userId === 'invitee');
   const ownerMember = membersBeforeRemoval.find(member => member.role === 'owner');
@@ -259,7 +273,7 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   await collaboration.removeMember('owner', inviteProject.id, inviteeMember.id);
   testUser = { id: 'invitee', email: 'invitee@example.com' };
   const is404 = error => error.digest === 'NEXT_HTTP_ERROR_FALLBACK;404';
-  for (const layout of [ProjectLayout, EditLayout, NewLayout]) await assert.rejects(layout(pageProps), is404);
+  for (const layout of [ProjectLayout, EditLayout, NewLayout, SettingsLayout]) await assert.rejects(layout(pageProps), is404);
   assert.equal((await projectRoute.GET(new Request('http://localhost'), { params: Promise.resolve({ projectId: inviteProject.id }) })).status, 404);
   assert.equal((await endpointRoute.GET(new Request('http://localhost'), viewerEndpointContext)).status, 404);
   assert.equal((await acceptRoute.POST(new Request('http://localhost'), { params: Promise.resolve({ token: inviteToken }) })).status, 403);
@@ -324,5 +338,13 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   await drafts.saveEndpointDraft('owner', a.id, editKey, { revision: editToken.revision, writeOrder: 1, payload });
   await service.updateEndpoint('owner', a.id, stored.id, { ...storedInput, draft: { key: editKey, revision: editToken.revision } });
   assert.equal((await drafts.getEndpointDraft('owner', a.id, editKey)).payload, null);
+  await service.updateProject('owner', a.id, { name: 'Alpha', description: '', baseUrl: 'https://api.shopkart.dev/v1' });
+  assert.equal((await service.getProjectDetail('owner', a.id)).baseUrl, 'https://api.shopkart.dev/v1');
+  assert.equal((await service.listProjects('owner')).find(project => project.id === a.id).baseUrl, 'https://api.shopkart.dev/v1');
+  const inherited = await service.createEndpoint('owner', a.id, { ...storedInput, name: 'Inherited origin', path: '/inherited', baseUrl: '' });
+  assert.equal(inherited.baseUrl, 'https://api.shopkart.dev/v1');
+  await service.updateProject('owner', a.id, { name: 'Renamed Alpha', description: '' });
+  assert.equal((await service.getProjectDetail('owner', a.id)).baseUrl, 'https://api.shopkart.dev/v1');
+  await assert.rejects(service.updateProject('viewer', a.id, { name: 'Denied', description: '', baseUrl: 'https://evil.example' }), /permission/);
   await pg.close();
 });

@@ -36,7 +36,7 @@ Module._load = function(request, parent, isMain) {
 const { InviteAccept } = require('../src/features/invitations/components/invite-accept.tsx');
 const { ProjectFrame } = require('../src/features/projects/components/project-frame.tsx');
 const { ProjectSettings } = require('../src/features/members/components/project-settings.tsx');
-const { useInviteMember } = require('../src/features/members/queries.ts');
+const { useInviteMember, useRevokeInvitation } = require('../src/features/members/queries.ts');
 const { useAcceptInvitation } = require('../src/features/invitations/queries.ts');
 const { useCreateStash } = require('../src/features/stashes/queries.ts');
 const { EndpointForm } = require('../src/features/endpoints/components/endpoint-form.tsx');
@@ -127,11 +127,35 @@ test('creating an invitation cancels a stale list request before updating the ca
 
 test('creating a second stash caches complete empty groups and endpoints without crashing', async () => {
   reset(); client.setQueryData(['projects', 'p'], { id: 'p', stashes: [{ id: 'existing', groups: [], endpoints: [] }] });
+  client.setQueryData(['projects'], [{ id: 'p', stashCount: 1, previewStashes: [{ id: 'existing' }] }]);
   useCreateStash('p'); await mutations.at(-1).onSuccess({ id: 'new', projectId: 'p', name: 'New stash' });
   const stashes = client.getQueryData(['projects', 'p']).stashes;
   assert.equal(stashes.length, 2);
   assert.deepEqual(stashes[1].groups, []); assert.deepEqual(stashes[1].endpoints, []);
   assert.equal(stashes.reduce((sum, stash) => sum + stash.groups.length + stash.endpoints.length, 0), 0);
+  assert.equal(client.getQueryData(['projects'])[0].stashCount, 2);
+});
+
+test('revoke removes the invitation immediately and a stale list cannot restore it', async () => {
+  reset(); const invitation = { id: 'i', link: 'https://example.com/invite/test' };
+  client.setQueryData(['invitations','p'], [invitation]);
+  let finish; const old = client.fetchQuery({ queryKey: ['invitations','p'], queryFn: () => new Promise(resolve => { finish = resolve; }) }).catch(()=>{});
+  useRevokeInvitation('p'); const mutation = mutations.at(-1);
+  await mutation.onMutate(); await mutation.onSuccess(undefined, 'i');
+  finish([invitation]); await old;
+  assert.deepEqual(client.getQueryData(['invitations','p']), []);
+});
+
+test('settings does not render cached member emails for a viewer', () => {
+  reset(); queries.members = { data: [{ id: 'member', name: 'Owner', email: 'private@example.com', role: 'owner' }] };
+  assert.equal(renderToStaticMarkup(React.createElement(ProjectSettings, { projectId: 'p', role: 'viewer' })), '');
+});
+
+test('new endpoints start with the project Base URL and duplicates retain their override', () => {
+  reset(); const stashId = '11111111-1111-4111-8111-111111111111';
+  const props = { projectId: 'p', stashes: [{id:stashId,groups:[],endpoints:[]}], initialStashId:stashId, projectBaseUrl: 'https://api.example.com/v1' };
+  assert.match(renderToStaticMarkup(React.createElement(EndpointForm, props)), /value="https:\/\/api.example.com\/v1"/);
+  assert.match(renderToStaticMarkup(React.createElement(EndpointForm, { ...props, duplicateFrom: {id:'e',name:'Copy',baseUrl:'https://other.example.com',method:'GET'} })), /value="https:\/\/other.example.com"/);
 });
 
 test('response example and schema inputs have connected screen-reader labels', () => {

@@ -346,6 +346,7 @@ function EditProjectDialog({
         name: project.name,
         description: project.description,
         status: project.status,
+        baseUrl: project.baseUrl,
       }}
       onSubmit={(values: ProjectInput) =>
         update.mutate(values, { onSuccess: onOpenChange })

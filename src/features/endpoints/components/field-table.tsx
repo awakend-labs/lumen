@@ -31,3 +31,17 @@ export function schemaFields(schema: unknown, prefix = "", depth = 0): ParamFiel
     return [{ key, value: "", type: (typeof field.type === "string" ? field.type : "object") as ParamField["type"], required: Array.isArray(node.required) && node.required.includes(name), description: typeof field.description === "string" ? field.description : "", enum: Array.isArray(field.enum) ? field.enum.map(String) : undefined, default: field.default === undefined ? undefined : JSON.stringify(field.default), format: typeof field.format === "string" ? field.format : undefined, min: typeof field.minimum === "number" ? field.minimum : typeof field.minLength === "number" ? field.minLength : undefined, max: typeof field.maximum === "number" ? field.maximum : typeof field.maxLength === "number" ? field.maxLength : undefined }, ...schemaFields(field, key, depth + 1)];
   });
 }
+
+export function requestBodyFields(fields: ParamField[] | undefined, schema: unknown): ParamField[] {
+  const fromSchema = schemaFields(schema);
+  const schemaByKey = new Map(fromSchema.map(field => [field.key, field]));
+  const documented = (fields ?? []).map(field => {
+    const contract = schemaByKey.get(field.key);
+    return contract ? { ...contract, ...field, type: contract.type ?? field.type,
+      description: field.description || contract.description,
+      required: contract.required || field.required,
+    } : field;
+  });
+  const keys = new Set(documented.map(field => field.key));
+  return [...documented, ...fromSchema.filter(field => !keys.has(field.key))];
+}

@@ -10,17 +10,21 @@ import {
   setStashStatusRequest,
   updateStash,
 } from "@/features/stashes/api";
-import type { ProjectDetail, StashStatus } from "@/lib/types";
+import type { ProjectDetail, ProjectListItem, StashStatus } from "@/lib/types";
 import type { StashInput } from "@/lib/validators";
 
 export function useCreateStash(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: StashInput) => createStash(projectId, input),
-    onSuccess: async (stash) => {
-      await queryClient.cancelQueries({ queryKey: projectKeys.detail(projectId) });
+    onMutate: () => queryClient.cancelQueries({ queryKey: projectKeys.all }),
+    onSuccess: (stash) => {
       queryClient.setQueryData<ProjectDetail>(projectKeys.detail(projectId), current => current ? { ...current, stashes: [...current.stashes, { ...stash, groups: [], endpoints: [] }] } : current);
-      queryClient.invalidateQueries({ queryKey: projectKeys.all });
+      queryClient.setQueryData<ProjectListItem[]>(projectKeys.all, current => current?.map(project => project.id === projectId ? {
+        ...project, stashCount: project.stashCount + 1, updatedAt: stash.updatedAt,
+        previewStashes: [{ id: stash.id, name: stash.name, color: stash.color }, ...project.previewStashes].slice(0, 3),
+      } : project));
+      queryClient.invalidateQueries({ queryKey: projectKeys.all, refetchType: "none" });
       toast.success("Stash created");
     },
     onError: (error: Error) => toast.error(error.message),

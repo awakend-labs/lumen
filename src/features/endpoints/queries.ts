@@ -20,11 +20,18 @@ export const endpointKeys = {
 };
 
 export function useEndpoint(projectId: string, endpointId: string) {
+  const client = useQueryClient();
   return useQuery({
     queryKey: endpointKeys.detail(projectId, endpointId),
     queryFn: () => fetchEndpoint(projectId, endpointId),
-    staleTime: 0,
-    refetchOnWindowFocus: true,
+    initialData: () => {
+      const project = client.getQueryData<ProjectDetail>(projectKeys.detail(projectId));
+      const endpoint = project?.stashes.flatMap(stash => stash.endpoints).find(endpoint => endpoint.id === endpointId);
+      return endpoint && project ? { endpoint, role: project.role } : undefined;
+    },
+    initialDataUpdatedAt: () => client.getQueryState(projectKeys.detail(projectId))?.dataUpdatedAt,
+    staleTime: 30_000,
+    refetchOnWindowFocus: "always",
     retry: (count, error) => count < 1 && (!(error instanceof ApiError) || error.status >= 500),
   });
 }

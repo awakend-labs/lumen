@@ -39,7 +39,7 @@ import {
   useUpdateMemberRole,
 } from "@/features/members/queries";
 import { formatDate } from "@/lib/format";
-import { canManageProject } from "@/lib/permissions";
+import { canEditContent, canManageProject } from "@/lib/permissions";
 import type { InvitationRecord, ProjectRole } from "@/lib/types";
 import { invitationInputSchema, type InvitationInput } from "@/lib/validators";
 
@@ -51,7 +51,7 @@ export function ProjectSettings({
   role: ProjectRole;
 }) {
   const owner = canManageProject(role);
-  const members = useMembers(projectId);
+  const members = useMembers(projectId, canEditContent(role));
   const invitations = useInvitations(projectId, owner);
   const invite = useInviteMember(projectId);
   const revoke = useRevokeInvitation(projectId);
@@ -62,6 +62,8 @@ export function ProjectSettings({
     resolver: zodResolver(invitationInputSchema),
     defaultValues: { email: "", role: "editor" },
   });
+
+  if (!canEditContent(role)) return null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -203,7 +205,7 @@ export function ProjectSettings({
               </FieldGroup>
             </form>
 
-            {created ? (
+            {created && invitations.data?.some(invitation => invitation.id === created.id) ? (
               <Alert>
                 <AlertTitle>Share this link</AlertTitle>
                 <AlertDescription>

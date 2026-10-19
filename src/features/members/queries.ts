@@ -18,10 +18,11 @@ export const memberKeys = {
   invites: (projectId: string) => ["invitations", projectId] as const,
 };
 
-export function useMembers(projectId: string) {
+export function useMembers(projectId: string, enabled = true) {
   return useQuery({
     queryKey: memberKeys.list(projectId),
     queryFn: () => fetchMembers(projectId),
+    enabled,
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
@@ -58,8 +59,13 @@ export function useRevokeInvitation(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (invitationId: string) => revokeInvitation(projectId, invitationId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: memberKeys.invites(projectId) });
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: memberKeys.invites(projectId) });
+    },
+    onSuccess: async (_result, invitationId) => {
+      await queryClient.cancelQueries({ queryKey: memberKeys.invites(projectId) });
+      queryClient.setQueryData<InvitationRecord[]>(memberKeys.invites(projectId), current => current?.filter(invite => invite.id !== invitationId));
+      queryClient.invalidateQueries({ queryKey: memberKeys.invites(projectId), refetchType: "none" });
       toast.success("Invitation revoked");
     },
     onError: (error: Error) => toast.error(error.message),

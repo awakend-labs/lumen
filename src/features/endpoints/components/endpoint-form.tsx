@@ -70,6 +70,7 @@ import { useEndpointDraft } from "../use-endpoint-draft";
 import { EnumValuesEditor } from "./enum-values-editor";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { nextResponseStatus } from "@/lib/response-status";
 
 const sectionSurfaceClass =
   "lumen-section";
@@ -132,7 +133,13 @@ const endpointFormSchema = z.object({
   pathParams: z.array(paramFormSchema),
   requestSchema: jsonText,
   requestExample: jsonText,
-  responses: z.array(responseFormSchema),
+  responses: z.array(responseFormSchema).superRefine((responses, ctx) => {
+    const used = new Set<number>();
+    responses.forEach((response, index) => {
+      if (used.has(response.statusCode)) ctx.addIssue({ code: "custom", path: [index, "statusCode"], message: "Each response must have a different status code." });
+      used.add(response.statusCode);
+    });
+  }),
   tags: z.string(),
   version: z
     .string()
@@ -172,9 +179,10 @@ function pretty(value: unknown) {
 function toFormValues(
   endpoint: Partial<EndpointRecord> | undefined,
   stashId: string,
+  projectBaseUrl = "",
 ): EndpointFormValues {
   return {
-    baseUrl: endpoint?.baseUrl ?? "",
+    baseUrl: endpoint?.baseUrl ?? projectBaseUrl,
     bodyFormat: (endpoint?.requestBody?.contentType ?? "application/json") as EndpointFormValues["bodyFormat"],
     requestRaw: endpoint?.requestBody?.raw ?? "",
     access: endpoint?.access ?? "public",
@@ -234,6 +242,7 @@ export function EndpointForm({
   endpoint,
   initialStashId,
   duplicateFrom,
+  projectBaseUrl = "",
   importCurl = false,
 }: {
   projectId: string;
@@ -241,6 +250,7 @@ export function EndpointForm({
   endpoint?: EndpointRecord;
   initialStashId?: string;
   duplicateFrom?: EndpointRecord;
+  projectBaseUrl?: string;
   importCurl?: boolean;
 }) {
   const router = useRouter();
@@ -261,6 +271,7 @@ export function EndpointForm({
             }
           : undefined),
       fixedStashId,
+      projectBaseUrl,
     ),
   });
   const headers = useFieldArray({ control: form.control, name: "headers" });
@@ -418,7 +429,7 @@ export function EndpointForm({
       onSubmit={form.handleSubmit(submit)}
     >
       <div className="flex flex-wrap items-center justify-between gap-2"><p role={draft.error ? "alert" : "status"} className={cn("text-xs", draft.error ? "text-destructive" : "text-muted-foreground")}>{draft.status}</p>
-        <Button type="button" size="sm" variant="ghost" disabled={draft.loading} onClick={() => { if (window.confirm("Discard this saved draft and reset the form?")) void draft.discard(toFormValues(endpoint ?? duplicateFrom, fixedStashId)).catch(() => toast.error("Could not discard the draft. Please try again.")); }}>Discard draft</Button></div>
+        <Button type="button" size="sm" variant="ghost" disabled={draft.loading} onClick={() => { if (window.confirm("Discard this saved draft and reset the form?")) void draft.discard(toFormValues(endpoint ?? duplicateFrom, fixedStashId, projectBaseUrl)).catch(() => toast.error("Could not discard the draft. Please try again.")); }}>Discard draft</Button></div>
       <fieldset disabled={draft.loading} className="contents">
       {!endpoint && <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Start with a request you already use.</p><Button type="button" variant="outline" onClick={() => setImportOpen(true)}><TerminalSquare className="size-4" />Import cURL</Button></div>}
       <CurlImportDialog open={importOpen} onOpenChange={setImportOpen} onImport={importRequest} />
@@ -477,7 +488,7 @@ export function EndpointForm({
               </SelectGroup></SelectContent>
             </Select>
           </Field>}
-          <Field data-invalid={Boolean(form.formState.errors.baseUrl) || undefined}><FieldLabel htmlFor="endpoint-base-url">Base URL</FieldLabel><Input id="endpoint-base-url" placeholder="https://api.example.com" aria-invalid={Boolean(form.formState.errors.baseUrl)} {...form.register("baseUrl")} /><FieldError errors={[form.formState.errors.baseUrl]} /></Field>
+          <Field data-invalid={Boolean(form.formState.errors.baseUrl) || undefined}><FieldLabel htmlFor="endpoint-base-url">Base URL</FieldLabel><Input id="endpoint-base-url" placeholder="https://api.example.com" aria-invalid={Boolean(form.formState.errors.baseUrl)} {...form.register("baseUrl")} value={form.watch("baseUrl")} /><FieldError errors={[form.formState.errors.baseUrl]} /></Field>
           <div className="grid gap-4 md:grid-cols-2">
             <Field
               data-invalid={Boolean(form.formState.errors.name) || undefined}
@@ -803,9 +814,10 @@ export function EndpointForm({
             type="button"
             variant="outline"
             size="sm"
+            disabled={nextResponseStatus(form.watch("responses"), method) === undefined}
             onClick={() =>
               responses.append({
-                statusCode: method === "POST" ? 201 : 200,
+                statusCode: nextResponseStatus(form.getValues("responses"), method) ?? 200,
                 description: "",
                 body: "",
                 schema: "",
@@ -824,7 +836,7 @@ export function EndpointForm({
               className={cn("lumen-response flex flex-col gap-3 p-4", insetSurfaceClass)}
             >
               <div className="grid gap-3 md:grid-cols-[120px_1fr_auto] md:items-end">
-                <Field>
+                <Field data-invalid={Boolean(form.formState.errors.responses?.[index]?.statusCode) || undefined}>
                   <FieldLabel htmlFor={`status-${field.id}`}>Status</FieldLabel>
                   <Input
                     id={`status-${field.id}`}
@@ -835,10 +847,11 @@ export function EndpointForm({
                       form.setValue(
                         `responses.${index}.statusCode`,
                         Number(event.target.value),
-                        { shouldValidate: true },
+                        { shouldValidate: true, shouldDirty: true },
                       )
                     }
                   />
+                  <FieldError errors={[form.formState.errors.responses?.[index]?.statusCode]} />
                 </Field>
                 <Field>
                   <FieldLabel htmlFor={`response-desc-${field.id}`}>

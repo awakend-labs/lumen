@@ -118,6 +118,7 @@ export type StashRecord = {
 export type ApiGroupRecord = { id: string; stashId: string; name: string };
 
 export type ProjectDetail = {
+  baseUrl: string;
   auth: ProjectAuth;
   id: string;
   name: string;
@@ -137,6 +138,7 @@ export type ProjectStashPreview = {
 };
 
 export type ProjectListItem = {
+  baseUrl: string;
   id: string;
   name: string;
   description: string | null;

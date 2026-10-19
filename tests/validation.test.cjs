@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { endpointInputSchema, projectAuthSchema } = require('../src/lib/validators.ts');
 const { validEndpointPath, pathParameterNames, canonicalPath } = require('../src/lib/endpoint-path.ts');
-const { schemaFields, FieldTable } = require('../src/features/endpoints/components/field-table.tsx');
+const { schemaFields, requestBodyFields, FieldTable } = require('../src/features/endpoints/components/field-table.tsx');
 const { renderToStaticMarkup } = require('react-dom/server');
 const React = require('react');
 const base = { stashId: '12345678-1234-4234-8234-123456789012', name: 'Get user', method: 'GET', path: '/users/{id}', pathParams: [{ key: 'id', required: true }] };
@@ -37,4 +37,22 @@ test('schema tables show nested fields, required flags, types and constraints sa
   assert.equal(fields[0].required, true); assert.equal(fields[1].key, 'user.name'); assert.equal(fields[2].min, 0);
   const html = renderToStaticMarkup(React.createElement(FieldTable, { fields }));
   assert.match(html, /<table/); assert.match(html, /integer/); assert.match(html, /Required/); assert.doesNotMatch(html, /<script>/);
+});
+
+test('schema-required body fields remain required when separate rows exist', () => {
+  const schema = { type: 'object', required: ['email'], properties: { email: { type: 'string', format: 'email' }, profile: { type: 'object', required: ['name'], properties: { name: { type: 'string' } } } } };
+  const fields = requestBodyFields([{ key: 'email', type: 'string', required: false, value: '', description: 'Account email' }], schema);
+  assert.equal(fields[0].required, true); assert.equal(fields[0].description, 'Account email');
+  assert.equal(fields.find(field => field.key === 'profile.name').required, true);
+  assert.equal(fields.find(field => field.key === 'profile').required, false);
+});
+
+test('response status codes are unique and Add response chooses an unused code', () => {
+  const { nextResponseStatus } = require('../src/lib/response-status.ts');
+  assert.equal(nextResponseStatus([], 'POST'), 201);
+  assert.equal(nextResponseStatus([{ statusCode: 201 }], 'POST'), 200);
+  const result = endpointInputSchema.safeParse({ ...base, responses: [{ statusCode: 200 }, { statusCode: 200 }] });
+  assert.equal(result.success, false); assert.match(result.error.issues[0].message, /different status code/);
+  assert.equal(endpointInputSchema.safeParse({ ...base, responses: [{ statusCode: 200 }, { statusCode: 400 }] }).success, true);
+  assert.equal(nextResponseStatus(Array.from({length:500}, (_,i)=>({statusCode:100+i})), 'GET'), undefined);
 });

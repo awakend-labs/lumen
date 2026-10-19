@@ -72,6 +72,7 @@ function NewEndpoint({ projectId }: { projectId: string; }) {
             stashes={project.stashes}
             key={selectedStash.id}
             initialStashId={selectedStash.id}
+            projectBaseUrl={project.baseUrl}
             importCurl={search.get("import") === "curl"}
             duplicateFrom={duplicate}
           />}

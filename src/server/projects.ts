@@ -14,6 +14,7 @@ import type {
 import type { EndpointInput, ProjectInput } from "@/lib/validators";
 import { requireEditor, requireOwner, touchProject } from "./access";
 import { HttpError } from "./http";
+import { canEditContent } from "@/lib/permissions";
 
 function savedDraftCleanup(userId: string, projectId: string, draft: NonNullable<EndpointInput["draft"]>) {
   return db.update(endpointDrafts).set({ payload: null, revision: crypto.randomUUID(), writeOrder: 0, updatedAt: new Date() })
@@ -57,6 +58,7 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
       id: projects.id,
       name: projects.name,
       description: projects.description,
+      baseUrl: projects.baseUrl,
       slug: projects.slug,
       status: projects.status,
       role: projectMembers.role,
@@ -116,6 +118,7 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
     id: row.id,
     name: row.name,
     description: row.description,
+    baseUrl: row.baseUrl,
     slug: row.slug,
     status: row.status,
     role: row.role,
@@ -135,6 +138,7 @@ export async function createProject(userId: string, input: ProjectInput) {
     .values({
       name: input.name,
       description,
+      baseUrl: input.baseUrl ?? "",
       slug,
       status: input.status ?? "in_progress",
       ownerId: userId,
@@ -203,6 +207,7 @@ export async function getProjectDetail(
     id: project.id,
     name: project.name,
     description: project.description,
+    baseUrl: project.baseUrl,
     slug: project.slug,
     role: project.role,
     status: project.status,
@@ -226,6 +231,7 @@ export async function updateProject(
       name: input.name,
       description,
       // Only change status when the caller sends it, so renames don't reset it.
+      ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl } : {}),
       ...(input.status ? { status: input.status } : {}),
       updatedAt: new Date(),
     })
@@ -260,15 +266,17 @@ export async function createEndpoint(
   projectId: string,
   input: EndpointInput,
 ) {
-  await requireEditor(userId, projectId);
   const [stash] = await db
-    .select({ id: stashes.id, projectId: stashes.projectId })
+    .select({ id: stashes.id, projectId: stashes.projectId, baseUrl: projects.baseUrl, role: projectMembers.role })
     .from(stashes)
+    .innerJoin(projects, eq(projects.id, stashes.projectId))
+    .innerJoin(projectMembers, and(eq(projectMembers.projectId, stashes.projectId), eq(projectMembers.userId, userId)))
     .where(eq(stashes.id, input.stashId))
     .limit(1);
   if (!stash || stash.projectId !== projectId) {
     throw new HttpError(400, "Choose a stash in this project");
   }
+  if (!canEditContent(stash.role)) throw new HttpError(403, "You don't have permission to do that");
 
 
 
@@ -282,7 +290,7 @@ export async function createEndpoint(
       name: input.name,
       method: input.method,
       path: input.path,
-      baseUrl: input.baseUrl,
+      baseUrl: input.baseUrl || stash.baseUrl,
       description: input.description,
       headers: input.headers,
       queryParams: input.queryParams,
@@ -325,9 +333,11 @@ export async function updateEndpoint(
   endpointId: string,
   input: EndpointInput,
 ) {
-  await requireEditor(userId, projectId);
-  const [existing] = await db.select({ stashId: endpoints.stashId }).from(endpoints).where(and(eq(endpoints.id, endpointId), eq(endpoints.projectId, projectId))).limit(1);
+  const [existing] = await db.select({ stashId: endpoints.stashId, role: projectMembers.role }).from(endpoints)
+    .innerJoin(projectMembers, and(eq(projectMembers.projectId, endpoints.projectId), eq(projectMembers.userId, userId)))
+    .where(and(eq(endpoints.id, endpointId), eq(endpoints.projectId, projectId))).limit(1);
   if (!existing) throw new HttpError(404, "Endpoint not found");
+  if (!canEditContent(existing.role)) throw new HttpError(403, "You don't have permission to do that");
   if (input.groupId !== undefined && existing.stashId !== input.stashId) {
     throw new HttpError(409, "This endpoint moved to another stash. Reload before changing its group.");
   }
