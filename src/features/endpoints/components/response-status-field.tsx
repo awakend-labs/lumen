@@ -17,16 +17,28 @@ export function ResponseStatusField({ id, value, usedCodes, onChange, error }: {
     : error?.message;
   const errorId = `${id}-error`;
 
-  return <><Field data-invalid={Boolean(message) || undefined}>
-    <FieldLabel htmlFor={id} className="gap-1.5">
-      <HashIcon className="size-3.5 text-muted-foreground" aria-hidden />
-      Status
-    </FieldLabel>
-    <Input id={id} type="number" min={100} max={599}
-      className="font-mono tabular-nums" value={value}
-      aria-invalid={Boolean(message)} aria-describedby={message ? errorId : undefined}
-      onChange={event => onChange(event.target.value === "" ? "" : Number(event.target.value))} />
-  </Field>
-    <FieldError id={errorId} className="order-last col-span-full" errors={[{ message }]} />
-  </>;
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
+      <Field data-invalid={Boolean(message) || undefined}>
+        <FieldLabel htmlFor={id} className="gap-1.5">
+          <HashIcon className="size-3.5 text-muted-foreground" aria-hidden />
+          Status
+        </FieldLabel>
+        <Input
+          id={id}
+          type="number"
+          min={100}
+          max={599}
+          className="font-mono tabular-nums"
+          value={value}
+          aria-invalid={Boolean(message)}
+          aria-describedby={message ? errorId : undefined}
+          onChange={(event) =>
+            onChange(event.target.value === "" ? "" : Number(event.target.value))
+          }
+        />
+      </Field>
+      <FieldError id={errorId} errors={[{ message }]} />
+    </div>
+  );
 }

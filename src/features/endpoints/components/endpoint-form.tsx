@@ -8,6 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlignLeftIcon,
   BracesIcon,
+  CheckIcon,
+  CloudIcon,
   Code2Icon,
   EyeIcon,
   FileTextIcon,
@@ -16,6 +18,7 @@ import {
   MapPinIcon,
   PencilLineIcon,
   PlusIcon,
+  RefreshCwIcon,
   RouteIcon,
   SaveIcon,
   SearchIcon,
@@ -589,43 +592,26 @@ export function EndpointForm({
           });
         })}
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p
-            role={draft.error ? "alert" : "status"}
-            className={cn(
-              "text-xs",
-              draft.error ? "text-destructive" : "text-muted-foreground",
-            )}
-          >
-            {draft.status}
-          </p>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            disabled={draft.loading}
-            onClick={() => {
-              if (
-                window.confirm("Discard this saved draft and reset the form?")
-              )
-                void draft
-                  .discard(
-                    toFormValues(
-                      endpoint ?? duplicateFrom,
-                      fixedStashId,
-                      projectBaseUrl,
-                    ),
-                  )
-                  .catch(() =>
-                    toast.error(
-                      "Could not discard the draft. Please try again.",
-                    ),
-                  );
-            }}
-          >
-            Discard draft
-          </Button>
-        </div>
+        <EndpointDraftBar
+          draft={draft}
+          onDiscard={() => {
+            if (
+              window.confirm("Discard this saved draft and reset the form?")
+            ) {
+              void draft
+                .discard(
+                  toFormValues(
+                    endpoint ?? duplicateFrom,
+                    fixedStashId,
+                    projectBaseUrl,
+                  ),
+                )
+                .catch(() =>
+                  toast.error("Could not discard the draft. Please try again."),
+                );
+            }
+          }}
+        />
         {draft.hasRecoveredDraft && (
           <div className="flex flex-wrap gap-2 rounded-md border border-border bg-muted/30 p-3">
             <p className="w-full text-xs text-muted-foreground">
@@ -668,9 +654,10 @@ export function EndpointForm({
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={() => setImportOpen(true)}
               >
-                <TerminalSquare className="size-4" />
+                <TerminalSquare data-icon="inline-start" />
                 Import cURL
               </Button>
             </div>
@@ -1194,17 +1181,67 @@ export function EndpointForm({
                     values. Arrays send repeated fields.
                   </p>
                 )}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-muted-foreground">
-                    {bodyJson.hasCustomJson ? "Custom JSON is preserved as body fields change." : "Schema and example follow body fields. Edit either JSON document to customize it."}
-                  </p>
-                  <Button type="button" variant="ghost" size="sm"
-                    disabled={draft.loading || draft.hasRecoveredDraft || !form.watch("bodyFields").some(field => field.key.trim())}
+                <div
+                  className={cn(
+                    "flex flex-col gap-3 rounded-sm border border-border p-3 sm:flex-row sm:items-center sm:justify-between",
+                    bodyJson.hasCustomJson
+                      ? "bg-primary/5 dark:bg-primary/[0.07]"
+                      : "bg-muted/30 dark:bg-muted/20",
+                  )}
+                >
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span
+                      className={cn(
+                        "flex size-9 shrink-0 items-center justify-center rounded-sm border border-border/70",
+                        bodyJson.hasCustomJson
+                          ? "bg-primary/10 text-primary dark:bg-primary/15"
+                          : "bg-background/80 text-muted-foreground dark:bg-background/40",
+                      )}
+                      aria-hidden
+                    >
+                      {bodyJson.hasCustomJson ? (
+                        <PencilLineIcon className="size-4" />
+                      ) : (
+                        <BracesIcon className="size-4" />
+                      )}
+                    </span>
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="text-xs font-semibold tracking-[-0.01em] text-foreground">
+                        {bodyJson.hasCustomJson
+                          ? "Custom schema and example"
+                          : "Linked to body fields"}
+                      </p>
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {bodyJson.hasCustomJson
+                          ? "Your JSON stays as-is when body fields change. Regenerate to rebuild from fields."
+                          : "Schema and example update from body fields. Edit either JSON block to customize."}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full shrink-0 bg-background/80 sm:w-auto"
+                    disabled={
+                      draft.loading ||
+                      draft.hasRecoveredDraft ||
+                      !form.watch("bodyFields").some((field) => field.key.trim())
+                    }
                     onClick={() => {
-                      if (bodyJson.hasCustomJson && !window.confirm("Replace the request schema and example with JSON generated from body fields?")) return;
+                      if (
+                        bodyJson.hasCustomJson &&
+                        !window.confirm(
+                          "Replace the request schema and example with JSON generated from body fields?",
+                        )
+                      ) {
+                        return;
+                      }
                       bodyJson.regenerate();
-                    }}>
-                    <BracesIcon data-icon="inline-start" />Regenerate from fields
+                    }}
+                  >
+                    <RefreshCwIcon data-icon="inline-start" />
+                    Regenerate from fields
                   </Button>
                 </div>
                 <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -1313,27 +1350,29 @@ export function EndpointForm({
                     index > 0 && "border-t border-border pt-3",
                   )}
                 >
-                  <div className="grid gap-3 md:grid-cols-[120px_1fr_auto] md:items-end">
-                    <ResponseStatusField
-                      id={`status-${field.id}`}
-                      value={form.watch(`responses.${index}.statusCode`)}
-                      usedCodes={form
-                        .watch("responses")
-                        .filter((_, responseIndex) => responseIndex !== index)
-                        .map((response) => response.statusCode)}
-                      error={
-                        form.formState.errors.responses?.[index]?.statusCode
-                      }
-                      onChange={(statusCode) => {
-                        form.setValue(
-                          `responses.${index}.statusCode`,
-                          statusCode,
-                          { shouldDirty: true },
-                        );
-                        void form.trigger("responses");
-                      }}
-                    />
-                    <Field>
+                  <div className="grid gap-3 md:grid-cols-[120px_minmax(0,1fr)_2.5rem] md:items-end">
+                    <div className="min-w-0">
+                      <ResponseStatusField
+                        id={`status-${field.id}`}
+                        value={form.watch(`responses.${index}.statusCode`)}
+                        usedCodes={form
+                          .watch("responses")
+                          .filter((_, responseIndex) => responseIndex !== index)
+                          .map((response) => response.statusCode)}
+                        error={
+                          form.formState.errors.responses?.[index]?.statusCode
+                        }
+                        onChange={(statusCode) => {
+                          form.setValue(
+                            `responses.${index}.statusCode`,
+                            statusCode,
+                            { shouldDirty: true },
+                          );
+                          void form.trigger("responses");
+                        }}
+                      />
+                    </div>
+                    <Field className="min-w-0">
                       <FieldLabel
                         htmlFor={`response-desc-${field.id}`}
                         className="gap-1.5"
@@ -1350,15 +1389,18 @@ export function EndpointForm({
                         {...form.register(`responses.${index}.description`)}
                       />
                     </Field>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Remove response"
-                      onClick={() => responses.remove(index)}
-                    >
-                      <Trash2Icon />
-                    </Button>
+                    <div className="flex items-end justify-end md:justify-center">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-10 shrink-0 text-muted-foreground hover:text-destructive"
+                        aria-label="Remove response"
+                        onClick={() => responses.remove(index)}
+                      >
+                        <Trash2Icon />
+                      </Button>
+                    </div>
                   </div>
                   <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
                     <Field
@@ -1508,6 +1550,161 @@ export function EndpointForm({
           </div>
         </fieldset>
       </form>
+    </div>
+  );
+}
+
+type EndpointDraftBarProps = {
+  draft: {
+    status: string;
+    loading: boolean;
+    error: boolean;
+  };
+  onDiscard: () => void;
+};
+
+function endpointDraftStatusMeta(
+  status: string,
+  { error, loading }: { error: boolean; loading: boolean },
+) {
+  if (loading) {
+    return {
+      tone: "idle" as const,
+      title: "Checking for drafts",
+      detail: status,
+      busy: true,
+    };
+  }
+  if (error) {
+    return {
+      tone: "error" as const,
+      title: "Autosave unavailable",
+      detail: status,
+      busy: false,
+    };
+  }
+  if (status === "Saving draft…" || status === "Saving current edits…") {
+    return {
+      tone: "active" as const,
+      title: status === "Saving draft…" ? "Saving draft" : "Resuming autosave",
+      detail: "Your latest changes are being stored.",
+      busy: true,
+    };
+  }
+  if (
+    status === "Draft saved" ||
+    status === "Draft restored" ||
+    status === "Draft discarded"
+  ) {
+    return {
+      tone: "success" as const,
+      title: status,
+      detail: null,
+      busy: false,
+    };
+  }
+  if (status === "Drafts save automatically") {
+    return {
+      tone: "idle" as const,
+      title: "Autosave",
+      detail: "Changes are saved as you edit.",
+      busy: false,
+    };
+  }
+  if (status.startsWith("A saved draft")) {
+    return {
+      tone: "warn" as const,
+      title: "Saved draft found",
+      detail: status,
+      busy: false,
+    };
+  }
+  return {
+    tone: "idle" as const,
+    title: status,
+    detail: null,
+    busy: false,
+  };
+}
+
+function EndpointDraftBar({ draft, onDiscard }: EndpointDraftBarProps) {
+  const meta = endpointDraftStatusMeta(draft.status, draft);
+  const toneSurface = {
+    idle: "bg-muted/30 dark:bg-muted/20",
+    active: "bg-primary/5 dark:bg-primary/[0.07]",
+    success: "bg-muted/30 dark:bg-muted/20",
+    warn: "bg-primary/5 dark:bg-primary/[0.07]",
+    error: "border-destructive/30 bg-destructive/5",
+  }[meta.tone];
+  const toneIcon = {
+    idle: "bg-background/80 text-muted-foreground dark:bg-background/40",
+    active: "bg-primary/10 text-primary dark:bg-primary/15",
+    success: "bg-primary/10 text-primary dark:bg-primary/15",
+    warn: "bg-primary/10 text-primary dark:bg-primary/15",
+    error: "bg-destructive/10 text-destructive",
+  }[meta.tone];
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-3 rounded-sm border border-border p-3 sm:flex-row sm:items-center sm:justify-between",
+        toneSurface,
+      )}
+    >
+      <div
+        className="flex min-w-0 items-start gap-3"
+        role={draft.error ? "alert" : "status"}
+        aria-live="polite"
+      >
+        <span
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-sm border border-border/70",
+            toneIcon,
+          )}
+          aria-hidden
+        >
+          {meta.busy ? (
+            <Spinner className="size-4" />
+          ) : meta.tone === "error" ? (
+            <TriangleAlertIcon className="size-4" />
+          ) : meta.tone === "success" ? (
+            <CheckIcon className="size-4" />
+          ) : (
+            <CloudIcon className="size-4" />
+          )}
+        </span>
+        <div className="min-w-0 space-y-0.5">
+          <p
+            className={cn(
+              "text-xs font-semibold tracking-[-0.01em]",
+              draft.error ? "text-destructive" : "text-foreground",
+            )}
+          >
+            {meta.title}
+          </p>
+          {meta.detail ? (
+            <p
+              className={cn(
+                "text-xs leading-relaxed",
+                draft.error ? "text-destructive/90" : "text-muted-foreground",
+              )}
+            >
+              {meta.detail}
+            </p>
+          ) : null}
+        </div>
+      </div>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="w-full shrink-0 bg-background/80 sm:w-auto"
+        disabled={draft.loading}
+        onClick={onDiscard}
+      >
+        <Trash2Icon data-icon="inline-start" />
+        Discard draft
+      </Button>
     </div>
   );
 }

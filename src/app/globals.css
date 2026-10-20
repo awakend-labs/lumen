@@ -296,6 +296,11 @@
   .auth-doc-preview {
     background-image: var(--surface-gradient);
   }
+  .auth-submit {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
   .eyebrow {
     font-size: 0.6875rem;
     font-weight: 600;

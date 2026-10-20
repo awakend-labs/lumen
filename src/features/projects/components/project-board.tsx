@@ -23,7 +23,6 @@ import { RenameDialog } from "@/components/rename-dialog";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { CompactMarkdown } from "@/components/compact-markdown";
 import { PageHeader } from "@/components/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import {
@@ -114,8 +113,6 @@ export function ProjectBoard() {
     return list;
   }, [filter, projects.data, query, sort]);
 
-  const totalCount = projects.data?.length ?? 0;
-
   return (
     <div className="lumen-page flex flex-col gap-5 pt-5 pb-10 md:gap-6 md:pt-6 md:pb-12">
       <div>
@@ -123,16 +120,6 @@ export function ProjectBoard() {
         <PageHeader
           title="Projects"
           description="Open a project to document endpoints, organize stashes, and share access with your team."
-          badge={
-            totalCount > 0 ? (
-              <Badge
-                variant="outline"
-                className="gap-1.5 rounded-sm border-primary/40 bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-foreground"
-              >
-                {totalCount} {totalCount === 1 ? "project" : "projects"}
-              </Badge>
-            ) : null
-          }
           actions={
             <Button className="h-9 shadow-sm" onClick={() => setCreating(true)}>
               <PlusIcon data-icon="inline-start" />

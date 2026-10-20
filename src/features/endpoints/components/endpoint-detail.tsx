@@ -33,8 +33,6 @@ import { DeleteEndpointButton } from "./delete-endpoint-button";
 const sectionSurfaceClass =
   "border-b border-border/80 py-8 first:pt-0 last:border-b-0";
 
-const insetSurfaceClass = "lumen-inset";
-
 export function EndpointDetail({
   projectId,
   endpoint,
@@ -280,7 +278,7 @@ export function EndpointDetail({
                 return (
                   <div
                     key={`${response.statusCode}-${index}`}
-                    className="flex flex-col gap-4 rounded-sm border border-border bg-background/60 p-4 dark:bg-black/15"
+                    className="lumen-response flex flex-col gap-4 rounded-sm border border-border p-4"
                   >
                     <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                       <span
@@ -413,13 +411,40 @@ export function JsonBlock({ title, value }: { title: string; value: unknown }) {
     value === undefined || value === null || value === ""
       ? ""
       : JSON.stringify(value, null, 2);
-  const TitleIcon = title === "Schema" ? BracesIcon : Code2Icon;
+  const isSchema = title === "Schema";
+  const TitleIcon = isSchema ? BracesIcon : Code2Icon;
+  const scrollClass =
+    "overflow-auto overscroll-contain [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent] [&::-webkit-scrollbar]:size-1.5 [&::-webkit-scrollbar-thumb]:rounded-sm [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent";
+
   return (
-    <div className="flex min-w-0 flex-col gap-2">
-      <div className="flex min-h-6 items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <TitleIcon className="size-3.5 shrink-0" aria-hidden />
-          {title}
+    <div
+      className={cn(
+        "flex min-w-0 flex-col overflow-hidden rounded-sm border border-border",
+        "bg-background/50 dark:bg-background/30",
+      )}
+    >
+      <div
+        className={cn(
+          "flex items-center justify-between gap-2 border-b border-border/80 px-2.5 py-2",
+          "bg-muted/30 dark:bg-muted/20",
+        )}
+      >
+        <p className="flex min-w-0 items-center gap-2 text-xs font-semibold tracking-[-0.01em] text-foreground">
+          <span
+            className={cn(
+              "flex size-7 shrink-0 items-center justify-center rounded-sm border border-border/70",
+              isSchema
+                ? "bg-muted/50 text-muted-foreground dark:bg-muted/40"
+                : "bg-primary/10 text-primary dark:bg-primary/15",
+            )}
+            aria-hidden
+          >
+            <TitleIcon className="size-3.5" />
+          </span>
+          <span className="truncate">{title}</span>
+          <span className="rounded-sm bg-muted/60 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide text-muted-foreground dark:bg-muted/50">
+            JSON
+          </span>
         </p>
         {text ? <CopyButton value={text} label={`Copy ${title}`} /> : null}
       </div>
@@ -428,8 +453,8 @@ export function JsonBlock({ title, value }: { title: string; value: unknown }) {
           tabIndex={0}
           aria-label={`${title} JSON`}
           className={cn(
-            "h-64 overflow-auto overscroll-contain p-3 font-mono text-xs leading-5 [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent] [&::-webkit-scrollbar]:size-1.5 [&::-webkit-scrollbar-thumb]:rounded-sm [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent",
-            insetSurfaceClass,
+            "h-64 p-3 font-mono text-xs leading-5 text-foreground/90",
+            scrollClass,
           )}
         >
           {text}
@@ -437,8 +462,8 @@ export function JsonBlock({ title, value }: { title: string; value: unknown }) {
       ) : (
         <p
           className={cn(
-            "h-64 overflow-auto px-3 py-2.5 text-sm leading-snug text-muted-foreground [scrollbar-width:thin]",
-            insetSurfaceClass,
+            "flex h-64 items-center justify-center px-3 text-sm text-muted-foreground",
+            scrollClass,
           )}
         >
           Not set.

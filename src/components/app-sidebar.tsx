@@ -209,8 +209,12 @@ function ProjectTree({
               ) : (
                 <FolderClosed className={cn(current && iconCollapsed && "text-primary")} />
               )}
-              <span>{project.name}</span>
-              <span className="ml-auto px-1.5 text-[10px] font-normal text-sidebar-foreground/60 tabular-nums group-data-[collapsible=icon]:hidden">
+              <span className="min-w-0 flex-1 truncate">{project.name}</span>
+              <span
+                className="ml-1 inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-sm border border-sidebar-border/70 bg-sidebar-accent/40 px-1.5 text-[10px] font-semibold tabular-nums text-sidebar-foreground/75 group-data-[collapsible=icon]:hidden"
+                title={`${project.stashCount} ${project.stashCount === 1 ? "stash" : "stashes"}`}
+                aria-label={`${project.stashCount} ${project.stashCount === 1 ? "stash" : "stashes"}`}
+              >
                 {project.stashCount}
               </span>
             </Link>
@@ -227,7 +231,7 @@ function ProjectTree({
 function ProjectStashes({ projectId, pathname }: { projectId: string; pathname: string }) {
   const project = useProject(projectId);
   return (
-    <SidebarMenuSub className="mr-0 ml-4 gap-1 border-sidebar-border/70 pr-0 pl-2">
+    <SidebarMenuSub className="mx-0 translate-x-0 gap-0.5 border-sidebar-border/70 py-0.5 pl-3 ml-3">
       {project.isLoading && <SidebarMenuSubItem><SidebarMenuSkeleton /></SidebarMenuSubItem>}
       {project.isError && (
         <SidebarMenuSubItem>
@@ -254,45 +258,55 @@ function StashTree({ stash, projectId, pathname }: { stash: StashRecord; project
   return (
     <Collapsible asChild open={open} onOpenChange={setOpen}>
       <SidebarMenuSubItem>
-        <div className="relative">
-          {groups.length > 0 && (
+        <div className="relative flex min-w-0 items-stretch">
+          {groups.length > 0 ? (
             <CollapsibleTrigger asChild>
               <button
                 type="button"
-                className={cn(treeToggleClass, "size-7")}
+                className={treeToggleClass}
                 aria-label={`${open ? "Collapse" : "Expand"} stash ${stash.name}`}
               >
                 <ChevronRight
-                  className={cn("size-3 transition-transform motion-reduce:transition-none", open && "rotate-90")}
+                  className={cn(
+                    "size-3.5 transition-transform motion-reduce:transition-none",
+                    open && "rotate-90",
+                  )}
                 />
               </button>
             </CollapsibleTrigger>
-          )}
+          ) : null}
           <SidebarMenuSubButton
             asChild
             isActive={active}
-            className="h-8 pl-7 text-[13px] data-active:bg-transparent data-active:font-medium"
+            className="h-8 min-w-0 flex-1 translate-x-0 gap-2 pr-2 pl-8 text-[13px] data-active:bg-transparent data-active:font-medium"
             aria-current={active ? "page" : undefined}
           >
-            <Link href={href} prefetch={false} title={stash.name}>
-              <span className={cn("size-1.5 shrink-0 rounded-sm", stashDotClass(stash.color))} />
-              <span>{stash.name}</span>
+            <Link href={href} prefetch={false} title={stash.name} className="flex min-w-0 items-center gap-2">
+              <span className="flex w-4 shrink-0 items-center justify-center">
+                <span className={cn("size-1.5 rounded-sm", stashDotClass(stash.color))} />
+              </span>
+              <span className="truncate">{stash.name}</span>
             </Link>
           </SidebarMenuSubButton>
         </div>
         {groups.length > 0 && (
           <CollapsibleContent>
-            <SidebarMenuSub className="mr-0 ml-3.5 gap-0.5 border-sidebar-border/60 pr-0 pl-2">
+            <SidebarMenuSub className="mx-0 translate-x-0 gap-0.5 border-sidebar-border/60 py-0.5 pl-3 ml-3">
               {groups.map((group) => (
                 <SidebarMenuSubItem key={group.id}>
                   <SidebarMenuSubButton
                     asChild
                     size="sm"
-                    className="h-8 gap-2 text-sidebar-foreground/75 hover:text-sidebar-foreground"
+                    className="h-8 translate-x-0 gap-2 pl-2 text-sidebar-foreground/75 hover:text-sidebar-foreground"
                   >
-                    <Link href={`${href}#api-group-${group.id}`} prefetch={false} title={group.name}>
-                      <Layers2 className="size-3.5! text-sidebar-foreground/50!" />
-                      <span>{group.name}</span>
+                    <Link
+                      href={`${href}#api-group-${group.id}`}
+                      prefetch={false}
+                      title={group.name}
+                      className="flex min-w-0 items-center gap-2"
+                    >
+                      <Layers2 className="size-3.5 shrink-0 text-sidebar-foreground/50" />
+                      <span className="truncate">{group.name}</span>
                     </Link>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Check, ChevronDown, FolderOpen, Layers, Link2, ListTree, Terminal, Users } from "lucide-react";
 import { LumenMark } from "@/components/lumen-mark";
@@ -19,6 +20,11 @@ const questions = [
   ["Does Lumen send API requests?", "Lumen is a documentation workspace. Use it to describe and share your APIs, including authentication, request fields, and responses. It does not execute requests."],
 ];
 
+const heroTagline = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: "500",
+});
+
 export default function HomePage() {
   return <div className={styles.page}>
     <a className={styles.skip} href="#main">Skip to content</a>
@@ -31,7 +37,7 @@ export default function HomePage() {
       <section className={styles.hero} aria-labelledby="hero-title">
         <div className={styles.heroTop}>
           <div><p className={styles.eyebrow}><span />THE API DOCUMENTATION WORKSPACE</p><h1 id="hero-title">Your APIs.<br />Clearly understood.</h1></div>
-          <div className={styles.heroCopy}><p>Every endpoint has a story.<br />Give your team the whole picture.</p><p className={styles.body}>Bring routes, request details, and responses together in one organized workspace.</p><div className={styles.actions}><Button asChild size="lg"><Link href="/signup">Start documenting<ArrowRight /></Link></Button><a href="#workspace" className={styles.textLink}>Explore the workspace <span aria-hidden>↗</span></a></div></div>
+          <div className={styles.heroCopy}><p className={`${styles.heroLead} ${heroTagline.className}`}>Every endpoint has a story.<br />Give your team the whole picture.</p><p className={styles.body}>Bring routes, request details, and responses together in one organized workspace.</p><div className={styles.actions}><Button asChild size="lg"><Link href="/signup">Start documenting<ArrowRight /></Link></Button><a href="#workspace" className={styles.textLink}>Explore the workspace <span aria-hidden>↗</span></a></div></div>
         </div>
         <LandingDemo />
         <div className={styles.previewCaption}><span><span className={styles.liveDot} />An example workspace. Select an endpoint to explore.</span><span>Built around the details that matter.</span></div>

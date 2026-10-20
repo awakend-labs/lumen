@@ -118,7 +118,10 @@ export function AuthForm({ mode }: { mode: "login" | "signup"; }) {
                   </Field>
                 </FieldGroup>
                 {authError && <p role="alert" className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-xs leading-5 text-destructive">{authError}</p>}
-                <Button type="submit" size="lg" className="h-11 w-full justify-between px-4" disabled={pending}><span>{pending ? (isSignup ? "Creating account…" : "Signing in…") : (isSignup ? "Create account" : "Sign in")}</span>{pending ? <Spinner /> : <ArrowRightIcon className="size-4" />}</Button>
+                <Button type="submit" size="lg" className="auth-submit h-11 w-full gap-2.5 px-4" disabled={pending}>
+                  <span>{pending ? (isSignup ? "Creating account…" : "Signing in…") : (isSignup ? "Create account" : "Sign in")}</span>
+                  {pending ? <Spinner className="size-4" /> : <ArrowRightIcon className="size-4 shrink-0 opacity-90" aria-hidden />}
+                </Button>
                 </fieldset>
               </form>
             </div>

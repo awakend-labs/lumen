@@ -27,7 +27,7 @@ export function AppShell({
         >
           <SidebarTrigger className="-ml-1 shrink-0" />
           <ShellTitle />
-          <div className="ml-auto flex min-w-0 flex-1 justify-end sm:max-w-80">
+          <div className="ml-auto flex min-w-0 flex-1 justify-end sm:max-w-96 md:max-w-md">
             <GlobalSearch />
           </div>
         </header>
