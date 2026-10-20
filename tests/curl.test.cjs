@@ -114,6 +114,20 @@ test('manual cURL includes the selected version exactly once with base paths and
   }
 });
 
+test('unversioned cURL imports and exports retain the original URL without adding a version', () => {
+  for (const address of ['https://api.example.com/orders', 'https://api.example.com/api/orders', 'http://localhost:8080/']) {
+    const draft = parseCurl(`curl '${address}'`);
+    assert.equal(draft.version, '');
+    assert.equal(curlTokens(generateCurl(draft))[3], address);
+  }
+  const { endpointUrl } = require('../src/lib/endpoint-path.ts');
+  for (const [baseUrl, path, expected] of [
+    ['https://api.example.com/api/', '/orders', 'https://api.example.com/api/orders'],
+    ['https://api.example.com/v1', '/orders', 'https://api.example.com/v1/orders'],
+    ['https://api.example.com', '/v2/orders', 'https://api.example.com/v2/orders'],
+  ]) assert.equal(endpointUrl(baseUrl, path, '').toString(), expected);
+});
+
 test('versioned cURL import separates base prefix, version, and resource path and preserves queries', () => {
   for (const [address, expectedBase, version, path] of [
     ['https://api.example.com/v1/products', 'https://api.example.com', 'v1', '/products'],

@@ -66,9 +66,8 @@ export const apiGroupInputSchema = z.object({
 export const routeVersionSchema = z
   .string()
   .trim()
-  .min(1, "Version is required")
   .max(12)
-  .regex(/^v\d+$/i, "Use a version like v1 or v2")
+  .regex(/^(?:v\d+)?$/i, "Use a version like v1 or v2, or leave it blank")
   .transform((value) => value.toLowerCase());
 
 export const reorderSchema = z.object({

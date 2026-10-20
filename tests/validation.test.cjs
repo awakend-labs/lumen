@@ -8,6 +8,14 @@ const { renderToStaticMarkup } = require('react-dom/server');
 const React = require('react');
 const base = { stashId: '12345678-1234-4234-8234-123456789012', name: 'Get user', method: 'GET', path: '/users/{id}', pathParams: [{ key: 'id', required: true }] };
 
+test('endpoint versions accept blank values while preserving versioned validation and defaults', () => {
+  assert.equal(endpointInputSchema.parse({ ...base, version: '' }).version, '');
+  assert.equal(endpointInputSchema.parse({ ...base, version: '  ' }).version, '');
+  assert.equal(endpointInputSchema.parse({ ...base, version: ' V2 ' }).version, 'v2');
+  assert.equal(endpointInputSchema.parse(base).version, 'v1');
+  for (const version of ['latest', 'v', 'v1/test']) assert.equal(endpointInputSchema.safeParse({ ...base, version }).success, false);
+});
+
 test('route validation rejects whitespace, fragments, queries, malformed placeholders and escapes', () => {
   for (const value of ['/users here', '/users#x', '/users?a=1', 'users', '/users/{bad-name}', '/users/{id', '/x%ZZ']) assert.equal(validEndpointPath(value), false, value);
   for (const value of ['/users/{id}', '/users/:id', '/v1/me', '/files/a%20b']) assert.equal(validEndpointPath(value), true, value);

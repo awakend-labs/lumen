@@ -20,6 +20,10 @@ export function splitVersionPath(path: string) {
 export function endpointUrl(baseUrl: string, path: string, version = "v1") {
   const url = new URL(baseUrl || "https://api.example.com");
   let base = url.pathname.replace(/\/+$/, "");
+  if (!version.trim()) {
+    url.pathname = base + (path.startsWith("/") ? path : `/${path}`);
+    return url;
+  }
   const embedded = splitVersionPath(path);
   const resource = embedded?.path ?? path;
   const prefix = embedded?.prefix ?? "";

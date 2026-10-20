@@ -174,6 +174,22 @@ test('new endpoints start with the project Base URL and duplicates retain their 
   assert.match(renderToStaticMarkup(React.createElement(EndpointForm, { ...props, duplicateFrom: {id:'e',name:'Copy',baseUrl:'https://other.example.com',method:'GET'} })), /value="https:\/\/other.example.com"/);
 });
 
+test('unversioned endpoints keep a blank version when edited or duplicated and render no version badge', () => {
+  reset();
+  const { EndpointVersionBadge } = require('../src/components/method-badge.tsx');
+  assert.equal(renderToStaticMarkup(React.createElement(EndpointVersionBadge, { version: '' })), '');
+  assert.match(renderToStaticMarkup(React.createElement(EndpointVersionBadge, { version: 'v2' })), /v2/);
+  const stashId = '11111111-1111-4111-8111-111111111111';
+  const props = { projectId: 'p', stashes: [{ id: stashId, groups: [], endpoints: [] }], initialStashId: stashId };
+  const endpoint = { id: 'e', name: 'No version', stashId, method: 'GET', version: '' };
+  for (const source of [{ endpoint }, { duplicateFrom: endpoint }]) {
+    const html = renderToStaticMarkup(React.createElement(EndpointForm, { ...props, ...source }));
+    assert.equal(lastFormDefaults.version, '');
+    assert.match(html, /Leave blank for an unversioned endpoint/);
+    assert.doesNotMatch(html, /Version is required/);
+  }
+});
+
 test('response example has a connected label and the generated schema starts collapsed', () => {
   reset(); const stashId = '11111111-1111-4111-8111-111111111111';
   const html = renderToStaticMarkup(React.createElement(EndpointForm, { projectId: 'p', stashes: [{ id: stashId, groups: [], endpoints: [] }], initialStashId: stashId }));

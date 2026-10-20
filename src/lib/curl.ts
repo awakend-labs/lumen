@@ -147,7 +147,7 @@ export function parseCurl(command: string): CurlDraft {
   const authenticated = headers.some(header => sensitiveKey.test(header.key)) || [...url.searchParams.keys()].some(key => sensitiveKey.test(key));
   return {
     name: `${method} ${path}`.slice(0, 120), method: method as HttpMethod,
-    version: versioned?.version ?? "v1",
+    version: versioned?.version ?? "",
     baseUrl: (address.startsWith("/") ? (versioned?.prefix ? "https://api.example.com" : "") : url.origin) + (versioned?.prefix ?? ""),
     path, headers, queryParams: parameters(url.searchParams),
     pathParams: pathParameterNames(path).map(key => ({ key, value: "", type: "string", required: true, description: "" })),

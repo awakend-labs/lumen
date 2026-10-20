@@ -60,6 +60,15 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   await assert.rejects(service.createEndpoint('owner', a.id, { ...input, name: 'Different', path: '/users/:userId' }), error => error.cause?.code === '23505');
   await assert.rejects(service.createEndpoint('owner', a.id, { ...input, name: 'ALPHA USER', path: '/other' }), error => error.cause?.code === '23505');
   const v2 = await service.createEndpoint('owner', a.id, { ...input, version: 'v2' });
+  // Unversioned endpoints persist separately from v1/v2 and retain uniqueness protection.
+  const unversioned = await service.createEndpoint('owner', a.id, endpointInputSchema.parse({ ...input, version: '' }));
+  assert.equal((await service.getEndpoint('owner', a.id, unversioned.id)).endpoint.version, '');
+  await assert.rejects(service.createEndpoint('owner', a.id, { ...input, version: '' }), error => error.cause?.code === '23505');
+  const versionedAgain = await updateEndpoint('owner', a.id, unversioned.id, { ...input, version: 'v3' });
+  assert.equal(versionedAgain.version, 'v3');
+  const blankAgain = await updateEndpoint('owner', a.id, unversioned.id, { ...input, version: '' });
+  assert.equal(blankAgain.version, '');
+  await service.deleteEndpoint('owner', a.id, unversioned.id);
   const secret = await service.createEndpoint('other', b.id, { ...input, stashId: otherStash.id, name: 'Secret Alpha user' });
   await assert.rejects(updateEndpoint('owner', a.id, secret.id, { ...input, name: 'Hacked', path: '/hacked' }), /Endpoint not found/);
   assert.equal((await service.getEndpoint('other', b.id, secret.id)).endpoint.name, 'Secret Alpha user');

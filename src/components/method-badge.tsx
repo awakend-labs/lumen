@@ -39,7 +39,8 @@ export function EndpointVersionBadge({
   version: string;
   className?: string;
 }) {
-  const label = version.trim() || "v1";
+  const label = version.trim();
+  if (!label) return null;
   return (
     <span
       title={label}

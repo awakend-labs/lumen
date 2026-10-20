@@ -207,9 +207,8 @@ const endpointFormSchema = z.object({
   version: z
     .string()
     .trim()
-    .min(1, "Version is required")
     .max(12)
-    .regex(/^v\d+$/i, "Use a version like v1 or v2"),
+    .regex(/^(?:v\d+)?$/i, "Use a version like v1 or v2, or leave it blank"),
   isDeprecated: z.boolean(),
 });
 
@@ -1035,7 +1034,7 @@ export function EndpointForm({
                       className="size-3.5 text-muted-foreground"
                       aria-hidden
                     />
-                    Version
+                    Version <span className="font-normal text-muted-foreground">(optional)</span>
                   </FieldLabel>
                   <Input
                     id="endpoint-version"
@@ -1045,6 +1044,7 @@ export function EndpointForm({
                     {...form.register("version")}
                   />
                   <FieldError errors={[form.formState.errors.version]} />
+                  <p className="text-xs leading-5 text-muted-foreground">Leave blank for an unversioned endpoint.</p>
                 </Field>
               </div>
               <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-start">

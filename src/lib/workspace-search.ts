@@ -9,7 +9,7 @@ export function searchCachedWorkspace(query: string, projects: ProjectListItem[]
     if (matches(project.name, project.description ?? "")) results.push({ id: project.id, kind: "Project", title: project.name, context: "Project", href: `/projects/${project.id}` });
     for (const stash of project.stashes) {
       if (matches(stash.name, stash.description ?? "")) results.push({ id: stash.id, kind: "Stash", title: stash.name, context: project.name, href: `/projects/${project.id}/stashes/${stash.id}` });
-      for (const endpoint of stash.endpoints) if (matches(endpoint.name, endpoint.path, endpoint.description, endpoint.tags.join(" "), `${endpoint.method} ${endpoint.path}`, endpoint.version)) results.push({ id: endpoint.id, kind: "Endpoint", title: endpoint.name, context: `${project.name} / ${stash.name} · ${endpoint.method} ${endpoint.path} · ${endpoint.version}`, href: `/projects/${project.id}/endpoints/${endpoint.id}` });
+      for (const endpoint of stash.endpoints) if (matches(endpoint.name, endpoint.path, endpoint.description, endpoint.tags.join(" "), `${endpoint.method} ${endpoint.path}`, endpoint.version)) results.push({ id: endpoint.id, kind: "Endpoint", title: endpoint.name, context: `${project.name} / ${stash.name} · ${endpoint.method} ${endpoint.path}${endpoint.version ? ` · ${endpoint.version}` : ""}`, href: `/projects/${project.id}/endpoints/${endpoint.id}` });
     }
   }
   return [...new Map(results.map(result => [`${result.kind}:${result.id}`, result])).values()].slice(0, 70);
