@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Link2Icon, UsersIcon } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { CopyButton } from "@/components/copy-button";
@@ -69,8 +70,18 @@ export function ProjectSettings({
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Members</CardTitle>
-          <CardDescription>People who can open this project.</CardDescription>
+          <div className="flex items-start gap-3">
+            <span
+              className="flex size-9 shrink-0 items-center justify-center rounded-sm border border-border bg-primary/10 text-primary"
+              aria-hidden
+            >
+              <UsersIcon className="size-4" />
+            </span>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <CardTitle>Members</CardTitle>
+              <CardDescription>People who can open this project.</CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {members.isLoading ? <Skeleton className="h-32 w-full" /> : null}
@@ -149,10 +160,20 @@ export function ProjectSettings({
       {owner ? (
         <Card>
           <CardHeader>
-            <CardTitle>Invite</CardTitle>
-            <CardDescription>
-              Create a link and send it yourself. Invites expire after 7 days.
-            </CardDescription>
+            <div className="flex items-start gap-3">
+              <span
+                className="flex size-9 shrink-0 items-center justify-center rounded-sm border border-border bg-primary/10 text-primary"
+                aria-hidden
+              >
+                <Link2Icon className="size-4" />
+              </span>
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <CardTitle>Invite</CardTitle>
+                <CardDescription>
+                  Create a link and send it yourself. Invites expire after 7 days.
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <form

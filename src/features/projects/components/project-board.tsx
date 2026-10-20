@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   ArrowUpDownIcon,
-  Braces,
   CircleCheck,
   Clock,
   Hourglass,
@@ -434,22 +433,23 @@ function ProjectCard({
           }
         }}
         className={cn(
-          "project-card group relative h-full cursor-pointer gap-0 overflow-hidden rounded-md py-0 transition-[border-color,box-shadow] duration-200 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+          "project-card group relative h-full cursor-pointer gap-0 overflow-hidden rounded-md py-0 transition-[border-color,box-shadow,background-color] duration-200 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
           view === "list" && "flex flex-row items-stretch",
         )}
       >
-        <div className="flex min-w-0 flex-1 flex-col gap-3 p-4">
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 flex-col gap-3 p-4 transition-colors duration-200",
+            "group-hover:bg-foreground/[0.035] dark:group-hover:bg-white/[0.05]",
+            view === "list" && "justify-center",
+          )}
+        >
           <div className="flex items-start gap-2.5">
-            <span
-              className={cn(
-                "flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-foreground",
-              )}
-              aria-hidden
-            >
-              <Braces className="size-4" />
-            </span>
             <div className="min-w-0 flex-1">
-              <CardTitle className="truncate text-sm leading-tight">
+              <CardTitle
+                title={project.name}
+                className="truncate text-[1.0625rem] font-semibold tracking-[0.02em] leading-snug text-foreground transition-colors group-hover:text-foreground"
+              >
                 {project.name}
               </CardTitle>
               <CompactMarkdown

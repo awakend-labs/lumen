@@ -784,7 +784,7 @@ function EndpointItem({
           </Card>
         </motion.div>
       ) : (
-        <div className="group flex flex-wrap items-center gap-2 rounded-md border border-transparent border-b-border bg-card px-3 py-3.5 transition-colors hover:bg-muted/50 sm:flex-nowrap sm:gap-3">
+        <div className="group flex flex-wrap items-center gap-2 rounded-md border border-transparent border-b-border bg-card px-3 py-3.5 transition-[background-color,border-color] hover:border-border/50 hover:bg-foreground/[0.035] dark:hover:bg-white/[0.05] sm:flex-nowrap sm:gap-3">
           {canReorder ? (
             <button
               type="button"

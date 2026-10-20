@@ -78,10 +78,10 @@ export function ApiGroupSection({ id, name, count, actions, children, filtering 
   id?: string; name: string; count: number; actions?: ReactNode; children: ReactNode; filtering: boolean;
 }) {
   const [open, setOpen] = useState(true);
-  return <Collapsible id={id} open={filtering || open} onOpenChange={setOpen} className="min-w-0 scroll-mt-20 rounded-md border bg-muted/15">
+  return <Collapsible id={id} open={filtering || open} onOpenChange={setOpen} className="api-group-panel min-w-0 scroll-mt-20 rounded-md border">
     <div className="flex items-center gap-2 px-3 py-2">
       <CollapsibleTrigger asChild>
-        <button type="button" className="flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 text-left transition-colors hover:bg-muted/60 active:bg-muted focus-visible:outline-2 focus-visible:outline-ring" aria-label={`${open || filtering ? "Collapse" : "Expand"} ${name}`}>
+        <button type="button" className="flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 text-left focus-visible:outline-2 focus-visible:outline-ring" aria-label={`${open || filtering ? "Collapse" : "Expand"} ${name}`}>
           <ChevronDownIcon className={`size-4 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none ${open || filtering ? "" : "-rotate-90"}`} />
           <FolderIcon className="size-4 shrink-0 text-primary" />
           <span className="min-w-0 break-words text-sm font-semibold">{name}</span>
@@ -90,6 +90,10 @@ export function ApiGroupSection({ id, name, count, actions, children, filtering 
       </CollapsibleTrigger>
       {actions}
     </div>
-    <CollapsibleContent><div className="border-t p-3 sm:p-4">{children}</div></CollapsibleContent>
+    <CollapsibleContent>
+      <div className="border-t border-border/70 p-3 sm:p-4">
+        {children}
+      </div>
+    </CollapsibleContent>
   </Collapsible>;
 }
