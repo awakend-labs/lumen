@@ -20,7 +20,7 @@ export function ProjectStatusControl({
   const editable = canEditContent(role);
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <>
       <ToggleGroup
         type="single"
         variant="outline"
@@ -32,7 +32,7 @@ export function ProjectStatusControl({
           setStatus.mutate({ projectId, status: value as ProjectStatus });
         }}
         aria-label="Project status"
-        className="rounded-sm border border-border/70 bg-muted/30 p-0.5"
+        className="gap-2 border-0 bg-transparent p-0 shadow-none"
       >
         <ToggleGroupItem
           value="in_progress"
@@ -60,6 +60,6 @@ export function ProjectStatusControl({
       {!editable ? (
         <span className="text-xs text-muted-foreground">View only</span>
       ) : null}
-    </div>
+    </>
   );
 }

@@ -224,6 +224,43 @@
   background: transparent;
   padding: 0;
 }
+
+.json-key {
+  color: color-mix(in srgb, var(--stash-green) 80%, var(--foreground));
+}
+.dark .json-key {
+  color: oklch(0.74 0.13 152);
+}
+.json-string {
+  color: var(--stash-green);
+}
+.json-number {
+  color: var(--stash-teal);
+}
+.json-literal {
+  color: var(--stash-amber);
+}
+.json-punct {
+  color: var(--muted-foreground);
+}
+.cm-editor .json-key {
+  color: color-mix(in srgb, var(--stash-green) 80%, var(--foreground));
+}
+.dark .cm-editor .json-key {
+  color: oklch(0.74 0.13 152);
+}
+.cm-editor .json-string {
+  color: var(--stash-green);
+}
+.cm-editor .json-number {
+  color: var(--stash-teal);
+}
+.cm-editor .json-literal {
+  color: var(--stash-amber);
+}
+.cm-editor .json-punct {
+  color: var(--muted-foreground);
+}
 /* Shared materials and accessibility across every Lumen screen. */
 @layer base {
   html {
@@ -273,6 +310,26 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--background);
+  }
+  .endpoint-form-actions {
+    border-color: color-mix(in srgb, var(--foreground) 8%, var(--border));
+    background-color: color-mix(in srgb, var(--card) 78%, transparent);
+    background-image: none;
+    box-shadow:
+      0 12px 40px color-mix(in srgb, var(--foreground) 6%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--card) 92%, white);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+  }
+  .dark .endpoint-form-actions {
+    border-color: color-mix(in srgb, var(--foreground) 12%, var(--border));
+    background-color: color-mix(in srgb, var(--card) 62%, transparent);
+    background-image: none;
+    box-shadow:
+      0 14px 44px rgb(0 0 0 / 32%),
+      inset 0 1px 0 color-mix(in srgb, var(--foreground) 8%, transparent);
+    -webkit-backdrop-filter: blur(28px);
+    backdrop-filter: blur(28px);
   }
   .lumen-response {
     background-color: var(--card);
@@ -342,6 +399,12 @@
   .dark .api-group-panel {
     border-color: color-mix(in srgb, var(--background) 25%, var(--border));
     background-color: color-mix(in srgb, var(--background) 62%, var(--card));
+  }
+  .stash-panel-body {
+    background-color: color-mix(in srgb, var(--background) 32%, var(--card));
+  }
+  .dark .stash-panel-body {
+    background-color: color-mix(in srgb, var(--background) 44%, var(--card));
   }
   .create-tile {
     border: 1px dashed var(--input);
@@ -572,9 +635,15 @@
   }
 }
 @media (prefers-reduced-transparency: reduce) {
-  .workspace-toolbar {
+  .workspace-toolbar,
+  .endpoint-form-actions {
     background: var(--background);
+    background-image: none;
     backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .dark .endpoint-form-actions {
+    background: var(--card);
   }
   [data-slot="dialog-overlay"],
   [data-slot="alert-dialog-overlay"] {

@@ -53,10 +53,6 @@ export default function EndpointPage({
           projectId={projectId}
           endpoint={endpoint.data.endpoint}
           role={endpoint.data.role}
-          stashName={
-            project.data?.stashes.find((stash) => stash.id === endpoint.data.endpoint.stashId)
-              ?.name
-          }
         />
       ) : null}
     </div>

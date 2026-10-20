@@ -145,7 +145,7 @@ export function ParamTable({
         <button
           type="button"
           onClick={append}
-          className="flex min-h-10 items-center gap-2 px-3 py-2 text-left text-xs font-medium text-accent-foreground transition-colors hover:bg-primary/10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:opacity-50 dark:text-primary/85 dark:hover:bg-primary/[0.08]"
+          className="flex min-h-10 items-center gap-2 px-3 py-2 text-left text-xs font-medium text-[color-mix(in_srgb,var(--primary)_40%,var(--muted-foreground))] transition-colors hover:bg-primary/10 hover:text-[color-mix(in_srgb,var(--primary)_55%,var(--foreground))] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:opacity-50 dark:text-[color-mix(in_srgb,var(--primary)_46%,var(--muted-foreground))] dark:hover:bg-primary/[0.08] dark:hover:text-[color-mix(in_srgb,var(--primary)_62%,var(--foreground))]"
         >
           <PlusIcon className="size-3.5" aria-hidden />
           {copy.add}

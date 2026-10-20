@@ -39,7 +39,7 @@ import { CompactMarkdown } from "@/components/compact-markdown";
 import {
   EndpointVersionBadge,
   MethodBadge,
-  statusClass,
+  statusTextClass,
 } from "@/components/method-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,10 +81,6 @@ import {
 } from "@/features/stashes/queries";
 import { useViewMode } from "@/hooks/use-view-mode";
 import { stashDotClass } from "@/lib/format";
-import {
-  STASH_STATUS_CLASS,
-  STASH_STATUS_LABEL,
-} from "@/features/stashes/components/stash-status-control";
 import { canEditContent } from "@/lib/permissions";
 import type { EndpointRecord, ProjectDetail, StashRecord } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -239,11 +235,12 @@ export function EndpointBrowser({
             type="single"
             variant="outline"
             size="sm"
-            spacing={0}
+            spacing={2}
             value={mode}
             onValueChange={(value) => {
               if (value === "grid" || value === "list") setMode(value);
             }}
+            className="gap-1.5 border-0 bg-transparent p-0 shadow-none"
           >
             <ToggleGroupItem value="grid" aria-label="Grid view">
               <LayoutGridIcon />
@@ -503,7 +500,7 @@ function StashSection({
       ref={sortable.setNodeRef}
       style={style}
       className={cn(
-        "overflow-hidden rounded-md border bg-card",
+        "overflow-hidden rounded-md border border-border bg-card",
         sortable.isDragging && "shadow-lg ring-2 ring-primary/40",
       )}
     >
@@ -513,7 +510,7 @@ function StashSection({
             {canReorder && showStashLink ? (
               <button
                 type="button"
-                className="shrink-0 text-muted-foreground"
+                className="shrink-0 self-center text-muted-foreground"
                 aria-label="Reorder stash"
                 {...sortable.attributes}
                 {...sortable.listeners}
@@ -523,36 +520,32 @@ function StashSection({
             ) : null}
             <span
               className={cn(
-                "size-2.5 shrink-0 rounded-sm",
+                "size-2.5 shrink-0 self-center rounded-sm",
                 stashDotClass(stash.color),
               )}
             />
-            {showStashLink ? (
-              <Link
-                href={`/projects/${projectId}/stashes/${stash.id}`}
-                className="shrink-0 font-semibold hover:underline"
-              >
-                {stash.name}
-              </Link>
-            ) : (
-              <h2 className="shrink-0 font-semibold">{stash.name}</h2>
-            )}
-            <span className="shrink-0 rounded-sm bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">
-              {endpoints.length}
-            </span>
-            <span
-              className={cn(
-                "shrink-0 rounded-sm px-2 py-0.5 text-[11px] font-medium",
-                STASH_STATUS_CLASS[stash.status],
+            <div className="flex min-w-0 flex-1 items-baseline gap-x-2 gap-y-0.5">
+              {showStashLink ? (
+                <Link
+                  href={`/projects/${projectId}/stashes/${stash.id}`}
+                  className="shrink-0 font-semibold leading-snug hover:underline"
+                >
+                  {stash.name}
+                </Link>
+              ) : (
+                <h2 className="shrink-0 font-semibold leading-snug">
+                  {stash.name}
+                </h2>
               )}
-            >
-              {STASH_STATUS_LABEL[stash.status]}
-            </span>
-            {stash.description ? (
-              <span className="hidden min-w-0 flex-1 basis-0 truncate text-sm text-muted-foreground md:block">
-                &mdash; {stash.description}
-              </span>
-            ) : null}
+              {stash.description ? (
+                <span
+                  className="hidden min-w-0 max-w-[15rem] truncate text-sm leading-snug text-muted-foreground sm:max-w-[20rem] md:block lg:max-w-[26rem] xl:max-w-[30rem]"
+                  title={stash.description}
+                >
+                  &mdash; {stash.description}
+                </span>
+              ) : null}
+            </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {editable && (
@@ -627,7 +620,7 @@ function StashSection({
           </div>
         </div>
         <CollapsibleContent>
-          <div className="border-t p-4">{endpointBody}</div>
+          <div className="stash-panel-body border-t p-4">{endpointBody}</div>
         </CollapsibleContent>
       </Collapsible>
       <RenameDialog
@@ -736,8 +729,8 @@ function EndpointItem({
     <div ref={sortable.setNodeRef} style={style}>
       {mode === "grid" ? (
         <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
-          <Card className="h-full gap-3 border-border bg-card py-4 shadow-none transition-[border-color,box-shadow] hover:border-foreground/25 hover:shadow-sm">
-            <CardHeader className="gap-2 px-4">
+          <Card className="h-full gap-2 border-border bg-card py-3 shadow-none transition-[border-color,box-shadow] hover:border-foreground/25 hover:shadow-sm">
+            <CardHeader className="gap-1.5 px-4 pb-0">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <MethodBadge method={endpoint.method} />
@@ -777,12 +770,12 @@ function EndpointItem({
                 </Link>
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-2 px-4">
+            <CardContent className="flex flex-col gap-1.5 px-4 pt-0">
               <p className="truncate font-mono text-xs text-muted-foreground">
                 {endpoint.path}
               </p>
               <CompactMarkdown
-                className="max-h-24 overflow-y-auto"
+                className="line-clamp-2 leading-5 [&_p]:leading-5"
                 content={endpoint.description || "No description"}
               />
               {endpoint.isDeprecated ? (
@@ -814,7 +807,7 @@ function EndpointItem({
           <Link
             href={href}
             className={cn(
-              "min-w-0 flex-1 truncate font-mono text-sm hover:underline",
+              "min-w-0 flex-1 truncate font-mono text-sm font-medium text-foreground/90 transition-colors group-hover:text-foreground hover:text-foreground hover:underline underline-offset-2",
               endpoint.isDeprecated &&
                 "line-through decoration-muted-foreground",
             )}
@@ -838,8 +831,8 @@ function EndpointItem({
           {firstResponse ? (
             <span
               className={cn(
-                "hidden shrink-0 items-center gap-1.5 rounded-md px-2 py-0.5 font-mono text-[11px] font-semibold sm:inline-flex",
-                statusClass(firstResponse.statusCode),
+                "hidden shrink-0 items-center gap-1.5 font-mono text-[11px] font-semibold sm:inline-flex",
+                statusTextClass(firstResponse.statusCode),
               )}
             >
               {firstResponse.statusCode}

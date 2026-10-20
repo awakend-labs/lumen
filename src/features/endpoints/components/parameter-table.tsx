@@ -15,7 +15,7 @@ export function ParameterTable({ label, caption, columns, children, footer }: {
       <table className="w-full min-w-[44rem] table-fixed border-collapse text-left text-sm">
         <caption className="sr-only">{caption ?? label}</caption>
         <colgroup>{columns.map(column => <col key={column.label} className={column.width} />)}</colgroup>
-        <thead><tr className="bg-primary/[0.08] text-left text-[11px] font-semibold tracking-[0.06em] text-accent-foreground uppercase dark:bg-primary/[0.08] dark:text-primary/85 [&>th]:border-r [&>th]:border-primary/15 [&>th:last-child]:border-r-0 dark:[&>th]:border-primary/10">
+        <thead><tr className="bg-primary/[0.08] text-left text-[11px] font-semibold tracking-[0.06em] text-[color-mix(in_srgb,var(--primary)_40%,var(--muted-foreground))] uppercase dark:bg-primary/[0.08] dark:text-[color-mix(in_srgb,var(--primary)_46%,var(--muted-foreground))] [&>th]:border-r [&>th]:border-primary/15 [&>th:last-child]:border-r-0 dark:[&>th]:border-primary/10">
           {columns.map(column => <th key={column.label} scope="col" className={cn("px-3 py-2 font-semibold", column.centered && "text-center", column.hiddenLabel && "px-1")}>
             {column.hiddenLabel ? <span className="sr-only">{column.label}</span> : column.label}
           </th>)}

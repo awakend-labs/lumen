@@ -9,7 +9,6 @@ import { baseUrlSchema, endpointInputSchema } from "@/lib/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   BracesIcon,
-  CheckIcon,
   CloudIcon,
   Code2Icon,
   EyeIcon,
@@ -91,6 +90,7 @@ import { ResponsesEditor } from "./responses-editor";
 import { DeleteEndpointButton } from "./delete-endpoint-button";
 import { JsonEditor } from "./json-editor";
 import { useBodyFieldJson } from "../use-body-field-json";
+import { MarkdownWriteField } from "./markdown-write-field";
 import { ParamTable, type ParamSectionName } from "./param-table";
 
 const sectionSurfaceClass = "lumen-section";
@@ -712,7 +712,7 @@ export function EndpointForm({
           </div>
         )}
         <EndpointDraftBar
-          draft={draft}
+          loading={draft.loading}
           onDiscard={() => {
             if (
               window.confirm("Discard this saved draft and reset the form?")
@@ -1144,25 +1144,27 @@ export function EndpointForm({
             description="Markdown is supported. Preview it before you save."
           >
             <Tabs defaultValue="write" className="gap-3">
-              <TabsList className="h-9 w-fit shrink-0 self-start bg-muted/60 p-1 dark:bg-white/5">
-                <TabsTrigger value="write" className="flex-none gap-1.5 px-3">
+              <TabsList
+                variant="line"
+                className="h-auto w-fit shrink-0 self-start gap-1 bg-transparent p-0"
+              >
+                <TabsTrigger value="write" className="flex-none gap-1.5 px-2">
                   <PencilLineIcon className="size-3.5" aria-hidden />
                   Write
                 </TabsTrigger>
-                <TabsTrigger value="preview" className="flex-none gap-1.5 px-3">
+                <TabsTrigger value="preview" className="flex-none gap-1.5 px-2">
                   <EyeIcon className="size-3.5" aria-hidden />
                   Preview
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="write">
-                <div className={cn("p-1", insetSurfaceClass)}>
-                  <Textarea
-                    rows={8}
-                    placeholder="What this endpoint does, who should call it, and any caveats."
-                    className="min-h-40 resize-y border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent"
-                    {...form.register("description")}
-                  />
-                </div>
+                <MarkdownWriteField
+                  className={insetSurfaceClass}
+                  registration={form.register("description")}
+                  onValue={(value) =>
+                    form.setValue("description", value, { shouldDirty: true })
+                  }
+                />
               </TabsContent>
               <TabsContent
                 value="preview"
@@ -1465,11 +1467,7 @@ export function EndpointForm({
           </FormSection>
 
           <div
-            className={cn(
-              "sticky bottom-4 z-20 flex flex-wrap items-center justify-end gap-2 rounded-md border border-border/60 p-3 shadow-lg",
-              "bg-background/72 ring-1 ring-inset ring-white/20 dark:bg-card/45 dark:ring-white/10",
-              "supports-backdrop-filter:backdrop-blur-xs supports-backdrop-filter:backdrop-saturate-150",
-            )}
+            className="endpoint-form-actions sticky bottom-4 z-20 flex flex-wrap items-center justify-end gap-2 rounded-md border p-3"
           >
             {endpoint && (
               <DeleteEndpointButton
@@ -1536,149 +1534,29 @@ export function EndpointForm({
   );
 }
 
-type EndpointDraftBarProps = {
-  draft: {
-    status: string;
-    loading: boolean;
-    error: boolean;
-  };
+function EndpointDraftBar({
+  loading,
+  onDiscard,
+}: {
+  loading: boolean;
   onDiscard: () => void;
-};
-
-function endpointDraftStatusMeta(
-  status: string,
-  { error, loading }: { error: boolean; loading: boolean },
-) {
-  if (loading) {
-    return {
-      tone: "idle" as const,
-      title: "Checking for drafts",
-      detail: status,
-      busy: true,
-    };
-  }
-  if (error) {
-    return {
-      tone: "error" as const,
-      title: "Autosave unavailable",
-      detail: status,
-      busy: false,
-    };
-  }
-  if (status === "Saving draft…" || status === "Saving current edits…") {
-    return {
-      tone: "active" as const,
-      title: status === "Saving draft…" ? "Saving draft" : "Resuming autosave",
-      detail: "Your latest changes are being stored.",
-      busy: true,
-    };
-  }
-  if (
-    status === "Draft saved" ||
-    status === "Draft restored" ||
-    status === "Draft discarded"
-  ) {
-    return {
-      tone: "success" as const,
-      title: status,
-      detail: null,
-      busy: false,
-    };
-  }
-  if (status === "Drafts save automatically") {
-    return {
-      tone: "idle" as const,
-      title: "Autosave",
-      detail: "Changes are saved as you edit.",
-      busy: false,
-    };
-  }
-  if (
-    status.startsWith("A saved draft") ||
-    status.startsWith("Draft changed in another tab")
-  ) {
-    return {
-      tone: "warn" as const,
-      title: status.startsWith("Draft changed in another tab")
-        ? "Draft changed in another tab"
-        : "Saved draft found",
-      detail: status,
-      busy: false,
-    };
-  }
-  return {
-    tone: "idle" as const,
-    title: status,
-    detail: null,
-    busy: false,
-  };
-}
-
-function EndpointDraftBar({ draft, onDiscard }: EndpointDraftBarProps) {
-  const meta = endpointDraftStatusMeta(draft.status, draft);
-  const toneSurface = {
-    idle: "bg-muted/30 dark:bg-muted/20",
-    active: "bg-primary/5 dark:bg-primary/[0.07]",
-    success: "bg-muted/30 dark:bg-muted/20",
-    warn: "bg-primary/5 dark:bg-primary/[0.07]",
-    error: "border-destructive/30 bg-destructive/5",
-  }[meta.tone];
-  const toneIcon = {
-    idle: "bg-background/80 text-muted-foreground dark:bg-background/40",
-    active: "bg-primary/10 text-primary dark:bg-primary/15",
-    success: "bg-primary/10 text-primary dark:bg-primary/15",
-    warn: "bg-primary/10 text-primary dark:bg-primary/15",
-    error: "bg-destructive/10 text-destructive",
-  }[meta.tone];
-
+}) {
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-3 rounded-sm border border-border p-3 sm:flex-row sm:items-center sm:justify-between",
-        toneSurface,
-      )}
-    >
-      <div
-        className="flex min-w-0 items-center gap-3"
-        role={draft.error ? "alert" : "status"}
-        aria-live="polite"
-      >
+    <div className="flex flex-col gap-3 rounded-sm border border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between dark:bg-muted/20">
+      <div className="flex min-w-0 items-center gap-3">
         <span
-          className={cn(
-            "flex size-8 shrink-0 items-center justify-center rounded-sm border border-border/70",
-            toneIcon,
-          )}
+          className="flex size-8 shrink-0 items-center justify-center rounded-sm border border-border/70 bg-background/80 text-muted-foreground dark:bg-background/40"
           aria-hidden
         >
-          {meta.busy ? (
-            <Spinner className="size-4" />
-          ) : meta.tone === "error" ? (
-            <TriangleAlertIcon className="size-4" />
-          ) : meta.tone === "success" ? (
-            <CheckIcon className="size-4" />
-          ) : (
-            <CloudIcon className="size-4" />
-          )}
+          <CloudIcon className="size-4" />
         </span>
         <div className="min-w-0 space-y-0.5">
-          <p
-            className={cn(
-              "text-xs leading-5 font-semibold tracking-[-0.01em]",
-              draft.error ? "text-destructive" : "text-foreground",
-            )}
-          >
-            {meta.title}
+          <p className="text-xs leading-5 font-semibold tracking-[-0.01em] text-foreground">
+            Autosave
           </p>
-          {meta.detail ? (
-            <p
-              className={cn(
-                "text-xs leading-relaxed [overflow-wrap:anywhere]",
-                draft.error ? "text-destructive/90" : "text-muted-foreground",
-              )}
-            >
-              {meta.detail}
-            </p>
-          ) : null}
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Changes are saved as you edit.
+          </p>
         </div>
       </div>
       <Button
@@ -1686,7 +1564,7 @@ function EndpointDraftBar({ draft, onDiscard }: EndpointDraftBarProps) {
         size="sm"
         variant="outline"
         className="w-full shrink-0 bg-background/80 sm:w-auto"
-        disabled={draft.loading}
+        disabled={loading}
         onClick={onDiscard}
       >
         <Trash2Icon data-icon="inline-start" />

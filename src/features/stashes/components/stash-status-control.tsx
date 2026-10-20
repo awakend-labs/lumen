@@ -53,6 +53,13 @@ export const STASH_STATUS_CLASS: Record<StashStatus, string> = {
   deprecated: "bg-stash-red/15 text-stash-red",
 };
 
+export const STASH_STATUS_TEXT_CLASS: Record<StashStatus, string> = {
+  in_development: "text-stash-amber",
+  testing: "text-stash-blue",
+  active: "text-stash-green",
+  deprecated: "text-stash-red",
+};
+
 export function StashStatusControl({
   projectId,
   stashId,
@@ -79,7 +86,7 @@ export function StashStatusControl({
         setStatus.mutate({ stashId, status: value as StashStatus });
       }}
       aria-label="Stash status"
-      className="flex-wrap rounded-sm border border-border/70 bg-muted/30 p-0.5"
+      className="flex-wrap gap-2 border-0 bg-transparent p-0 shadow-none"
     >
       {OPTIONS.map((option) => {
         const Icon = option.icon;

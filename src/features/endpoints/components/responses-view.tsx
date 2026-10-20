@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/copy-button";
 import { statusClass } from "@/components/method-badge";
+import { HighlightedJson } from "@/lib/highlighted-json";
 import { stringifyJson } from "@/lib/json-source";
 import { resolveResponse, responseSuccessCode, responseTypeScript } from "@/lib/response-contract";
 import type { HttpMethod, ResponseDoc, ResponseErrorFormat } from "@/lib/types";
@@ -45,11 +46,11 @@ export function ResponsesView({ responses, method, endpointName, shared }: { res
         {missingShared ? <p role="alert" className="text-sm text-destructive">The project error format is unavailable. Ask an editor to configure it.</p>
           : <div className="grid min-w-0 gap-4 xl:grid-cols-2">
             <div className="min-w-0 overflow-hidden rounded-md border border-border/70"><div className="flex min-h-11 items-center justify-between gap-2 border-b border-border/70 bg-muted/25 px-3"><h4 className="text-xs font-semibold">Example body</h4>{example && <CopyButton value={example} label={`Copy response ${response.statusCode} example`} />}</div>
-              {example ? <pre tabIndex={0} aria-label={`Response ${response.statusCode} example body`} className="max-h-80 overflow-auto p-4 font-mono text-xs leading-6 [scrollbar-width:thin]"><code>{example}</code></pre> : <p className="p-4 text-sm text-muted-foreground">{noBody ? "This response has no body." : "No example documented yet."}</p>}
+              {example ? <pre tabIndex={0} aria-label={`Response ${response.statusCode} example body`} className="max-h-80 overflow-auto p-4 font-mono text-xs leading-6 [scrollbar-width:thin]"><code><HighlightedJson text={example} /></code></pre> : <p className="p-4 text-sm text-muted-foreground">{noBody ? "This response has no body." : "No example documented yet."}</p>}
             </div>
             {schema !== undefined ? <ResponseFieldTree schema={schema} /> : <p className="self-center text-sm text-muted-foreground">{noBody ? "No response fields." : "No response contract documented yet."}</p>}
           </div>}
-        {schema !== undefined && !missingShared && <details className="rounded-md border border-border/60 px-3 py-2"><summary className="cursor-pointer text-xs text-muted-foreground">View JSON schema</summary><div className="mt-2 flex justify-end"><CopyButton value={stringifyJson(schema, response.schemaSource)} label={`Copy response ${response.statusCode} schema`} /></div><pre tabIndex={0} className="max-h-64 overflow-auto pb-3 font-mono text-xs leading-5 [scrollbar-width:thin]">{stringifyJson(schema, response.schemaSource)}</pre></details>}
+        {schema !== undefined && !missingShared && <details className="rounded-md border border-border/60 px-3 py-2"><summary className="cursor-pointer text-xs text-muted-foreground">View JSON schema</summary><div className="mt-2 flex justify-end"><CopyButton value={stringifyJson(schema, response.schemaSource)} label={`Copy response ${response.statusCode} schema`} /></div><pre tabIndex={0} className="max-h-64 overflow-auto pb-3 font-mono text-xs leading-5 [scrollbar-width:thin]"><HighlightedJson text={stringifyJson(schema, response.schemaSource)} /></pre></details>}
       </TabsContent>;
     })}
   </Tabs>;

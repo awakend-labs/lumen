@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { canEditContent } from "@/lib/permissions";
 import type { EndpointRecord, ParamField, ProjectRole } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { HighlightedJson } from "@/lib/highlighted-json";
 import { stringifyJson } from "@/lib/json-source";
 import { DeleteEndpointButton } from "./delete-endpoint-button";
 
@@ -39,12 +40,10 @@ export function EndpointDetail({
   projectId,
   endpoint,
   role,
-  stashName,
 }: {
   projectId: string;
   endpoint: EndpointRecord;
   role: ProjectRole;
-  stashName?: string;
 }) {
   const project = useProject(projectId);
   const auth = project.data?.auth;
@@ -79,13 +78,13 @@ export function EndpointDetail({
                   className="h-6 min-w-16"
                 />
                 <EndpointVersionBadge version={endpoint.version} />
-                {stashName ? (
-                  <Badge variant="secondary" className="font-normal">
-                    {stashName}
-                  </Badge>
-                ) : null}
                 {endpoint.isDeprecated ? (
-                  <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">Deprecated</Badge>
+                  <Badge
+                    variant="outline"
+                    className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                  >
+                    Deprecated
+                  </Badge>
                 ) : null}
                 {endpoint.tags.length > 0 ? (
                   <div
@@ -93,17 +92,17 @@ export function EndpointDetail({
                     aria-label="Tags"
                   >
                     <TagIcon
-                      className="size-3.5 shrink-0 text-muted-foreground"
+                      className="size-3.5 shrink-0 text-[color-mix(in_srgb,var(--primary)_22%,var(--muted-foreground))]"
                       aria-hidden
                     />
                     {endpoint.tags.map((tag) => (
                       <Badge
                         key={tag}
-                        variant="secondary"
-                        className="border border-primary/30 bg-primary/10 font-normal text-primary dark:border-primary/25 dark:bg-primary/15"
+                        variant="outline"
+                        className="border-primary/12 bg-[color-mix(in_srgb,var(--primary)_5%,var(--card))] font-normal text-[color-mix(in_srgb,var(--primary)_34%,var(--muted-foreground))] dark:border-primary/14 dark:bg-[color-mix(in_srgb,var(--primary)_8%,var(--card))] dark:text-[color-mix(in_srgb,var(--primary)_44%,var(--muted-foreground))]"
                       >
                         <span
-                          className="font-mono text-[11px] text-primary/70"
+                          className="font-mono text-[11px] text-inherit"
                           aria-hidden
                         >
                           #
@@ -115,12 +114,26 @@ export function EndpointDetail({
                 ) : null}
               </div>
               <div className="mt-2 flex min-w-0 items-center gap-2">
-                <h1 className={cn("min-w-0 break-words text-3xl font-semibold tracking-[-0.04em]", endpoint.isDeprecated && "line-through decoration-muted-foreground")}>
+                <h1
+                  className={cn(
+                    "min-w-0 break-words text-3xl font-semibold tracking-[-0.04em]",
+                    endpoint.isDeprecated &&
+                      "line-through decoration-muted-foreground",
+                  )}
+                >
                   {endpoint.name}
                 </h1>
               </div>
               <EndpointPathBar method={endpoint.method} endpoint={endpoint} />
-              {endpoint.isDeprecated && <p role="note" className="text-sm text-amber-700 dark:text-amber-400">This endpoint is deprecated. Avoid using it in new integrations.</p>}
+              {endpoint.isDeprecated && (
+                <p
+                  role="note"
+                  className="text-sm text-amber-700 dark:text-amber-400"
+                >
+                  This endpoint is deprecated. Avoid using it in new
+                  integrations.
+                </p>
+              )}
             </div>
             {canEditContent(role) ? (
               <div className="flex flex-wrap items-center gap-2 xl:justify-end xl:pt-11">
@@ -204,7 +217,7 @@ export function EndpointDetail({
           description="What this endpoint does."
         >
           {endpoint.description.trim() ? (
-            <div className="rounded-sm border border-input bg-muted/50 px-4 py-3 dark:bg-muted">
+            <div className="rounded-sm border border-border/70 bg-[color-mix(in_srgb,var(--stash-green)_6%,color-mix(in_srgb,var(--foreground)_5%,var(--card)))] px-4 py-3.5 shadow-[inset_3px_0_0_0_color-mix(in_srgb,var(--stash-green)_40%,transparent)] dark:border-stash-green/15 dark:bg-[color-mix(in_srgb,var(--stash-green)_8%,color-mix(in_srgb,var(--background)_55%,var(--card)))] [&_.markdown]:leading-7 [&_.markdown]:text-foreground/90">
               <MarkdownView content={endpoint.description} />
             </div>
           ) : (
@@ -241,14 +254,19 @@ export function EndpointDetail({
               {endpoint.requestBody.contentType && (
                 <Badge
                   variant="outline"
-                  className="w-fit font-mono font-normal"
+                  className={cn(
+                    "h-6 w-fit px-2.5 font-mono text-[11px] font-medium tracking-tight",
+                    /json/i.test(endpoint.requestBody.contentType)
+                      ? "border-primary/18 bg-[color-mix(in_srgb,var(--primary)_6%,var(--card))] text-[color-mix(in_srgb,var(--primary)_36%,var(--muted-foreground))] dark:border-primary/16 dark:bg-[color-mix(in_srgb,var(--primary)_9%,var(--card))] dark:text-[color-mix(in_srgb,var(--primary)_44%,var(--muted-foreground))]"
+                      : "border-border/80 bg-muted/30 text-muted-foreground",
+                  )}
                 >
                   {endpoint.requestBody.contentType}
                 </Badge>
               )}
               {endpoint.requestBody.raw !== undefined && (
                 <pre className="lumen-inset overflow-auto p-4 font-mono text-xs">
-                  {endpoint.requestBody.raw}
+                  <HighlightedJson text={endpoint.requestBody.raw} />
                 </pre>
               )}
               <FieldTable
@@ -257,8 +275,18 @@ export function EndpointDetail({
                   endpoint.requestBody.schema,
                 )}
               />
-              <JsonBlock title="Schema" value={endpoint.requestBody.schema} source={endpoint.requestBody.schemaSource} />
-              <JsonBlock title="Example" value={endpoint.requestBody.example} source={endpoint.requestBody.exampleSource} />
+              <div className="grid min-w-0 gap-4 xl:grid-cols-2">
+                <JsonBlock
+                  title="Schema"
+                  value={endpoint.requestBody.schema}
+                  source={endpoint.requestBody.schemaSource}
+                />
+                <JsonBlock
+                  title="Example"
+                  value={endpoint.requestBody.example}
+                  source={endpoint.requestBody.exampleSource}
+                />
+              </div>
             </div>
           ) : (
             <EmptyNote>No request body.</EmptyNote>
@@ -270,7 +298,12 @@ export function EndpointDetail({
           title="Responses"
           description="Status codes this route can return."
         >
-          <ResponsesView responses={endpoint.responses} method={endpoint.method} endpointName={endpoint.name} shared={project.data?.responseErrorFormat} />
+          <ResponsesView
+            responses={endpoint.responses}
+            method={endpoint.method}
+            endpointName={endpoint.name}
+            shared={project.data?.responseErrorFormat}
+          />
         </DetailSection>
 
         <CurlExample endpoint={endpoint} auth={auth} />
@@ -361,13 +394,26 @@ function ParamSection({
       {params.length === 0 ? (
         <EmptyNote>None.</EmptyNote>
       ) : (
-        <FieldTable fields={params} label={title} headers={title === "Headers"} fieldLabel="Parameter" />
+        <FieldTable
+          fields={params}
+          label={title}
+          headers={title === "Headers"}
+          fieldLabel="Parameter"
+        />
       )}
     </DetailSection>
   );
 }
 
-export function JsonBlock({ title, value, source }: { title: string; value: unknown; source?: string }) {
+export function JsonBlock({
+  title,
+  value,
+  source,
+}: {
+  title: string;
+  value: unknown;
+  source?: string;
+}) {
   const text =
     !source && (value === undefined || value === null || value === "")
       ? ""
@@ -413,12 +459,9 @@ export function JsonBlock({ title, value, source }: { title: string; value: unkn
         <pre
           tabIndex={0}
           aria-label={`${title} JSON`}
-          className={cn(
-            "h-64 p-3 font-mono text-xs leading-5 text-foreground/90",
-            scrollClass,
-          )}
+          className={cn("h-64 p-3 font-mono text-xs leading-5", scrollClass)}
         >
-          {text}
+          <HighlightedJson text={text} />
         </pre>
       ) : (
         <p

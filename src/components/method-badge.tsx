@@ -44,7 +44,7 @@ export function EndpointVersionBadge({
     <span
       title={label}
       className={cn(
-        "inline-flex h-5 max-w-24 shrink-0 items-center justify-center truncate rounded-sm border border-border/80 bg-muted/45 px-2 font-mono text-[11px] font-semibold tracking-wide text-primary tabular-nums dark:bg-muted/35 dark:text-primary",
+        "inline-flex max-w-24 shrink-0 truncate font-mono text-[11px] font-semibold tracking-wide text-primary tabular-nums dark:text-primary",
         className,
       )}
     >
@@ -78,4 +78,11 @@ export function statusClass(code: number) {
   if (code >= 400 && code < 500) return "bg-method-put/15 text-method-put";
   if (code >= 500) return "bg-method-delete/12 text-method-delete";
   return "bg-muted text-muted-foreground";
+}
+
+export function statusTextClass(code: number) {
+  if (code >= 200 && code < 300) return "text-method-post";
+  if (code >= 400 && code < 500) return "text-method-put";
+  if (code >= 500) return "text-method-delete";
+  return "text-muted-foreground";
 }

@@ -33,10 +33,8 @@ import { ProjectFrame } from "@/features/projects/components/project-frame";
 import { StashDialog } from "@/features/stashes/components/stash-dialog";
 import { StashStatusControl } from "@/features/stashes/components/stash-status-control";
 import { useDeleteStash, useUpdateStash } from "@/features/stashes/queries";
-import { stashDotClass } from "@/lib/format";
 import { canEditContent } from "@/lib/permissions";
 import type { ProjectDetail } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 export default function StashPage({
   params,
@@ -110,10 +108,7 @@ function StashView({
 
       <div className="flex flex-col items-start justify-between gap-5 xl:flex-row xl:items-end">
         <div className="flex w-full min-w-0 max-w-2xl flex-1 flex-col gap-2 xl:w-auto">
-          <div className="flex items-center gap-2.5">
-            <span className={cn("size-2.5 shrink-0 rounded-sm", stashDotClass(stash.color))} />
-            <h1 className="truncate text-3xl font-semibold tracking-[-0.04em]">{stash.name}</h1>
-          </div>
+          <h1 className="truncate text-3xl font-semibold tracking-[-0.04em]">{stash.name}</h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
             {stash.description || "Endpoints documented in this stash."}
           </p>

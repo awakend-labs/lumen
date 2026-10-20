@@ -27,9 +27,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Code is organized feature-first under `src/features/` with shared `src/db/`, `src/server/`, and `src/lib/`.
 - Authenticated workspace UI uses a collapsible sidebar shell (`SidebarProvider`, `AppSidebar`) with inset main content and a sticky header.
 - Endpoint grid/list view preference is stored in the `user_preferences` table and exposed via `/api/preferences`.
-- Production deploy targets Cloudflare Workers using `@opennextjs/cloudflare` (`pnpm preview`, `pnpm deploy`, Wrangler).
-- Drizzle migrations run from the local machine via `pnpm db:migrate` (`drizzle-kit migrate`) against Neon, not inside the Worker.
-- Cloudflare Worker env must have its own secrets (e.g. `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`); a missing variable there caused sign-up 500 errors in production.
+- Production deploy targets Cloudflare Workers using `@opennextjs/cloudflare` (`pnpm preview`, `pnpm deploy`, Wrangler); Drizzle migrations run locally via `pnpm db:migrate` (`drizzle-kit migrate`) against Neon, not in the Worker. Worker env must include secrets such as `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and `NEXT_PUBLIC_APP_URL`.
+- Project `baseUrl` is stored in Postgres on `projects`; owners set or change it in the create/edit dialog and on project settings (`ProjectBaseUrlSettings`); new endpoints default to this URL (each endpoint may override).
 - Project status (`documented` or `in_progress`) is stored in the Postgres `projects.status` column, changed from the project page and create/edit dialog (dashboard cards show status read-only), and filterable on the dashboard.
 - Stash status (`in_development`, `active`, `testing`, or `deprecated`) is stored in Postgres on `stashes.status` and is editable per stash.
 - Endpoints have a `version` field (e.g. `v1`, `v2`) for route versioning, stored in Postgres on `endpoints.version`.

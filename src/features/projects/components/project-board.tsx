@@ -4,9 +4,7 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   ArrowUpDownIcon,
-  CircleCheck,
   Clock,
-  Hourglass,
   Layers,
   LayoutGridIcon,
   ListIcon,
@@ -150,12 +148,6 @@ export function ProjectBoard() {
                 onClick={() => setFilter(value)}
                 aria-pressed={filter === value}
               >
-                {value === "documented" ? (
-                  <CircleCheck className="size-3.5 text-stash-green" />
-                ) : null}
-                {value === "in_progress" ? (
-                  <Hourglass className="size-3.5 text-stash-amber" />
-                ) : null}
                 {label}
                 <span className="rounded-sm bg-background/70 px-1.5 text-[10px] text-muted-foreground tabular-nums">
                   {counts[value]}

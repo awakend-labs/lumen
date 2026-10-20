@@ -95,7 +95,7 @@ export function AppSidebar() {
               size="lg"
               asChild
               tooltip="Lumen"
-              className="group-data-[collapsible=icon]:size-8!"
+              className="hover:bg-transparent hover:text-sidebar-foreground active:bg-transparent active:text-sidebar-foreground data-[state=open]:bg-transparent data-[state=open]:text-sidebar-foreground data-[state=open]:hover:bg-transparent data-open:hover:bg-transparent data-open:hover:text-sidebar-foreground group-data-[collapsible=icon]:size-8!"
             >
               <Link href="/dashboard" aria-label="Lumen dashboard">
                 <LumenMark iconClassName="!size-6 group-data-[collapsible=icon]:!size-4" />

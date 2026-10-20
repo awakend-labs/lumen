@@ -14,7 +14,7 @@ export function CurlExample({ endpoint, auth }: { endpoint: EndpointRecord; auth
           <p className="mt-1 text-xs text-muted-foreground">Copy this request to test your endpoint in a terminal.</p></div>
         <CopyButton value={command} label="Copy cURL command" />
       </div>
-      <pre className="lumen-inset max-w-full overflow-x-auto p-4 font-mono text-xs leading-6"><code>{command}</code></pre>
+      <pre className="lumen-inset max-w-full overflow-x-auto border-stash-green/10 bg-[color-mix(in_srgb,var(--stash-green)_2%,var(--background))] p-4 font-mono text-xs leading-6 text-[color-mix(in_srgb,var(--stash-amber)_68%,var(--foreground))] dark:border-stash-green/10 dark:bg-[color-mix(in_srgb,var(--stash-green)_3%,var(--card))] dark:text-[color-mix(in_srgb,var(--stash-amber)_82%,var(--muted-foreground))]"><code>{command}</code></pre>
       <p className="mt-3 text-xs leading-5 text-muted-foreground">{!endpoint.baseUrl && "Replace https://api.example.com with your server URL, or set it when editing this endpoint. "}Replace YOUR_ placeholders with your test values. Command format: Bash / zsh.</p>
     </section>
   );

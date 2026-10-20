@@ -21,10 +21,11 @@ const appearance = EditorView.theme({
   ".cm-tooltip": { backgroundColor: "var(--popover)", color: "var(--popover-foreground)", border: "1px solid var(--border)", borderRadius: "4px" },
 });
 const highlighting = syntaxHighlighting(HighlightStyle.define([
-  { tag: tags.propertyName, color: "var(--foreground)" },
-  { tag: tags.string, color: "var(--method-post)" },
-  { tag: [tags.number, tags.bool, tags.null], color: "var(--method-get)" },
-  { tag: tags.punctuation, color: "var(--muted-foreground)" },
+  { tag: [tags.propertyName, tags.definition(tags.propertyName)], class: "json-key" },
+  { tag: tags.string, class: "json-string" },
+  { tag: tags.number, class: "json-number" },
+  { tag: [tags.bool, tags.null], class: "json-literal" },
+  { tag: [tags.punctuation, tags.separator, tags.brace, tags.squareBracket, tags.bracket], class: "json-punct" },
 ]));
 const jsonLint = jsonParseLinter();
 
