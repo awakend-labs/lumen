@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlignLeftIcon,
   ActivityIcon,
+  CheckIcon,
   LayersIcon,
   PaletteIcon,
   PencilLineIcon,
@@ -36,7 +37,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { stashColorPickerItemClass, stashDotClass } from "@/lib/format";
+import { stashSwatchButtonClass } from "@/lib/format";
 import { STASH_COLORS, STASH_STATUSES, type StashColor, type StashRecord, type StashStatus } from "@/lib/types";
 import { STASH_STATUS_LABEL } from "@/features/stashes/components/stash-status-control";
 import { stashInputSchema, type StashInput } from "@/lib/validators";
@@ -134,7 +135,8 @@ export function StashDialog({
                 type="single"
                 variant="outline"
                 spacing={2}
-                className="flex w-full flex-wrap gap-2"
+                aria-label="Stash color"
+                className="flex w-fit flex-wrap gap-2"
                 value={color}
                 onValueChange={(value) => {
                   if (value) form.setValue("color", value as StashColor);
@@ -146,19 +148,17 @@ export function StashDialog({
                     value={item}
                     aria-label={`${item} color`}
                     className={cn(
-                      "size-9 shrink-0 rounded-sm border border-border/80 bg-background p-0 shadow-none",
-                      "hover:border-foreground/25 hover:bg-muted/40",
-                      "data-[state=off]:bg-background data-[state=on]:shadow-sm",
-                      "data-[state=on]:ring-offset-2 data-[state=on]:ring-offset-background",
-                      stashColorPickerItemClass(item),
+                      "size-8 shrink-0 rounded-sm border-0 p-0 shadow-none",
+                      "data-[state=on]:ring-2 data-[state=on]:ring-inset data-[state=on]:ring-white",
+                      stashSwatchButtonClass(item),
                     )}
                   >
-                    <span
-                      className={cn(
-                        "size-4 rounded-sm ring-1 ring-inset ring-black/15 dark:ring-white/20",
-                        stashDotClass(item),
-                      )}
-                    />
+                    {color === item ? (
+                      <CheckIcon
+                        className="size-3.5 text-white drop-shadow-[0_1px_1px_rgb(0_0_0/55%)]"
+                        aria-hidden
+                      />
+                    ) : null}
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>

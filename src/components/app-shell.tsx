@@ -2,8 +2,6 @@
 
 import { GlobalSearch } from "@/features/search/components/global-search";
 import { AppSidebar } from "@/components/app-sidebar";
-import { useProject } from "@/features/projects/queries";
-import { usePathname } from "next/navigation";
 import {
   SidebarInset,
   SidebarProvider,
@@ -38,31 +36,9 @@ export function AppShell({
 }
 
 function ShellTitle() {
-  const pathname = usePathname();
-  const projectId = pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? "";
-  const project = useProject(projectId);
-  const name = project.data?.name;
-  const stashId = pathname.match(/\/stashes\/([^/]+)/)?.[1];
-  const stashName = stashId
-    ? project.data?.stashes.find((stash) => stash.id === stashId)?.name
-    : undefined;
-
-  let title = "Projects";
-  if (pathname === "/profile") {
-    title = "Profile";
-  } else if (projectId && pathname.includes("/settings")) {
-    title = name ? `${name} · Settings` : "Settings";
-  } else if (projectId && pathname.includes("/endpoints/")) {
-    title = name ? `${name} · Endpoint` : "Endpoint";
-  } else if (stashId) {
-    title = name && stashName ? `${name} · ${stashName}` : (stashName ?? name ?? "Stash");
-  } else if (projectId) {
-    title = name ?? "Project";
-  }
-
   return (
-    <p className="min-w-0 max-w-[45%] truncate text-sm font-medium tracking-tight sm:max-w-none sm:flex-1">
-      {title}
+    <p className="min-w-0 max-w-[45%] truncate text-sm font-medium tracking-[0.06em] sm:max-w-none sm:flex-1">
+      API
     </p>
   );
 }
