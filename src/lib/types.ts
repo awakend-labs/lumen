@@ -73,6 +73,9 @@ export type RequestBodyDoc = {
 } | null;
 
 export type ResponseDoc = {
+  isSuccess?: boolean;
+  useSharedError?: boolean;
+  schemaMode?: "generated" | "custom";
   bodySource?: string;
   schemaSource?: string;
   statusCode: number;
@@ -80,6 +83,8 @@ export type ResponseDoc = {
   body?: unknown;
   schema?: unknown;
 };
+
+export type ResponseErrorFormat = Pick<ResponseDoc, "body" | "bodySource" | "schema" | "schemaSource" | "schemaMode">;
 
 export type EndpointRecord = {
   groupId: string | null;
@@ -122,6 +127,7 @@ export type StashRecord = {
 export type ApiGroupRecord = { id: string; stashId: string; name: string };
 
 export type ProjectDetail = {
+  responseErrorFormat: ResponseErrorFormat | null;
   baseUrl: string;
   auth: ProjectAuth;
   id: string;

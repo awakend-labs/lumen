@@ -15,6 +15,7 @@ import type { EndpointInput, ProjectInput } from "@/lib/validators";
 import { requireEditor, requireOwner, touchProject } from "./access";
 import { HttpError } from "./http";
 import { canEditContent } from "@/lib/permissions";
+import { prepareResponseDocs } from "./response-docs";
 
 function savedDraftCleanup(userId: string, projectId: string, draft: NonNullable<EndpointInput["draft"]>) {
   return db.update(endpointDrafts).set({ payload: null, revision: crypto.randomUUID(), writeOrder: 0, updatedAt: new Date() })
@@ -212,6 +213,7 @@ export async function getProjectDetail(
     role: project.role,
     status: project.status,
     auth: project.auth,
+    responseErrorFormat: project.responseErrorFormat,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
     stashes: stashRecords,
@@ -281,6 +283,7 @@ export async function createEndpoint(
 
 
   await validateGroup(input.stashId, input.groupId);
+  const responses = await prepareResponseDocs(projectId, input.responses);
   const [[created]] = await db.batch([db
     .insert(endpoints)
     .values({
@@ -296,7 +299,7 @@ export async function createEndpoint(
       queryParams: input.queryParams,
       pathParams: input.pathParams,
       requestBody: input.requestBody ?? null,
-      responses: input.responses,
+      responses,
       tags: input.tags,
       version: input.version,
       access: input.access,
@@ -342,6 +345,7 @@ export async function updateEndpoint(
     throw new HttpError(409, "This endpoint moved to another stash. Reload before changing its group.");
   }
   await validateGroup(existing.stashId, input.groupId);
+  const responses = await prepareResponseDocs(projectId, input.responses);
   if (!input.expectedUpdatedAt) {
     throw new HttpError(409, "This endpoint's saved version is missing. Reload it before saving.");
   }
@@ -358,7 +362,7 @@ export async function updateEndpoint(
       queryParams: input.queryParams,
       pathParams: input.pathParams,
       requestBody: input.requestBody ?? null,
-      responses: input.responses,
+      responses,
       tags: input.tags,
       version: input.version,
       access: input.access,

@@ -48,7 +48,9 @@ function ShellTitle() {
     : undefined;
 
   let title = "Projects";
-  if (projectId && pathname.includes("/settings")) {
+  if (pathname === "/profile") {
+    title = "Profile";
+  } else if (projectId && pathname.includes("/settings")) {
     title = name ? `${name} · Settings` : "Settings";
   } else if (projectId && pathname.includes("/endpoints/")) {
     title = name ? `${name} · Endpoint` : "Endpoint";

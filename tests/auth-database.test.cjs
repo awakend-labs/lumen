@@ -35,6 +35,21 @@ test('real Better Auth joins sign-in data and reads a session in one database qu
     const session = await auth.api.getSession({ headers: new Headers({ cookie }) });
     assert.equal(session.user.id, signedIn.response.user.id);
     assert.equal(statements.filter(query => /^select /i.test(query)).length, 1, 'Session and user must be read together');
+    // Profile edits use the existing authenticated Better Auth endpoints.
+    await assert.rejects(auth.api.updateUser({ body: { name: 'Unauthorized rename' } }), error => error.statusCode === 401);
+    await assert.rejects(auth.api.changePassword({ body: { currentPassword: 'local-test-password-only', newPassword: 'new-local-test-password-only' } }), error => error.statusCode === 401);
+    await auth.api.updateUser({ headers: new Headers({ cookie }), body: { name: 'Updated profile name' } });
+    const updatedSession = await auth.api.getSession({ headers: new Headers({ cookie }) });
+    assert.equal(updatedSession.user.name, 'Updated profile name');
+    assert.equal(updatedSession.user.email, 'join-check@example.com');
+    await assert.rejects(auth.api.changePassword({ headers: new Headers({ cookie }), body: { currentPassword: 'incorrect-local-test-only', newPassword: 'new-local-test-password-only' } }), error => error.body?.code === 'INVALID_PASSWORD');
+    await auth.api.signInEmail({ body: { email: 'join-check@example.com', password: 'local-test-password-only' } });
+    await auth.api.changePassword({ headers: new Headers({ cookie }), body: { currentPassword: 'local-test-password-only', newPassword: 'new-local-test-password-only' } });
+    await assert.rejects(auth.api.signInEmail({ body: { email: 'join-check@example.com', password: 'local-test-password-only' } }));
+    const changed = await auth.api.signInEmail({ body: { email: 'join-check@example.com', password: 'new-local-test-password-only' } });
+    assert.equal(changed.user.name, 'Updated profile name');
+    const storedCredential = (await pg.query('select password from account where user_id = $1 and provider_id = $2', [session.user.id, 'credential'])).rows[0];
+    assert.ok(storedCredential.password); assert.notEqual(storedCredential.password, 'new-local-test-password-only');
     await assert.rejects(auth.api.signInEmail({ body: { email: 'join-check@example.com', password: 'incorrect-local-test-only' } }));
     await auth.api.signOut({ headers: new Headers({ cookie }) });
     assert.equal(await auth.api.getSession({ headers: new Headers({ cookie }) }), null);

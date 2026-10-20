@@ -8,7 +8,6 @@ import { pathParameterNames, validEndpointPath } from "@/lib/endpoint-path";
 import { baseUrlSchema, endpointInputSchema } from "@/lib/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  AlignLeftIcon,
   BracesIcon,
   CheckIcon,
   CloudIcon,
@@ -19,7 +18,6 @@ import {
   ListTreeIcon,
   MapPinIcon,
   PencilLineIcon,
-  PlusIcon,
   RefreshCwIcon,
   RouteIcon,
   SaveIcon,
@@ -84,8 +82,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { nextResponseStatus } from "@/lib/response-status";
-import { ResponseStatusField } from "./response-status-field";
+import { responseSuccessCode } from "@/lib/response-contract";
+import { ResponsesEditor } from "./responses-editor";
 import { DeleteEndpointButton } from "./delete-endpoint-button";
 import { JsonEditor } from "./json-editor";
 import { useBodyFieldJson } from "../use-body-field-json";
@@ -97,7 +95,6 @@ const insetSurfaceClass = "lumen-inset";
 
 const JSON_SCHEMA_PLACEHOLDER = '{ "type": "object" }';
 const JSON_EXAMPLE_PLACEHOLDER = '{ "id": "example" }';
-const JSON_RESPONSE_BODY_PLACEHOLDER = '{ "ok": true }';
 
 
 const jsonText = z.string().refine((value) => {
@@ -124,12 +121,20 @@ const paramFormSchema = z.object({
 });
 
 const responseFormSchema = z.object({
+  isSuccess: z.boolean().optional(),
+  useSharedError: z.boolean().optional(),
+  schemaMode: z.enum(["generated", "custom"]).optional(),
   statusCode: z
     .union([z.number().int().min(100).max(599), z.literal("")])
     .refine((value): boolean => value !== "", "Enter a status code."),
   description: z.string(),
-  body: jsonText,
-  schema: jsonText,
+  body: z.string(),
+  schema: z.string(),
+}).superRefine((response, ctx) => {
+  if (response.useSharedError) return;
+  for (const key of ["body", "schema"] as const) {
+    if (!jsonText.safeParse(response[key]).success) ctx.addIssue({ code: "custom", path: [key], message: "Enter valid JSON" });
+  }
 });
 
 const endpointFormSchema = z.object({
@@ -224,7 +229,8 @@ const endpointDraftFormSchema = endpointFormSchema.extend({
   requestSchema: z.string(),
   requestExample: z.string(),
   responses: z.array(
-    responseFormSchema.extend({
+    z.object({
+      ...responseFormSchema.shape,
       statusCode: z.union([z.number(), z.literal("")]),
       body: z.string(),
       schema: z.string(),
@@ -286,6 +292,9 @@ function toFormValues(
       endpoint?.responses && endpoint.responses.length > 0
         ? endpoint.responses.map((response) => ({
             statusCode: response.statusCode,
+            isSuccess: response.statusCode === responseSuccessCode(endpoint.responses ?? [], endpoint.method ?? "GET"),
+            useSharedError: response.useSharedError ?? false,
+            schemaMode: response.schemaMode ?? (response.schema !== undefined ? "custom" : "generated"),
             description: response.description,
             body: pretty(response.body, response.bodySource),
             schema: pretty(response.schema, response.schemaSource),
@@ -293,6 +302,9 @@ function toFormValues(
         : [
             {
               statusCode: endpoint?.method === "POST" ? 201 : 200,
+              isSuccess: true,
+              useSharedError: false,
+              schemaMode: "generated",
               description: endpoint?.method === "POST" ? "Created" : "Success",
               body: "",
               schema: "",
@@ -550,11 +562,16 @@ export function EndpointForm({
             },
       responses: values.responses.map((response) => ({
         statusCode: Number(response.statusCode),
+        isSuccess: response.isSuccess,
+        useSharedError: response.useSharedError,
+        schemaMode: response.schemaMode,
         description: response.description,
-        body: parseJson(response.body),
-        bodySource: response.body.trim() || undefined,
-        schema: parseJson(response.schema),
-        schemaSource: response.schema.trim() || undefined,
+        ...(!response.useSharedError ? {
+          body: parseJson(response.body),
+          bodySource: response.body.trim() || undefined,
+          schema: parseJson(response.schema),
+          schemaSource: response.schema.trim() || undefined,
+        } : {}),
       })),
       tags: [...new Set(values.tags.map((tag) => tag.trim()).filter(Boolean))],
       version: values.version.trim().toLowerCase(),
@@ -662,6 +679,7 @@ export function EndpointForm({
               type="button"
               size="sm"
               variant="outline"
+              disabled={!draft.canRestore}
               onClick={() => {
                 if (
                   window.confirm(
@@ -1356,172 +1374,9 @@ export function EndpointForm({
           <FormSection
             icon={InboxIcon}
             title="Responses"
-            description="Document each status this route can return."
-            action={
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={
-                  nextResponseStatus(form.watch("responses"), method) ===
-                  undefined
-                }
-                onClick={() =>
-                  responses.append({
-                    statusCode:
-                      nextResponseStatus(form.getValues("responses"), method) ??
-                      200,
-                    description: "",
-                    body: "",
-                    schema: "",
-                  })
-                }
-              >
-                <PlusIcon data-icon="inline-start" />
-                Add response
-              </Button>
-            }
+            description="What callers receive, from the happy path to the errors they should handle."
           >
-            <div className="flex flex-col gap-3">
-              {responses.fields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className={cn(
-                    "flex flex-col gap-3",
-                    index > 0 && "border-t border-border pt-3",
-                  )}
-                >
-                  <div className="grid gap-3 md:grid-cols-[120px_minmax(0,1fr)_2.5rem] md:items-end">
-                    <div className="min-w-0">
-                      <ResponseStatusField
-                        id={`status-${field.id}`}
-                        value={form.watch(`responses.${index}.statusCode`)}
-                        usedCodes={form
-                          .watch("responses")
-                          .filter((_, responseIndex) => responseIndex !== index)
-                          .map((response) => response.statusCode)}
-                        error={
-                          form.formState.errors.responses?.[index]?.statusCode
-                        }
-                        onChange={(statusCode) => {
-                          form.setValue(
-                            `responses.${index}.statusCode`,
-                            statusCode,
-                            { shouldDirty: true },
-                          );
-                          void form.trigger("responses");
-                        }}
-                      />
-                    </div>
-                    <Field className="min-w-0">
-                      <FieldLabel
-                        htmlFor={`response-desc-${field.id}`}
-                        className="gap-1.5"
-                      >
-                        <AlignLeftIcon
-                          className="size-3.5 text-muted-foreground"
-                          aria-hidden
-                        />
-                        Description
-                      </FieldLabel>
-                      <Input
-                        id={`response-desc-${field.id}`}
-                        placeholder="Success"
-                        {...form.register(`responses.${index}.description`)}
-                      />
-                    </Field>
-                    <div className="flex items-end justify-end md:justify-center">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-10 shrink-0 text-muted-foreground hover:text-destructive"
-                        aria-label="Remove response"
-                        onClick={() => responses.remove(index)}
-                      >
-                        <Trash2Icon />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
-                    <Field
-                      data-invalid={
-                        Boolean(
-                          form.formState.errors.responses?.[index]?.body,
-                        ) || undefined
-                      }
-                    >
-                      <FieldLabel
-                        htmlFor={`response-body-${field.id}`}
-                        className="gap-1.5"
-                      >
-                        <Code2Icon
-                          className="size-3.5 text-muted-foreground"
-                          aria-hidden
-                        />
-                        Example body
-                      </FieldLabel>
-                      <Controller
-                        control={form.control}
-                        name={`responses.${index}.body`}
-                        render={({ field: editorField, fieldState }) => (
-                          <JsonEditor
-                            {...editorField}
-                            id={`response-body-${field.id}`}
-                            label="Response example body"
-                            placeholder={JSON_RESPONSE_BODY_PLACEHOLDER}
-                            invalid={Boolean(fieldState.error)}
-                            disabled={!hydrated}
-                          />
-                        )}
-                      />
-                      <FieldError
-                        errors={[
-                          form.formState.errors.responses?.[index]?.body,
-                        ]}
-                      />
-                    </Field>
-                    <Field
-                      data-invalid={
-                        Boolean(
-                          form.formState.errors.responses?.[index]?.schema,
-                        ) || undefined
-                      }
-                    >
-                      <FieldLabel
-                        htmlFor={`response-schema-${field.id}`}
-                        className="gap-1.5"
-                      >
-                        <BracesIcon
-                          className="size-3.5 text-muted-foreground"
-                          aria-hidden
-                        />
-                        Schema
-                      </FieldLabel>
-                      <Controller
-                        control={form.control}
-                        name={`responses.${index}.schema`}
-                        render={({ field: editorField, fieldState }) => (
-                          <JsonEditor
-                            {...editorField}
-                            id={`response-schema-${field.id}`}
-                            label="Response schema"
-                            placeholder={JSON_SCHEMA_PLACEHOLDER}
-                            invalid={Boolean(fieldState.error)}
-                            disabled={!hydrated}
-                          />
-                        )}
-                      />
-                      <FieldError
-                        errors={[
-                          form.formState.errors.responses?.[index]?.schema,
-                        ]}
-                      />
-                    </Field>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ResponsesEditor projectId={projectId} form={form} rows={responses} disabled={!hydrated} paused={draft.loading || draft.hasRecoveredDraft} />
           </FormSection>
 
           <div
@@ -1653,10 +1508,10 @@ function endpointDraftStatusMeta(
       busy: false,
     };
   }
-  if (status.startsWith("A saved draft")) {
+  if (status.startsWith("A saved draft") || status.startsWith("Draft changed in another tab")) {
     return {
       tone: "warn" as const,
-      title: "Saved draft found",
+      title: status.startsWith("Draft changed in another tab") ? "Draft changed in another tab" : "Saved draft found",
       detail: status,
       busy: false,
     };

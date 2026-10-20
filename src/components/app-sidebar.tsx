@@ -18,6 +18,7 @@ import {
   MonitorIcon,
   MoonIcon,
   SunIcon,
+  UserRoundIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -398,6 +399,12 @@ function AccountMenu() {
                   </div>
                 </div>
               </DropdownMenuLabel>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href="/profile"><UserRoundIcon data-icon="inline-start" />Profile</Link>
+              </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>

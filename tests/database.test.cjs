@@ -149,6 +149,12 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   }
   await pg.exec(`insert into project_members (project_id,user_id,role) values ('${a.id}','other','editor')`);
   testUser = { id: 'other', email: 'other@example.com' };
+  // Editors can inspect members, but invitations and membership changes remain owner-only.
+  assert.ok((await collaboration.listMembers('other', a.id)).length > 0);
+  await assert.rejects(collaboration.createInvitation('other', a.id, { email: 'invitee@example.com', role: 'editor' }), error => error.status === 403);
+  await assert.rejects(collaboration.listInvitations('other', a.id), error => error.status === 403);
+  const invitationsRoute = require('../src/app/api/projects/[projectId]/invitations/route.ts');
+  assert.equal((await invitationsRoute.POST(new Request('http://localhost', { method: 'POST', body: JSON.stringify({ email: 'invitee@example.com', role: 'editor' }) }), projectContext)).status, 403);
   assert.equal((await projectRoute.PATCH(renameRequest('Forbidden project rename'), projectContext)).status, 403);
   assert.equal((await stashRoute.PATCH(renameRequest('Editor stash name'), stashContext)).status, 200);
   assert.equal((await endpointRoute.PATCH(renameRequest('Editor endpoint name'), endpointContext)).status, 200);
@@ -387,5 +393,31 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   const { stringifyJson } = require('../src/lib/json-source.ts');
   assert.match(stringifyJson(lexicalRoundTrip.requestBody.example, lexicalRoundTrip.requestBody.exampleSource), /998\.0/);
   assert.equal(endpointInputSchema.safeParse({ ...storedInput, requestBody: { example: 999, exampleSource: '998.0' } }).success, false);
+  const responseFormatRoute = require('../src/app/api/projects/[projectId]/response-error-format/route.ts');
+  const responseContext = { params: Promise.resolve({ projectId: a.id }) };
+  const sharedError = { body: { error: 'CONFLICT', message: 'Already registered' }, schemaMode: 'generated' };
+  const formatRequest = value => new Request('http://localhost', { method: 'PUT', body: JSON.stringify(value) });
+  await assert.rejects(service.createEndpoint('owner', a.id, { ...storedInput, name: 'No shared format yet', path: '/no-error-format', responses: [{ statusCode: 400, description: 'Invalid', useSharedError: true }] }), /Define the project error format/);
+  assert.equal((await responseFormatRoute.PUT(formatRequest(sharedError), responseContext)).status, 200);
+  assert.equal((await service.getProjectDetail('owner', a.id)).responseErrorFormat.body.message, 'Already registered');
+  testUser = { id: 'viewer', email: 'viewer@example.com' };
+  assert.equal((await responseFormatRoute.PUT(formatRequest(sharedError), responseContext)).status, 403);
+  assert.equal((await responseFormatRoute.PUT(formatRequest(sharedError), { params: Promise.resolve({ projectId: b.id }) })).status, 404);
+  testUser = { id: 'owner', email: 'owner@example.com' };
+  const responseEndpoint = await service.createEndpoint('owner', a.id, endpointInputSchema.parse({ ...storedInput, name: 'Response contract endpoint', path: '/response-contract', responses: [
+    { statusCode: 201, description: 'Created', isSuccess: true, body: { token: 'example', user: { image: null } }, schemaMode: 'generated' },
+    { statusCode: 409, description: 'Email already registered', useSharedError: true },
+  ] }));
+  const savedResponses = (await service.getEndpoint('owner', a.id, responseEndpoint.id)).endpoint.responses;
+  assert.equal(savedResponses[0].isSuccess, true);
+  assert.equal(savedResponses[0].schema.properties.user.properties.image.type, 'null');
+  assert.equal(savedResponses[1].useSharedError, true); assert.equal(savedResponses[1].body, undefined);
+  const { resolveResponse } = require('../src/lib/response-contract.ts');
+  assert.equal(resolveResponse(savedResponses[1], (await service.getProjectDetail('owner', a.id)).responseErrorFormat).body.message, 'Already registered');
+  await responseFormatRoute.PUT(formatRequest({ ...sharedError, body: { error: 'CONFLICT', message: 'New shared message' } }), responseContext);
+  assert.equal(resolveResponse(savedResponses[1], (await service.getProjectDetail('owner', a.id)).responseErrorFormat).body.message, 'New shared message');
+  const customSchema = { type: 'object', required: ['user'], properties: { user: { type: 'object', required: ['image'], properties: { image: { type: ['string', 'null'] } } } } };
+  const editedResponses = await service.updateEndpoint('owner', a.id, responseEndpoint.id, { ...storedInput, name: responseEndpoint.name, path: responseEndpoint.path, expectedUpdatedAt: responseEndpoint.updatedAt, responses: [{ ...savedResponses[0], schemaMode: 'custom', schema: customSchema }] });
+  assert.deepEqual(editedResponses.responses[0].schema, customSchema);
   await pg.close();
 });

@@ -25,6 +25,7 @@ import type {
   RequestBodyDoc,
   StashStatus,
   ResponseDoc,
+  ResponseErrorFormat,
   StashColor,
 } from "@/lib/types";
 
@@ -77,6 +78,7 @@ export const projects = pgTable(
     slug: text("slug").notNull().unique(),
     status: projectStatus("status").$type<ProjectStatus>().notNull().default("in_progress"),
     auth: jsonb("auth").$type<ProjectAuth>().notNull().default({ scheme: "none", headerName: "X-API-Key", location: "header", description: "" }),
+    responseErrorFormat: jsonb("response_error_format").$type<ResponseErrorFormat>(),
     ownerId: text("owner_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),

@@ -110,6 +110,9 @@ const requestBodySchema = z
   .optional();
 
 const responseDocSchema = z.object({
+  isSuccess: z.boolean().optional(),
+  useSharedError: z.boolean().optional(),
+  schemaMode: z.enum(["generated", "custom"]).optional(),
   bodySource: z.string().optional(),
   schemaSource: z.string().optional(),
   statusCode: z.number().int().min(100).max(599),
@@ -117,11 +120,24 @@ const responseDocSchema = z.object({
   body: z.unknown().optional(),
   schema: z.unknown().optional(),
 }).superRefine((value, ctx) => {
+  if (value.isSuccess && (value.statusCode < 200 || value.statusCode >= 300)) ctx.addIssue({ code: "custom", path: ["isSuccess"], message: "The primary success response must have a 2xx status." });
+  if (value.useSharedError && value.statusCode < 400) ctx.addIssue({ code: "custom", path: ["useSharedError"], message: "Only error responses can use the project error format." });
   for (const key of ["body", "schema"] as const) {
     const source = value[`${key}Source`];
     if (source !== undefined && !matchesJsonSource(value[key], source)) {
       ctx.addIssue({ code: "custom", path: [`${key}Source`], message: "JSON text must match the documented value." });
     }
+  }
+});
+
+export const responseErrorFormatSchema = z.object({
+  body: z.unknown().refine(value => value !== undefined, "Paste an example of the project error response."),
+  bodySource: z.string().optional(), schema: z.unknown().optional(), schemaSource: z.string().optional(),
+  schemaMode: z.enum(["generated", "custom"]).optional(),
+}).superRefine((value, ctx) => {
+  for (const key of ["body", "schema"] as const) {
+    const source = value[`${key}Source`];
+    if (source !== undefined && !matchesJsonSource(value[key], source)) ctx.addIssue({ code: "custom", path: [`${key}Source`], message: "JSON text must match the documented value." });
   }
 });
 
@@ -151,6 +167,7 @@ export const endpointInputSchema = z.object({
   isDeprecated: z.boolean().optional().default(false),
 }).superRefine((value, ctx) => {
   const statuses = new Set<number>();
+  if (value.responses.filter(response => response.isSuccess).length > 1) ctx.addIssue({ code: "custom", path: ["responses"], message: "Choose one primary success response." });
   value.responses.forEach((response, index) => {
     if (statuses.has(response.statusCode)) ctx.addIssue({ code: "custom", path: ["responses", index, "statusCode"], message: "Each response must have a different status code." });
     statuses.add(response.statusCode);

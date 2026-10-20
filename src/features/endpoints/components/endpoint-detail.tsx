@@ -15,14 +15,15 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Shield, Copy } from "lucide-react";
 import { CurlExample } from "./curl-example";
-import { FieldTable, requestBodyFields, schemaFields } from "./field-table";
+import { FieldTable, requestBodyFields } from "./field-table";
+import { ResponsesView } from "./responses-view";
 import { authLabels } from "@/features/projects/components/project-auth-settings";
 import { useProject } from "@/features/projects/queries";
 import { SectionNav, sectionId } from "@/components/section-nav";
 import { EndpointPathBar } from "./endpoint-path-bar";
 import { CopyButton } from "@/components/copy-button";
 import { MarkdownView } from "@/components/markdown-view";
-import { MethodBadge, statusClass } from "@/components/method-badge";
+import { MethodBadge } from "@/components/method-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { canEditContent } from "@/lib/permissions";
@@ -271,47 +272,7 @@ export function EndpointDetail({
           title="Responses"
           description="Status codes this route can return."
         >
-          {endpoint.responses.length === 0 ? (
-            <EmptyNote>No responses documented.</EmptyNote>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {endpoint.responses.map((response, index) => {
-                const fields = schemaFields(response.schema);
-                return (
-                  <div
-                    key={`${response.statusCode}-${index}`}
-                    className="lumen-response flex flex-col gap-4 rounded-sm border border-border p-4"
-                  >
-                    <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                      <span
-                        className={cn(
-                          "inline-flex h-5 shrink-0 items-center rounded-sm px-1.5 font-mono text-xs font-semibold",
-                          statusClass(response.statusCode),
-                        )}
-                      >
-                        {response.statusCode}
-                      </span>
-                      <span className="min-w-0 text-sm leading-snug text-muted-foreground">
-                        {response.description || "No description"}
-                      </span>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
-                      <JsonBlock title="Example" value={response.body} source={response.bodySource} />
-                      <JsonBlock title="Schema" value={response.schema} source={response.schemaSource} />
-                    </div>
-                    {fields.length > 0 ? (
-                      <div className="flex min-w-0 flex-col gap-2">
-                        <p className="text-xs font-medium text-muted-foreground">
-                          Fields
-                        </p>
-                        <FieldTable fields={fields} />
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <ResponsesView responses={endpoint.responses} method={endpoint.method} endpointName={endpoint.name} shared={project.data?.responseErrorFormat} />
         </DetailSection>
 
         <CurlExample endpoint={endpoint} auth={auth} />

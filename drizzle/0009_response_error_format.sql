@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "response_error_format" jsonb;

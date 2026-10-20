@@ -112,3 +112,115 @@ test('restored drafts are safe to leave, but recovery errors and failed saves st
   await act(async () => { t.mock.timers.tick(600); });
   assert.equal(f.draft.error, true); assert.equal(f.draft.isCurrentSaved(), false);
 });
+
+// Two mounted editors use the same server record, matching two tabs for one user.
+async function twoTabs(t) {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const previousFetch = global.fetch, previousWindow = global.window;
+  global.window = new EventTarget();
+  const record = { revision: 'initial', writeOrder: 0, payload: null };
+  const tabs = [], writes = [];
+  let renderer, nextRevision = 0;
+  global.fetch = async (_path, init) => {
+    if (!init?.method) return Response.json(record);
+    const input = JSON.parse(init.body); writes.push({ method: init.method, ...input });
+    if (input.revision !== record.revision || (init.method === 'PUT' && input.writeOrder <= record.writeOrder)) {
+      return Response.json({ error: 'This draft changed in another tab.' }, { status: 409 });
+    }
+    if (init.method === 'DELETE') Object.assign(record, { revision: `next-${++nextRevision}`, writeOrder: 0, payload: null });
+    else Object.assign(record, { writeOrder: input.writeOrder, payload: input.payload });
+    return Response.json({ revision: record.revision });
+  };
+  function Editor({ index }) {
+    const form = useForm({ defaultValues: { name: 'Original' } });
+    const draft = useEndpointDraft('project', 'endpoint:existing', form, JSON.parse);
+    tabs[index] = { form, draft };
+    return null;
+  }
+  await act(async () => { renderer = create(React.createElement(React.Fragment, null, React.createElement(Editor, { index: 0 }), React.createElement(Editor, { index: 1 }))); });
+  t.after(async () => {
+    await act(async () => { renderer.unmount(); });
+    global.fetch = previousFetch; global.window = previousWindow;
+  });
+  return {
+    tabs, record, writes,
+    edit: async (index, name) => { await act(async () => { tabs[index].form.setValue('name', name, { shouldDirty: true }); }); },
+    save: async () => { await act(async () => { t.mock.timers.tick(600); }); },
+  };
+}
+
+test('competing tab autosaves preserve both forms and offer explicit recovery instead of an unavailable error', async t => {
+  const f = await twoTabs(t);
+  await f.edit(0, 'First tab'); await f.edit(1, 'Second tab'); await f.save();
+  const second = () => f.tabs[1];
+  assert.equal(JSON.parse(f.record.payload).name, 'First tab');
+  assert.equal(second().form.getValues('name'), 'Second tab');
+  assert.equal(second().draft.error, false); assert.equal(second().draft.hasRecoveredDraft, true);
+  assert.match(second().draft.status, /Draft changed in another tab/);
+  assert.equal(second().draft.isCurrentSaved(), false); assert.equal(second().draft.token(), undefined);
+  const count = f.writes.length;
+  await f.edit(1, 'Still editing'); await f.save();
+  assert.equal(f.writes.length, count);
+  await act(async () => { second().draft.keepCurrent(); }); await f.save();
+  assert.equal(JSON.parse(f.record.payload).name, 'Still editing');
+  assert.equal(second().draft.hasRecoveredDraft, false); assert.equal(second().draft.isCurrentSaved(), true);
+});
+
+test('restoring after a tab conflict replaces local edits with the saved draft without another write', async t => {
+  const f = await twoTabs(t);
+  await f.edit(0, 'Saved elsewhere'); await f.edit(1, 'Local edit'); await f.save();
+  const count = f.writes.length;
+  await act(async () => { f.tabs[1].draft.restore(); }); await f.save();
+  assert.equal(f.tabs[1].form.getValues('name'), 'Saved elsewhere');
+  assert.equal(f.tabs[1].draft.isCurrentSaved(), true); assert.equal(f.writes.length, count);
+});
+
+test('discard on an existing endpoint resets the typed name after another tab replaces the draft revision', async t => {
+  const f = await twoTabs(t);
+  await act(async () => { await f.tabs[0].draft.discard({ name: 'Original' }); });
+  await f.edit(0, 'Replacement draft'); await f.save();
+  await f.edit(1, 'Discard this name');
+  await act(async () => { await f.tabs[1].draft.discard({ name: 'Original' }); });
+  assert.equal(f.tabs[1].form.getValues('name'), 'Original');
+  assert.equal(f.tabs[1].draft.isCurrentSaved(), true); assert.equal(f.tabs[1].draft.error, false);
+  assert.equal(f.tabs[1].draft.status, 'Draft discarded');
+  assert.equal(JSON.parse(f.record.payload).name, 'Replacement draft');
+  await f.edit(1, 'New local edit'); await f.save();
+  assert.equal(f.tabs[1].draft.hasRecoveredDraft, true);
+  assert.equal(JSON.parse(f.record.payload).name, 'Replacement draft');
+  await act(async () => { f.tabs[1].draft.keepCurrent(); }); await f.save();
+  assert.equal(JSON.parse(f.record.payload).name, 'New local edit');
+});
+
+test('a tab whose draft was cleared can keep its current edits without a nonexistent Restore action', async t => {
+  const f = await twoTabs(t);
+  await act(async () => { await f.tabs[0].draft.discard({ name: 'Original' }); });
+  await f.edit(1, 'Keep after clear'); await f.save();
+  assert.equal(f.tabs[1].draft.hasRecoveredDraft, true); assert.equal(f.tabs[1].draft.canRestore, false);
+  assert.equal(f.tabs[1].form.getValues('name'), 'Keep after clear');
+  await act(async () => { f.tabs[1].draft.keepCurrent(); }); await f.save();
+  assert.equal(JSON.parse(f.record.payload).name, 'Keep after clear');
+});
+
+test('discard resets an autosaved existing endpoint and ignores a late conflict recovery response', async t => {
+  const f = await twoTabs(t);
+  await f.edit(0, 'Autosaved name'); await f.save();
+  assert.equal(f.tabs[0].draft.isCurrentSaved(), true);
+  await act(async () => { await f.tabs[0].draft.discard({ name: 'Original' }); });
+  assert.equal(f.tabs[0].form.getValues('name'), 'Original');
+  assert.equal(f.record.payload, null);
+  const backend = global.fetch;
+  let finishRecovery;
+  global.fetch = async (path, init) => {
+    if (!init?.method) return new Promise(resolve => { finishRecovery = resolve; });
+    return backend(path, init);
+  };
+  await f.edit(1, 'Discard while checking'); await f.save();
+  assert.equal(f.tabs[1].draft.hasRecoveredDraft, true);
+  await act(async () => { await f.tabs[1].draft.discard({ name: 'Original' }); });
+  await act(async () => { finishRecovery(Response.json({ revision: 'old', writeOrder: 1, payload: '{"name":"Late draft"}' })); });
+  assert.equal(f.tabs[1].form.getValues('name'), 'Original');
+  assert.equal(f.tabs[1].draft.hasRecoveredDraft, false);
+  assert.equal(f.tabs[1].draft.status, 'Draft discarded');
+  assert.equal(f.tabs[1].draft.isCurrentSaved(), true);
+});

@@ -154,6 +154,19 @@ test('settings does not render cached member emails for a viewer', () => {
   assert.equal(renderToStaticMarkup(React.createElement(ProjectSettings, { projectId: 'p', role: 'viewer' })), '');
 });
 
+test('editors see read-only members, with no invite form or owner controls even if invitations are cached', () => {
+  reset();
+  queries.members = { data: [{ id: 'member', name: 'Collaborator', email: 'collaborator@example.com', role: 'viewer', createdAt: new Date().toISOString() }] };
+  queries.invitations = { data: [{ id: 'invite', email: 'pending@example.com', role: 'editor', expiresAt: new Date().toISOString(), link: 'https://example.com/invite/test' }] };
+  const render = role => renderToStaticMarkup(React.createElement(ProjectSettings, { projectId: 'p', role }));
+  assert.match(render('owner'), /invite-email/);
+  confirmations = [];
+  const html = render('editor');
+  assert.match(html, /Members/); assert.match(html, /collaborator@example.com/);
+  assert.doesNotMatch(html, /invite-email|Create link|Pending invitations|pending@example.com|Remove|Revoke|role="combobox"/);
+  assert.equal(confirmations.length, 0);
+});
+
 test('new endpoints start with the project Base URL and duplicates retain their override', () => {
   reset(); const stashId = '11111111-1111-4111-8111-111111111111';
   const props = { projectId: 'p', stashes: [{id:stashId,groups:[],endpoints:[]}], initialStashId:stashId, projectBaseUrl: 'https://api.example.com/v1' };
@@ -161,14 +174,17 @@ test('new endpoints start with the project Base URL and duplicates retain their 
   assert.match(renderToStaticMarkup(React.createElement(EndpointForm, { ...props, duplicateFrom: {id:'e',name:'Copy',baseUrl:'https://other.example.com',method:'GET'} })), /value="https:\/\/other.example.com"/);
 });
 
-test('response example and schema inputs have connected screen-reader labels', () => {
+test('response example has a connected label and the generated schema starts collapsed', () => {
   reset(); const stashId = '11111111-1111-4111-8111-111111111111';
   const html = renderToStaticMarkup(React.createElement(EndpointForm, { projectId: 'p', stashes: [{ id: stashId, groups: [], endpoints: [] }], initialStashId: stashId }));
-  for (const type of ['body', 'schema']) {
+  for (const type of ['body']) {
     const id = html.match(new RegExp(`for="(response-${type}-[^\"]+)"`))?.[1];
     assert.ok(id, `response ${type} label`);
     assert.ok((html.match(/<textarea\b[^>]*>/g) ?? []).some(tag => tag.includes(`id="${id}"`)), `response ${type} input`);
   }
+  assert.match(html, /Generated from example/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.doesNotMatch(html, /id="response-schema-/);
 });
 
 test('login and signup are safe before hydration: native POST fallback and disabled fieldset', () => {
