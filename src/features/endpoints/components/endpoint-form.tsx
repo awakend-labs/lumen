@@ -1639,13 +1639,13 @@ function EndpointDraftBar({ draft, onDiscard }: EndpointDraftBarProps) {
       )}
     >
       <div
-        className="flex min-w-0 items-start gap-3"
+        className="flex min-w-0 items-center gap-3"
         role={draft.error ? "alert" : "status"}
         aria-live="polite"
       >
         <span
           className={cn(
-            "flex size-9 shrink-0 items-center justify-center rounded-sm border border-border/70",
+            "flex size-8 shrink-0 items-center justify-center rounded-sm border border-border/70",
             toneIcon,
           )}
           aria-hidden
@@ -1663,7 +1663,7 @@ function EndpointDraftBar({ draft, onDiscard }: EndpointDraftBarProps) {
         <div className="min-w-0 space-y-0.5">
           <p
             className={cn(
-              "text-xs font-semibold tracking-[-0.01em]",
+              "text-xs leading-5 font-semibold tracking-[-0.01em]",
               draft.error ? "text-destructive" : "text-foreground",
             )}
           >
@@ -1672,7 +1672,7 @@ function EndpointDraftBar({ draft, onDiscard }: EndpointDraftBarProps) {
           {meta.detail ? (
             <p
               className={cn(
-                "text-xs leading-relaxed",
+                "text-xs leading-relaxed [overflow-wrap:anywhere]",
                 draft.error ? "text-destructive/90" : "text-muted-foreground",
               )}
             >
