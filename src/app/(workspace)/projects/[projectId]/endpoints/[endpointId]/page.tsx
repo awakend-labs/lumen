@@ -1,15 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { use } from "react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { WorkspaceBreadcrumb, endpointTrail } from "@/components/workspace-breadcrumb";
 import {
   Empty,
   EmptyDescription,
@@ -30,26 +22,23 @@ export default function EndpointPage({
   const { projectId, endpointId } = use(params);
   const project = useProject(projectId);
   const endpoint = useEndpoint(projectId, endpointId);
+  const record = endpoint.data?.endpoint;
+  const stash = record
+    ? project.data?.stashes.find((item) => item.id === record.stashId)
+    : undefined;
 
   return (
     <ProjectFrame projectId={projectId}>{() => (
     <div className="lumen-page flex flex-col gap-8">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link href={`/projects/${projectId}`}>
-                {project.data?.name ?? "Project"}
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          {endpoint.data && <><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbLink asChild><Link href={`/projects/${projectId}/stashes/${endpoint.data.endpoint.stashId}`}>{project.data?.stashes.find(stash => stash.id === endpoint.data.endpoint.stashId)?.name ?? "Stash"}</Link></BreadcrumbLink></BreadcrumbItem></>}
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{endpoint.data?.endpoint.name ?? "Endpoint"}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      <WorkspaceBreadcrumb
+        items={endpointTrail({
+          projectId,
+          projectName: project.data?.name ?? "Project",
+          stash,
+          groupId: record?.groupId,
+          current: { label: record?.name ?? "Endpoint" },
+        })}
+      />
       {endpoint.isLoading ? <Skeleton className="h-80 w-full rounded-md" /> : null}
       {endpoint.isError ? (
         <Empty className="border">

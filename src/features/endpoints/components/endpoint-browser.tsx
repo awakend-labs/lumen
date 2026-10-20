@@ -36,7 +36,11 @@ import { MoveEndpointDialog } from "./move-endpoint-dialog";
 import { RenameDialog } from "@/components/rename-dialog";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { CompactMarkdown } from "@/components/compact-markdown";
-import { MethodBadge, statusClass } from "@/components/method-badge";
+import {
+  EndpointVersionBadge,
+  MethodBadge,
+  statusClass,
+} from "@/components/method-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -557,14 +561,14 @@ function StashSection({
             {editable ? (
               <Button
                 asChild
-                size="sm"
                 variant="outline"
-                className="h-8 gap-1.5 rounded-sm border-primary/35 bg-primary/10 px-3 text-foreground shadow-none hover:border-primary/50 hover:bg-primary/15"
+                size="sm"
+                className="h-8 gap-1.5 rounded-sm border-primary/55 bg-transparent px-3 text-primary shadow-none hover:border-primary/75 hover:bg-primary/10 hover:text-primary dark:border-primary/50 dark:bg-transparent dark:hover:border-primary/70 dark:hover:bg-primary/12"
               >
                 <Link
                   href={`/projects/${projectId}/endpoints/new?stash=${stash.id}`}
                 >
-                  <PlusIcon className="size-3.5 text-primary" />
+                  <PlusIcon className="size-3.5" />
                   Endpoint
                 </Link>
               </Button>
@@ -658,7 +662,7 @@ function EmptyStashState({
   stashId: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-md border border-dashed bg-muted/20 px-6 py-8 text-center">
+    <div className="empty-stash-panel flex flex-col items-center gap-3 rounded-md border border-dashed border-border/80 px-6 py-8 text-center">
       <span className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
         <InboxIcon className="size-5" />
       </span>
@@ -737,9 +741,7 @@ function EndpointItem({
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <MethodBadge method={endpoint.method} />
-                  <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                    {endpoint.version}
-                  </span>
+                  <EndpointVersionBadge version={endpoint.version} />
                 </div>
                 <div className="flex items-center">
                   {canReorder ? (
@@ -797,9 +799,7 @@ function EndpointItem({
             </button>
           ) : null}
           <MethodBadge method={endpoint.method} className="min-w-14 shrink-0" />
-          <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-            {endpoint.version}
-          </span>
+          <EndpointVersionBadge version={endpoint.version} />
           <Link
             href={href}
             className={cn("min-w-0 flex-1 truncate font-mono text-sm hover:underline", endpoint.isDeprecated && "line-through decoration-muted-foreground")}

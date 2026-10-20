@@ -32,6 +32,27 @@ const methodClass: Record<HttpMethod, string> = {
   HEAD: `bg-muted ${methodTextClass.HEAD}`,
 };
 
+export function EndpointVersionBadge({
+  version,
+  className,
+}: {
+  version: string;
+  className?: string;
+}) {
+  const label = version.trim() || "v1";
+  return (
+    <span
+      title={label}
+      className={cn(
+        "inline-flex h-5 max-w-24 shrink-0 items-center justify-center truncate rounded-sm border border-border/80 bg-muted/45 px-2 font-mono text-[11px] font-semibold tracking-wide text-primary tabular-nums dark:bg-muted/35 dark:text-primary",
+        className,
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
 export function MethodBadge({
   method,
   className,

@@ -38,7 +38,11 @@ import { EndpointTagsField } from "./endpoint-tags-field";
 import type { CurlDraft } from "@/lib/curl";
 import { SectionNav, sectionId } from "@/components/section-nav";
 import { MarkdownView } from "@/components/markdown-view";
-import { MethodBadge, methodTextClass } from "@/components/method-badge";
+import {
+  EndpointVersionBadge,
+  MethodBadge,
+  methodTextClass,
+} from "@/components/method-badge";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -96,7 +100,6 @@ const insetSurfaceClass = "lumen-inset";
 const JSON_SCHEMA_PLACEHOLDER = '{ "type": "object" }';
 const JSON_EXAMPLE_PLACEHOLDER = '{ "id": "example" }';
 
-
 const jsonText = z.string().refine((value) => {
   if (!value.trim()) return true;
   try {
@@ -120,22 +123,29 @@ const paramFormSchema = z.object({
   description: z.string(),
 });
 
-const responseFormSchema = z.object({
-  isSuccess: z.boolean().optional(),
-  useSharedError: z.boolean().optional(),
-  schemaMode: z.enum(["generated", "custom"]).optional(),
-  statusCode: z
-    .union([z.number().int().min(100).max(599), z.literal("")])
-    .refine((value): boolean => value !== "", "Enter a status code."),
-  description: z.string(),
-  body: z.string(),
-  schema: z.string(),
-}).superRefine((response, ctx) => {
-  if (response.useSharedError) return;
-  for (const key of ["body", "schema"] as const) {
-    if (!jsonText.safeParse(response[key]).success) ctx.addIssue({ code: "custom", path: [key], message: "Enter valid JSON" });
-  }
-});
+const responseFormSchema = z
+  .object({
+    isSuccess: z.boolean().optional(),
+    useSharedError: z.boolean().optional(),
+    schemaMode: z.enum(["generated", "custom"]).optional(),
+    statusCode: z
+      .union([z.number().int().min(100).max(599), z.literal("")])
+      .refine((value): boolean => value !== "", "Enter a status code."),
+    description: z.string(),
+    body: z.string(),
+    schema: z.string(),
+  })
+  .superRefine((response, ctx) => {
+    if (response.useSharedError) return;
+    for (const key of ["body", "schema"] as const) {
+      if (!jsonText.safeParse(response[key]).success)
+        ctx.addIssue({
+          code: "custom",
+          path: [key],
+          message: "Enter valid JSON",
+        });
+    }
+  });
 
 const endpointFormSchema = z.object({
   expectedUpdatedAt: z.iso.datetime().optional(),
@@ -275,7 +285,11 @@ function toFormValues(
     bodyFormat: (endpoint?.requestBody?.contentType ??
       "application/json") as EndpointFormValues["bodyFormat"],
     requestRaw: endpoint?.requestBody?.raw ?? "",
-    access: endpoint?.access ?? (projectAuth && projectAuth.scheme !== "none" ? "authenticated" : "public"),
+    access:
+      endpoint?.access ??
+      (projectAuth && projectAuth.scheme !== "none"
+        ? "authenticated"
+        : "public"),
     bodyFields: (endpoint?.requestBody?.fields ?? []).map(fieldToForm),
     stashId: endpoint?.stashId ?? stashId,
     groupId: endpoint?.groupId ?? "ungrouped",
@@ -286,15 +300,28 @@ function toFormValues(
     headers: (endpoint?.headers ?? []).map(fieldToForm),
     queryParams: (endpoint?.queryParams ?? []).map(fieldToForm),
     pathParams: (endpoint?.pathParams ?? []).map(fieldToForm),
-    requestSchema: pretty(endpoint?.requestBody?.schema, endpoint?.requestBody?.schemaSource),
-    requestExample: pretty(endpoint?.requestBody?.example, endpoint?.requestBody?.exampleSource),
+    requestSchema: pretty(
+      endpoint?.requestBody?.schema,
+      endpoint?.requestBody?.schemaSource,
+    ),
+    requestExample: pretty(
+      endpoint?.requestBody?.example,
+      endpoint?.requestBody?.exampleSource,
+    ),
     responses:
       endpoint?.responses && endpoint.responses.length > 0
         ? endpoint.responses.map((response) => ({
             statusCode: response.statusCode,
-            isSuccess: response.statusCode === responseSuccessCode(endpoint.responses ?? [], endpoint.method ?? "GET"),
+            isSuccess:
+              response.statusCode ===
+              responseSuccessCode(
+                endpoint.responses ?? [],
+                endpoint.method ?? "GET",
+              ),
             useSharedError: response.useSharedError ?? false,
-            schemaMode: response.schemaMode ?? (response.schema !== undefined ? "custom" : "generated"),
+            schemaMode:
+              response.schemaMode ??
+              (response.schema !== undefined ? "custom" : "generated"),
             description: response.description,
             body: pretty(response.body, response.bodySource),
             schema: pretty(response.schema, response.schemaSource),
@@ -364,7 +391,9 @@ export function EndpointForm({
   useEffect(() => setHydrated(true), []);
   const [importOpen, setImportOpen] = useState(importCurl);
   const [imported, setImported] = useState(false);
-  const [duplicatePending, setDuplicatePending] = useState(Boolean(duplicateFrom));
+  const [duplicatePending, setDuplicatePending] = useState(
+    Boolean(duplicateFrom),
+  );
   const [pathDialogOpen, setPathDialogOpen] = useState(false);
   const [pathParameterName, setPathParameterName] = useState("");
   const [saveConflict, setSaveConflict] = useState<string | null>(null);
@@ -412,10 +441,15 @@ export function EndpointForm({
     }),
   );
   const description = form.watch("description");
-  const bodyJson = useBodyFieldJson(form, draft.loading || draft.hasRecoveredDraft);
+  const bodyJson = useBodyFieldJson(
+    form,
+    draft.loading || draft.hasRecoveredDraft,
+  );
   const method = form.watch("method");
   const path = form.watch("path");
   const name = form.watch("name");
+  const endpointPreviewName = name.trim() || "Untitled endpoint";
+  const endpointNameUntitled = !name.trim();
   useEffect(() => {
     if (endpoint || draft.loading || !form.getFieldState("method").isDirty)
       return;
@@ -566,12 +600,14 @@ export function EndpointForm({
         useSharedError: response.useSharedError,
         schemaMode: response.schemaMode,
         description: response.description,
-        ...(!response.useSharedError ? {
-          body: parseJson(response.body),
-          bodySource: response.body.trim() || undefined,
-          schema: parseJson(response.schema),
-          schemaSource: response.schema.trim() || undefined,
-        } : {}),
+        ...(!response.useSharedError
+          ? {
+              body: parseJson(response.body),
+              bodySource: response.body.trim() || undefined,
+              schema: parseJson(response.schema),
+              schemaSource: response.schema.trim() || undefined,
+            }
+          : {}),
       })),
       tags: [...new Set(values.tags.map((tag) => tag.trim()).filter(Boolean))],
       version: values.version.trim().toLowerCase(),
@@ -584,7 +620,13 @@ export function EndpointForm({
     }
     save.mutate(validation.data, {
       onError: (error) => {
-        if (error instanceof ApiError && error.status === 409 && /changed since|saved version is missing|moved to another stash/.test(error.message)) {
+        if (
+          error instanceof ApiError &&
+          error.status === 409 &&
+          /changed since|saved version is missing|moved to another stash/.test(
+            error.message,
+          )
+        ) {
           setSaveConflict(error.message);
         }
       },
@@ -635,17 +677,38 @@ export function EndpointForm({
         })}
       >
         {saveConflict && (
-          <div role="alert" className="flex flex-col gap-3 rounded-md border border-primary/40 bg-primary/10 p-4">
-            <p className="text-sm">{saveConflict} Your current edits are still in this form.</p>
-            <Button type="button" variant="outline" className="w-fit" onClick={() => {
-              if (window.confirm("Reload the latest endpoint? This replaces your current form and saved draft.")) {
-                allowLeave.current = true;
-                void draft.clear().then(() => window.location.reload()).catch(() => {
-                  allowLeave.current = false;
-                  toast.error("Could not reload. Your edits are still in this form. Please try again.");
-                });
-              }
-            }}>Reload latest version</Button>
+          <div
+            role="alert"
+            className="flex flex-col gap-3 rounded-md border border-primary/40 bg-primary/10 p-4"
+          >
+            <p className="text-sm">
+              {saveConflict} Your current edits are still in this form.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-fit"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "Reload the latest endpoint? This replaces your current form and saved draft.",
+                  )
+                ) {
+                  allowLeave.current = true;
+                  void draft
+                    .clear()
+                    .then(() => window.location.reload())
+                    .catch(() => {
+                      allowLeave.current = false;
+                      toast.error(
+                        "Could not reload. Your edits are still in this form. Please try again.",
+                      );
+                    });
+                }
+              }}
+            >
+              Reload latest version
+            </Button>
           </div>
         )}
         <EndpointDraftBar
@@ -663,7 +726,10 @@ export function EndpointForm({
                     projectAuth,
                   ),
                 )
-                .then(() => { setImported(false); setDuplicatePending(false); })
+                .then(() => {
+                  setImported(false);
+                  setDuplicatePending(false);
+                })
                 .catch(() =>
                   toast.error("Could not discard the draft. Please try again."),
                 );
@@ -799,19 +865,24 @@ export function EndpointForm({
             )}
           >
             <MethodBadge method={method} className="h-6 min-w-16" />
-            <span
-              className={cn(
-                "max-w-20 shrink-0 truncate px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground",
-                insetSurfaceClass,
-              )}
-            >
-              {form.watch("version").trim() || "v1"}
-            </span>
-            <span className="min-w-0 flex-1 truncate font-mono text-sm">
+            <EndpointVersionBadge version={form.watch("version")} />
+            <span className="min-w-0 flex-1 truncate font-mono text-sm font-medium">
               {path.trim() || "/"}
             </span>
-            <span className="hidden min-w-0 max-w-48 truncate text-sm text-muted-foreground sm:block">
-              {name.trim() || "Untitled endpoint"}
+            <span
+              className="hidden min-w-0 max-w-48 shrink-0 items-center border-l border-border/70 pl-3 sm:inline-flex md:max-w-xs"
+              title={endpointPreviewName}
+            >
+              <span
+                className={cn(
+                  "truncate text-sm leading-snug",
+                  endpointNameUntitled
+                    ? "italic text-muted-foreground"
+                    : "font-semibold tracking-[-0.01em] text-foreground",
+                )}
+              >
+                {endpointPreviewName}
+              </span>
             </span>
           </div>
 
@@ -1285,7 +1356,9 @@ export function EndpointForm({
                     disabled={
                       draft.loading ||
                       draft.hasRecoveredDraft ||
-                      !form.watch("bodyFields").some((field) => field.key.trim())
+                      !form
+                        .watch("bodyFields")
+                        .some((field) => field.key.trim())
                     }
                     onClick={() => {
                       if (
@@ -1324,7 +1397,10 @@ export function EndpointForm({
                           {...editorField}
                           id="request-schema"
                           label="JSON schema"
-                          onChange={value => { bodyJson.trackEdit("requestSchema", value); editorField.onChange(value); }}
+                          onChange={(value) => {
+                            bodyJson.trackEdit("requestSchema", value);
+                            editorField.onChange(value);
+                          }}
                           placeholder={JSON_SCHEMA_PLACEHOLDER}
                           invalid={Boolean(fieldState.error)}
                           disabled={!hydrated}
@@ -1355,7 +1431,10 @@ export function EndpointForm({
                           {...editorField}
                           id="request-example"
                           label="Request example"
-                          onChange={value => { bodyJson.trackEdit("requestExample", value); editorField.onChange(value); }}
+                          onChange={(value) => {
+                            bodyJson.trackEdit("requestExample", value);
+                            editorField.onChange(value);
+                          }}
                           placeholder={JSON_EXAMPLE_PLACEHOLDER}
                           invalid={Boolean(fieldState.error)}
                           disabled={!hydrated}
@@ -1376,12 +1455,18 @@ export function EndpointForm({
             title="Responses"
             description="What callers receive, from the happy path to the errors they should handle."
           >
-            <ResponsesEditor projectId={projectId} form={form} rows={responses} disabled={!hydrated} paused={draft.loading || draft.hasRecoveredDraft} />
+            <ResponsesEditor
+              projectId={projectId}
+              form={form}
+              rows={responses}
+              disabled={!hydrated}
+              paused={draft.loading || draft.hasRecoveredDraft}
+            />
           </FormSection>
 
           <div
             className={cn(
-              "relative z-20 flex flex-wrap items-center justify-end gap-2 rounded-md border border-border/60 p-3 shadow-lg",
+              "sticky bottom-4 z-20 flex flex-wrap items-center justify-end gap-2 rounded-md border border-border/60 p-3 shadow-lg",
               "bg-background/72 ring-1 ring-inset ring-white/20 dark:bg-card/45 dark:ring-white/10",
               "supports-backdrop-filter:backdrop-blur-xs supports-backdrop-filter:backdrop-saturate-150",
             )}
@@ -1508,10 +1593,15 @@ function endpointDraftStatusMeta(
       busy: false,
     };
   }
-  if (status.startsWith("A saved draft") || status.startsWith("Draft changed in another tab")) {
+  if (
+    status.startsWith("A saved draft") ||
+    status.startsWith("Draft changed in another tab")
+  ) {
     return {
       tone: "warn" as const,
-      title: status.startsWith("Draft changed in another tab") ? "Draft changed in another tab" : "Saved draft found",
+      title: status.startsWith("Draft changed in another tab")
+        ? "Draft changed in another tab"
+        : "Saved draft found",
       detail: status,
       busy: false,
     };
@@ -1675,9 +1765,21 @@ function ParamList({
   watch: ReturnType<typeof useForm<EndpointFormValues>>["watch"];
   setValue: ReturnType<typeof useForm<EndpointFormValues>>["setValue"];
 }) {
-  return <ParamTable icon={icon} title={title} hint={hint} fields={fields}
-    append={append} remove={remove} register={register} name={name}
-    watch={watch} setValue={setValue} Section={FormSection} />;
+  return (
+    <ParamTable
+      icon={icon}
+      title={title}
+      hint={hint}
+      fields={fields}
+      append={append}
+      remove={remove}
+      register={register}
+      name={name}
+      watch={watch}
+      setValue={setValue}
+      Section={FormSection}
+    />
+  );
 }
 function fieldToForm(field: ParamField) {
   return {

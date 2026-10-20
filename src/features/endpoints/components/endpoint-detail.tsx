@@ -23,7 +23,7 @@ import { SectionNav, sectionId } from "@/components/section-nav";
 import { EndpointPathBar } from "./endpoint-path-bar";
 import { CopyButton } from "@/components/copy-button";
 import { MarkdownView } from "@/components/markdown-view";
-import { MethodBadge } from "@/components/method-badge";
+import { EndpointVersionBadge, MethodBadge } from "@/components/method-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { canEditContent } from "@/lib/permissions";
@@ -78,9 +78,7 @@ export function EndpointDetail({
                   method={endpoint.method}
                   className="h-6 min-w-16"
                 />
-                <Badge variant="outline" className="font-mono font-medium">
-                  {endpoint.version}
-                </Badge>
+                <EndpointVersionBadge version={endpoint.version} />
                 {stashName ? (
                   <Badge variant="secondary" className="font-normal">
                     {stashName}

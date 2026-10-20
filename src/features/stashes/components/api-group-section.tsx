@@ -51,10 +51,10 @@ export function ApiGroupControl({ projectId, stashId, group }: {
       <Button
         variant="outline"
         size="sm"
-        className="h-8 gap-1.5 rounded-sm px-3 shadow-none"
+        className="h-8 gap-1.5 rounded-sm border-stash-blue/55 bg-transparent px-3 text-stash-blue shadow-none hover:border-stash-blue/75 hover:bg-stash-blue/10 hover:text-stash-blue dark:border-stash-blue/50 dark:bg-transparent dark:hover:border-stash-blue/70 dark:hover:bg-stash-blue/12"
         onClick={edit}
       >
-        <PlusIcon className="size-3.5 text-primary" />
+        <PlusIcon className="size-3.5" />
         API group
       </Button>
     )}
