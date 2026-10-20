@@ -878,7 +878,7 @@ export function EndpointForm({
                   "truncate text-sm leading-snug",
                   endpointNameUntitled
                     ? "italic text-muted-foreground"
-                    : "font-semibold tracking-[-0.01em] text-foreground",
+                    : "font-semibold tracking-[-0.01em] text-foreground/80",
                 )}
               >
                 {endpointPreviewName}

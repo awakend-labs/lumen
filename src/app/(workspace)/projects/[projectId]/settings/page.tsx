@@ -14,6 +14,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ProjectAuthSettings } from "@/features/projects/components/project-auth-settings";
+import { ProjectBaseUrlSettings } from "@/features/projects/components/project-base-url-settings";
 import { ProjectSettings } from "@/features/members/components/project-settings";
 import { ProjectFrame } from "@/features/projects/components/project-frame";
 
@@ -67,7 +68,8 @@ export default function SettingsPage({
               description={`Members, invitations, and access for ${project.name}.`}
             />
           </header>
-          <ProjectAuthSettings key={project.id} project={project} />
+          <ProjectBaseUrlSettings key={`base-url-${project.id}`} project={project} />
+          <ProjectAuthSettings key={`auth-${project.id}`} project={project} />
           <ProjectSettings projectId={project.id} role={project.role} />
         </div>
       )}

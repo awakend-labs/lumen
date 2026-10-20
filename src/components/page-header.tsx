@@ -25,7 +25,7 @@ export function PageHeader({
     >
       <div className="flex min-w-0 items-start gap-3">
         {Icon ? (
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/12 text-accent-foreground">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border/70 bg-muted/60 text-muted-foreground dark:bg-muted/40">
             <Icon className="size-4" aria-hidden />
           </span>
         ) : null}

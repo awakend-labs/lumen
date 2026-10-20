@@ -354,7 +354,7 @@ function AccountMenu() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="max-w-full min-w-0 data-[state=open]:bg-sidebar-accent group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:overflow-hidden"
+              className="max-w-full min-w-0 hover:bg-transparent hover:text-sidebar-foreground active:bg-transparent active:text-sidebar-foreground data-[state=open]:bg-transparent data-[state=open]:text-sidebar-foreground data-[state=open]:hover:bg-transparent group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:overflow-hidden"
               tooltip={name}
             >
               <Avatar
