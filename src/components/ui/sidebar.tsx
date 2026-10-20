@@ -260,6 +260,7 @@ function SidebarTrigger({
   return (
     <Button
       data-sidebar="trigger"
+      aria-label="Toggle sidebar"
       data-slot="sidebar-trigger"
       variant="ghost"
       size="icon-sm"

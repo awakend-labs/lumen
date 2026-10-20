@@ -5,6 +5,12 @@ const { parseCurl, generateCurl, curlTokens, shellQuote } = require('../src/lib/
 const { endpointInputSchema, baseUrlSchema } = require('../src/lib/validators.ts');
 const stashId = '12345678-1234-4234-8234-123456789012';
 
+test('JSON decimal spelling survives importing and regenerating cURL', () => {
+  const draft = parseCurl(`curl https://api.example.com/orders --json '{"amount":998.0}'`);
+  assert.match(draft.requestBody.exampleSource, /998\.0/);
+  assert.match(generateCurl(draft), /998\.0/);
+});
+
 test('imports JSON requests, methods, server URL, route version, headers and query parameters', () => {
   const draft = parseCurl(`curl --location 'https://api.example.com/v2/users?limit=20&tag=one&tag=two' -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer secret-value' --data-raw '{"name":"Ada"}'`);
   assert.equal(draft.method, 'POST');

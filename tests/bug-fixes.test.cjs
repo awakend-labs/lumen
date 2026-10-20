@@ -40,3 +40,25 @@ test('workspace search immediately matches cached routes and tags without duplic
   assert.equal(searchCachedWorkspace('catalog', [], [project])[0].id, 'endpoint');
   assert.deepEqual(searchCachedWorkspace('x', [project], [project]), []);
 });
+
+test('Request URL keeps path placeholders readable without decoding other URL escapes', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const { EndpointPathBar } = require('../src/features/endpoints/components/endpoint-path-bar.tsx');
+  for (const baseUrl of ['', 'https://api.example.com', 'https://api.example.com/v1']) {
+    const html = renderToStaticMarkup(React.createElement(EndpointPathBar, { method: 'GET', endpoint: { baseUrl, path: '/orders/{orderId}/a%20b', version: 'v1' } }));
+    assert.match(html, /\{orderId\}/); assert.match(html, /a%20b/); assert.doesNotMatch(html, /%7[BbDd]/);
+  }
+});
+
+test('overlength stash descriptions have an explicit field validation error', () => {
+  const { stashInputSchema } = require('../src/lib/validators.ts');
+  const valid = { name: 'Orders', description: 'x'.repeat(500) };
+  assert.equal(stashInputSchema.safeParse(valid).success, true);
+  for (const length of [501, 1001]) {
+    const invalid = stashInputSchema.safeParse({ ...valid, description: 'x'.repeat(length) });
+    assert.equal(invalid.success, false);
+    assert.deepEqual(invalid.error.issues[0].path, ['description']);
+    assert.equal(invalid.error.issues[0].message, 'Description must be 500 characters or fewer.');
+  }
+});

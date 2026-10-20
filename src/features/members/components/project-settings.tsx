@@ -177,6 +177,7 @@ export function ProjectSettings({
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <form
+              noValidate
               className="flex flex-col gap-4"
               onSubmit={form.handleSubmit((values) =>
                 invite.mutate(values, {
@@ -198,9 +199,10 @@ export function ProjectSettings({
                     type="email"
                     className="h-8 min-h-8 py-0 text-sm"
                     aria-invalid={Boolean(form.formState.errors.email)}
+                    aria-describedby={form.formState.errors.email ? "invite-email-error" : undefined}
                     {...form.register("email")}
                   />
-                  <FieldError errors={[form.formState.errors.email]} />
+                  <FieldError id="invite-email-error" errors={[form.formState.errors.email]} />
                 </Field>
                 <Field className="w-full shrink-0 md:w-40">
                   <FieldLabel htmlFor="invite-role">Role</FieldLabel>

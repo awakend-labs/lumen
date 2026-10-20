@@ -342,7 +342,10 @@ export async function updateEndpoint(
     throw new HttpError(409, "This endpoint moved to another stash. Reload before changing its group.");
   }
   await validateGroup(existing.stashId, input.groupId);
-  const [[updated]] = await db.batch([db
+  if (!input.expectedUpdatedAt) {
+    throw new HttpError(409, "This endpoint's saved version is missing. Reload it before saving.");
+  }
+  const [updated] = await db
     .update(endpoints)
     .set({
       ...(input.groupId !== undefined ? { groupId: input.groupId } : {}),
@@ -360,14 +363,18 @@ export async function updateEndpoint(
       version: input.version,
       access: input.access,
       isDeprecated: input.isDeprecated,
-      updatedAt: new Date(),
+      // Advance even when two saves arrive within the same millisecond.
+      updatedAt: sql`greatest(date_trunc('milliseconds', clock_timestamp()), ${endpoints.updatedAt} + interval '1 millisecond')`,
     })
-    .where(and(eq(endpoints.id, endpointId), eq(endpoints.projectId, projectId)))
-    .returning(), db.update(projects).set({ updatedAt: new Date() }).where(eq(projects.id, projectId)), ...(input.draft ? [savedDraftCleanup(userId, projectId, input.draft)] : [])]);
+    .where(and(eq(endpoints.id, endpointId), eq(endpoints.projectId, projectId),
+      sql`date_trunc('milliseconds', ${endpoints.updatedAt}) = ${input.expectedUpdatedAt}::timestamptz`))
+    .returning();
 
   if (!updated || updated.projectId !== projectId) {
-    throw new HttpError(404, "Endpoint not found");
+    throw new HttpError(409, "This endpoint was changed since you opened it. Your edits have not been saved. Reload the latest version before saving again.");
   }
+  await db.batch([db.update(projects).set({ updatedAt: new Date() }).where(eq(projects.id, projectId)),
+    ...(input.draft ? [savedDraftCleanup(userId, projectId, input.draft)] : [])]);
   return toEndpoint(updated);
 }
 

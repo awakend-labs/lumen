@@ -745,10 +745,10 @@ function EndpointItem({
                   {canReorder ? (
                     <button
                       type="button"
-                      aria-label="Reorder endpoint"
                       className="text-muted-foreground"
                       {...sortable.attributes}
                       {...sortable.listeners}
+                      aria-label={`Reorder ${endpoint.name}`}
                     >
                       <GripVerticalIcon />
                     </button>
@@ -763,7 +763,7 @@ function EndpointItem({
                   ) : null}
                 </div>
               </div>
-              <CardTitle className="break-words text-base">
+              <CardTitle className={cn("break-words text-base", endpoint.isDeprecated && "line-through decoration-muted-foreground")}>
                 <Link href={href} className="hover:underline">
                   {endpoint.name}
                 </Link>
@@ -778,7 +778,7 @@ function EndpointItem({
                 content={endpoint.description || "No description"}
               />
               {endpoint.isDeprecated ? (
-                <Badge variant="outline">Deprecated</Badge>
+                <Badge variant="outline" className="w-fit border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">Deprecated</Badge>
               ) : null}
             </CardContent>
           </Card>
@@ -788,10 +788,10 @@ function EndpointItem({
           {canReorder ? (
             <button
               type="button"
-              aria-label="Reorder endpoint"
               className="text-muted-foreground"
               {...sortable.attributes}
               {...sortable.listeners}
+              aria-label={`Reorder ${endpoint.name}`}
             >
               <GripVerticalIcon className="size-4" />
             </button>
@@ -802,7 +802,7 @@ function EndpointItem({
           </span>
           <Link
             href={href}
-            className="min-w-0 flex-1 truncate font-mono text-sm hover:underline"
+            className={cn("min-w-0 flex-1 truncate font-mono text-sm hover:underline", endpoint.isDeprecated && "line-through decoration-muted-foreground")}
           >
             {endpoint.path}
           </Link>
@@ -813,7 +813,7 @@ function EndpointItem({
             {endpoint.name}
           </Link>
           {endpoint.isDeprecated ? (
-            <Badge variant="outline" className="shrink-0">
+            <Badge variant="outline" className="shrink-0 border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
               Deprecated
             </Badge>
           ) : null}

@@ -1,5 +1,6 @@
 import { HTTP_METHODS, type EndpointRecord, type HttpMethod, type ParamField, type ProjectAuth, type RequestBodyDoc } from "./types";
 import { endpointUrl, pathParameterNames, splitVersionPath, validEndpointPath } from "./endpoint-path";
+import { stringifyJson } from "./json-source";
 
 export type CurlDraft = Pick<EndpointRecord, "name" | "method" | "baseUrl" | "path" | "headers" | "queryParams" | "pathParams" | "requestBody" | "access" | "version">;
 
@@ -135,7 +136,7 @@ export function parseCurl(command: string): CurlDraft {
   } else if (hasData && !get) {
     const contentType = json ? "application/json" : contentHeader?.value.split(";")[0].trim().toLowerCase() || "application/x-www-form-urlencoded";
     if (contentType === "application/json" || contentType.endsWith("+json")) {
-      try { requestBody = { contentType: "application/json", example: JSON.parse(raw) }; }
+      try { requestBody = { contentType: "application/json", example: JSON.parse(raw), exampleSource: raw }; }
       catch { throw new Error("The JSON request body isn't valid. Correct it before importing."); }
     } else if (contentType === "application/x-www-form-urlencoded") {
       requestBody = { contentType, example: Object.fromEntries(parameters(new URLSearchParams(raw)).map(field => [field.key, field.type === "array" ? JSON.parse(field.value) : field.value])) };
@@ -225,7 +226,7 @@ export function generateCurl(endpoint: Pick<EndpointRecord, "method" | "path" | 
         for (const item of Array.isArray(value) ? value : [value]) parts.push(`${type === "multipart/form-data" ? "--form-string" : "--data-urlencode"} ${shellQuote(`${key}=${typeof item === "object" ? JSON.stringify(item) : String(item)}`)}`);
       }
     } else if (type === "text/plain") parts.push(`--data-raw ${shellQuote(body.raw ?? "")}`);
-    else parts.push(`--data-raw ${shellQuote(JSON.stringify(example, null, 2))}`);
+    else parts.push(`--data-raw ${shellQuote(stringifyJson(example, body.exampleSource))}`);
   }
   return parts.join(" \\\n  ");
 }

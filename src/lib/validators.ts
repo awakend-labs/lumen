@@ -8,6 +8,7 @@ import {
 } from "@/lib/types";
 
 import { validEndpointPath, pathParameterNames } from "@/lib/endpoint-path";
+import { matchesJsonSource } from "@/lib/json-source";
 
 export const projectAuthSchema = z.object({
   scheme: z.enum(AUTH_SCHEMES),
@@ -49,7 +50,7 @@ export const projectStatusSchema = z.object({
 
 export const stashInputSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80, "Name must be 80 characters or fewer."),
-  description: z.string().trim().max(500).optional().default(""),
+  description: z.string().trim().max(500, "Description must be 500 characters or fewer.").optional().default(""),
   color: z.enum(STASH_COLORS).default("blue"),
   status: z.enum(STASH_STATUSES).optional(),
 });
@@ -89,23 +90,43 @@ export const paramFieldSchema = z.object({
 
 const requestBodySchema = z
   .object({
+    schemaSource: z.string().optional(),
+    exampleSource: z.string().optional(),
     contentType: z.enum(["application/json", "application/x-www-form-urlencoded", "multipart/form-data", "text/plain"]).optional(),
     raw: z.string().max(20000).optional(),
     schema: z.unknown().optional(),
     fields: z.array(paramFieldSchema).max(200).optional(),
     example: z.unknown().optional(),
   })
+  .superRefine((value, ctx) => {
+    for (const key of ["schema", "example"] as const) {
+      const source = value[`${key}Source`];
+      if (source !== undefined && !matchesJsonSource(value[key], source)) {
+        ctx.addIssue({ code: "custom", path: [`${key}Source`], message: "JSON text must match the documented value." });
+      }
+    }
+  })
   .nullable()
   .optional();
 
 const responseDocSchema = z.object({
+  bodySource: z.string().optional(),
+  schemaSource: z.string().optional(),
   statusCode: z.number().int().min(100).max(599),
   description: z.string().max(2000).optional().default(""),
   body: z.unknown().optional(),
   schema: z.unknown().optional(),
+}).superRefine((value, ctx) => {
+  for (const key of ["body", "schema"] as const) {
+    const source = value[`${key}Source`];
+    if (source !== undefined && !matchesJsonSource(value[key], source)) {
+      ctx.addIssue({ code: "custom", path: [`${key}Source`], message: "JSON text must match the documented value." });
+    }
+  }
 });
 
 export const endpointInputSchema = z.object({
+  expectedUpdatedAt: z.iso.datetime().optional(),
   draft: z.object({ key: z.string().max(120), revision: z.uuid() }).optional(),
   groupId: z.uuid().nullable().optional(),
   baseUrl: baseUrlSchema.default(""),

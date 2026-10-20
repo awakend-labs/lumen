@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { api } from "@/lib/api";
 
@@ -16,6 +16,8 @@ export function useEndpointDraft<T extends FieldValues>(projectId: string, key: 
   const active = useRef(true);
   const latest = useRef("");
   const lastSaved = useRef("");
+  const hasSavedSnapshot = useRef(false);
+  const isCurrentSaved = useCallback(() => hasSavedSnapshot.current && !awaitingChoice.current && JSON.stringify(form.getValues()) === lastSaved.current, [form]);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const path = `/api/projects/${projectId}/drafts/${encodeURIComponent(key)}`;
   const parseRef = useRef(parse); parseRef.current = parse;
@@ -40,6 +42,7 @@ export function useEndpointDraft<T extends FieldValues>(projectId: string, key: 
         setStatus("A saved draft is available. Restore it or keep your current edits.");
       } else if (restored) {
         form.reset(restored); lastSaved.current = JSON.stringify(form.getValues());
+        hasSavedSnapshot.current = true;
         setStatus("Draft restored");
       } else {
         lastSaved.current = initial;
@@ -68,6 +71,7 @@ export function useEndpointDraft<T extends FieldValues>(projectId: string, key: 
           try {
             await api(path, { method: "PUT", signal: AbortSignal.timeout(10000), body: JSON.stringify({ revision: token, writeOrder: order, payload }) });
             lastSaved.current = payload;
+            hasSavedSnapshot.current = true;
             if (active.current && latest.current === payload) { setStatus("Draft saved"); setError(false); }
           } catch { if (active.current && latest.current === payload) { setStatus("Draft not saved. Save the endpoint before leaving."); setError(true); } }
         });
@@ -84,6 +88,7 @@ export function useEndpointDraft<T extends FieldValues>(projectId: string, key: 
     if (!recovered) return;
     if (restore) {
       form.reset(recovered); latest.current = lastSaved.current = JSON.stringify(form.getValues());
+      hasSavedSnapshot.current = true;
       setStatus("Draft restored");
     } else setStatus("Saving current edits…");
     awaitingChoice.current = false; setRecovered(null);
@@ -104,10 +109,11 @@ export function useEndpointDraft<T extends FieldValues>(projectId: string, key: 
   async function discard(values: T) {
     await clear(); form.reset(values);
     latest.current = lastSaved.current = JSON.stringify(values);
+    hasSavedSnapshot.current = true;
     awaitingChoice.current = false; setRecovered(null);
     active.current = true; setStatus("Draft discarded"); setError(false);
   }
-  return { status, loading, error, clear, discard, hasRecoveredDraft: Boolean(recovered),
+  return { status, loading, error, clear, discard, isCurrentSaved, hasRecoveredDraft: Boolean(recovered),
     restore: () => resolveRecovery(true), keepCurrent: () => resolveRecovery(false),
     token: () => revision.current ? { key, revision: revision.current } : undefined };
 }

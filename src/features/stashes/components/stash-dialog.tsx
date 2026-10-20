@@ -83,14 +83,14 @@ export function StashDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={formDialogContentClassName}>
+      <DialogContent className={cn(formDialogContentClassName, "flex max-h-[90dvh] min-w-0 flex-col overflow-hidden")}>
         <DialogFormHeader
           icon={HeaderIcon}
           title={dialogTitle}
           description="Stashes group related endpoints, like Users or Payments."
         />
-        <form className="flex flex-col gap-6" onSubmit={form.handleSubmit(onSubmit)}>
-          <FieldGroup className="gap-5">
+        <form className="flex min-h-0 min-w-0 flex-col gap-6" onSubmit={form.handleSubmit(onSubmit)}>
+          <FieldGroup className="min-h-0 min-w-0 gap-5 overflow-y-auto px-1 [overflow-wrap:anywhere]">
             <Field data-invalid={Boolean(form.formState.errors.name) || undefined}>
               <FieldIconLabel icon={TagIcon} htmlFor="stash-name">Name</FieldIconLabel>
               <Input
@@ -100,11 +100,13 @@ export function StashDialog({
               />
               <FieldError errors={[form.formState.errors.name]} />
             </Field>
-            <Field>
+            <Field data-invalid={Boolean(form.formState.errors.description) || undefined}>
               <FieldIconLabel icon={AlignLeftIcon} htmlFor="stash-description">
                 Description
               </FieldIconLabel>
-              <Textarea id="stash-description" rows={3} {...form.register("description")} />
+              <Textarea id="stash-description" rows={3} className="field-sizing-fixed max-h-[40dvh] min-w-0 resize-y" aria-invalid={Boolean(form.formState.errors.description)} aria-describedby="stash-description-error stash-description-hint" {...form.register("description")} />
+              <p id="stash-description-hint" className="text-xs text-muted-foreground">Up to 500 characters.</p>
+              <FieldError id="stash-description-error" errors={[form.formState.errors.description]} />
             </Field>
             <Field>
               <FieldIconLabel icon={ActivityIcon}>Status</FieldIconLabel>
@@ -162,7 +164,7 @@ export function StashDialog({
               </ToggleGroup>
             </Field>
           </FieldGroup>
-          <DialogFooter className={formDialogFooterClassName}>
+          <DialogFooter className={cn(formDialogFooterClassName, "shrink-0")}>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

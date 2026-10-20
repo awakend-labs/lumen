@@ -63,6 +63,8 @@ export type ParamField = {
 };
 
 export type RequestBodyDoc = {
+  schemaSource?: string;
+  exampleSource?: string;
   contentType?: string;
   raw?: string;
   schema?: unknown;
@@ -71,6 +73,8 @@ export type RequestBodyDoc = {
 } | null;
 
 export type ResponseDoc = {
+  bodySource?: string;
+  schemaSource?: string;
   statusCode: number;
   description: string;
   body?: unknown;

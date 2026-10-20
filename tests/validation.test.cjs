@@ -14,6 +14,17 @@ test('route validation rejects whitespace, fragments, queries, malformed placeho
   assert.deepEqual(pathParameterNames('/users/{id}/items/:item'), ['id', 'item']);
   assert.equal(canonicalPath('/users/{id}'), canonicalPath('/users/:userId'));
 });
+
+test('routes support Unicode and emoji while still rejecting malformed parameters and controls', () => {
+  for (const route of ['/订单/商品', '/café/é', '/emoji/👩‍💻', '/🎉/{id}', '/商品/:id']) assert.equal(validEndpointPath(route), true, route);
+  for (const route of ['/unicode/\u0085', '/unicode/\ud800', '/bad/{oops', '/bad?query', '/bad#fragment', '/has space']) assert.equal(validEndpointPath(route), false, route);
+});
+
+test('preserving JSON text does not impose a new size limit on existing JSON documents', () => {
+  const example = { description: 'x'.repeat(22000), amount: 998 };
+  const exampleSource = JSON.stringify(example).replace('998', '998.0');
+  assert.equal(endpointInputSchema.safeParse({ ...base, requestBody: { example, exampleSource } }).success, true);
+});
 test('path parameters must match route and be required', () => {
   assert.equal(endpointInputSchema.safeParse(base).success, true);
   assert.equal(endpointInputSchema.safeParse({ ...base, pathParams: [] }).success, false);

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api";
+import { stringifyJson } from "@/lib/json-source";
 import { pathParameterNames, validEndpointPath } from "@/lib/endpoint-path";
 import { baseUrlSchema, endpointInputSchema } from "@/lib/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -67,6 +69,7 @@ import {
   type ParamField,
   type EndpointRecord,
   type StashRecord,
+  type ProjectAuth,
 } from "@/lib/types";
 import type { EndpointInput } from "@/lib/validators";
 import { cn } from "@/lib/utils";
@@ -130,6 +133,7 @@ const responseFormSchema = z.object({
 });
 
 const endpointFormSchema = z.object({
+  expectedUpdatedAt: z.iso.datetime().optional(),
   baseUrl: baseUrlSchema,
   bodyFormat: z.enum([
     "application/json",
@@ -155,7 +159,7 @@ const endpointFormSchema = z.object({
     .max(300)
     .refine(
       validEndpointPath,
-      "Start with /; use {id} or :id for parameters. Spaces, # and ? are not allowed.",
+      "Use a path beginning with /, without spaces, # or ?. Parameters must use {id} or :id.",
     ),
   description: z.string().max(20000),
   headers: z.array(paramFormSchema),
@@ -249,22 +253,23 @@ const emptyParam = {
   description: "",
 };
 
-function pretty(value: unknown) {
-  if (value === undefined) return "";
-  return JSON.stringify(value, null, 2);
+function pretty(value: unknown, source?: string) {
+  return stringifyJson(value, source);
 }
 
 function toFormValues(
   endpoint: Partial<EndpointRecord> | undefined,
   stashId: string,
   projectBaseUrl = "",
+  projectAuth?: ProjectAuth,
 ): EndpointFormValues {
   return {
+    expectedUpdatedAt: endpoint?.updatedAt,
     baseUrl: endpoint?.baseUrl ?? projectBaseUrl,
     bodyFormat: (endpoint?.requestBody?.contentType ??
       "application/json") as EndpointFormValues["bodyFormat"],
     requestRaw: endpoint?.requestBody?.raw ?? "",
-    access: endpoint?.access ?? "public",
+    access: endpoint?.access ?? (projectAuth && projectAuth.scheme !== "none" ? "authenticated" : "public"),
     bodyFields: (endpoint?.requestBody?.fields ?? []).map(fieldToForm),
     stashId: endpoint?.stashId ?? stashId,
     groupId: endpoint?.groupId ?? "ungrouped",
@@ -275,15 +280,15 @@ function toFormValues(
     headers: (endpoint?.headers ?? []).map(fieldToForm),
     queryParams: (endpoint?.queryParams ?? []).map(fieldToForm),
     pathParams: (endpoint?.pathParams ?? []).map(fieldToForm),
-    requestSchema: pretty(endpoint?.requestBody?.schema),
-    requestExample: pretty(endpoint?.requestBody?.example),
+    requestSchema: pretty(endpoint?.requestBody?.schema, endpoint?.requestBody?.schemaSource),
+    requestExample: pretty(endpoint?.requestBody?.example, endpoint?.requestBody?.exampleSource),
     responses:
       endpoint?.responses && endpoint.responses.length > 0
         ? endpoint.responses.map((response) => ({
             statusCode: response.statusCode,
             description: response.description,
-            body: pretty(response.body),
-            schema: pretty(response.schema),
+            body: pretty(response.body, response.bodySource),
+            schema: pretty(response.schema, response.schemaSource),
           }))
         : [
             {
@@ -329,6 +334,7 @@ export function EndpointForm({
   initialStashId,
   duplicateFrom,
   projectBaseUrl = "",
+  projectAuth,
   importCurl = false,
 }: {
   projectId: string;
@@ -337,6 +343,7 @@ export function EndpointForm({
   initialStashId?: string;
   duplicateFrom?: EndpointRecord;
   projectBaseUrl?: string;
+  projectAuth?: ProjectAuth;
   importCurl?: boolean;
 }) {
   const router = useRouter();
@@ -345,8 +352,10 @@ export function EndpointForm({
   useEffect(() => setHydrated(true), []);
   const [importOpen, setImportOpen] = useState(importCurl);
   const [imported, setImported] = useState(false);
+  const [duplicatePending, setDuplicatePending] = useState(Boolean(duplicateFrom));
   const [pathDialogOpen, setPathDialogOpen] = useState(false);
   const [pathParameterName, setPathParameterName] = useState("");
+  const [saveConflict, setSaveConflict] = useState<string | null>(null);
   const save = useSaveEndpoint(projectId, endpoint?.id);
   const fixedStashId =
     endpoint?.stashId ?? duplicateFrom?.stashId ?? initialStashId ?? "";
@@ -362,6 +371,7 @@ export function EndpointForm({
           : undefined),
       fixedStashId,
       projectBaseUrl,
+      projectAuth,
     ),
   });
   const headers = useFieldArray({ control: form.control, name: "headers" });
@@ -415,10 +425,12 @@ export function EndpointForm({
   }, [method, endpoint, draft.loading, form]);
 
   const allowLeave = useRef(false);
-  const dirty = form.formState.isDirty || Boolean(duplicateFrom) || imported;
+  const { isCurrentSaved } = draft;
+  const dirty = form.formState.isDirty || duplicatePending || imported;
   function importRequest(draft: CurlDraft) {
     form.reset({
       ...toFormValues(draft, form.getValues("stashId")),
+      expectedUpdatedAt: form.getValues("expectedUpdatedAt"),
       groupId: form.getValues("groupId"),
     });
     setImported(true);
@@ -429,7 +441,7 @@ export function EndpointForm({
   useEffect(() => {
     if (!dirty) return;
     const beforeUnload = (event: BeforeUnloadEvent) => {
-      if (!allowLeave.current) {
+      if (!allowLeave.current && !isCurrentSaved()) {
         event.preventDefault();
         event.returnValue = "";
       }
@@ -439,6 +451,8 @@ export function EndpointForm({
       if (
         anchor &&
         !allowLeave.current &&
+        !isCurrentSaved() &&
+        !anchor.getAttribute("href")?.startsWith("#") &&
         !event.ctrlKey &&
         !event.metaKey &&
         !window.confirm(
@@ -454,6 +468,7 @@ export function EndpointForm({
     const removeSignOutGuard = registerSignOutGuard(
       () =>
         allowLeave.current ||
+        isCurrentSaved() ||
         window.confirm(
           "Sign out? Changes that have not finished autosaving may be lost.",
         ),
@@ -463,7 +478,7 @@ export function EndpointForm({
       window.removeEventListener("beforeunload", beforeUnload);
       document.removeEventListener("click", click, true);
     };
-  }, [dirty]);
+  }, [dirty, isCurrentSaved]);
   useEffect(() => {
     const current = form.getValues("pathParams");
     const next = pathParameterNames(path).map((key) => ({
@@ -500,6 +515,7 @@ export function EndpointForm({
       return;
     }
     const payload: EndpointInput = {
+      expectedUpdatedAt: endpoint ? values.expectedUpdatedAt : undefined,
       draft: draft.token(),
       baseUrl: values.baseUrl,
       access: values.access,
@@ -527,14 +543,18 @@ export function EndpointForm({
                 ? { raw: values.requestRaw }
                 : {}),
               schema: requestSchema,
+              schemaSource: values.requestSchema.trim() || undefined,
               example: requestExample,
+              exampleSource: values.requestExample.trim() || undefined,
               fields: cleanParams(values.bodyFields),
             },
       responses: values.responses.map((response) => ({
         statusCode: Number(response.statusCode),
         description: response.description,
         body: parseJson(response.body),
+        bodySource: response.body.trim() || undefined,
         schema: parseJson(response.schema),
+        schemaSource: response.schema.trim() || undefined,
       })),
       tags: [...new Set(values.tags.map((tag) => tag.trim()).filter(Boolean))],
       version: values.version.trim().toLowerCase(),
@@ -546,6 +566,11 @@ export function EndpointForm({
       return;
     }
     save.mutate(validation.data, {
+      onError: (error) => {
+        if (error instanceof ApiError && error.status === 409 && /changed since|saved version is missing|moved to another stash/.test(error.message)) {
+          setSaveConflict(error.message);
+        }
+      },
       onSuccess: () => {
         allowLeave.current = true;
         form.reset(values);
@@ -592,6 +617,20 @@ export function EndpointForm({
           });
         })}
       >
+        {saveConflict && (
+          <div role="alert" className="flex flex-col gap-3 rounded-md border border-primary/40 bg-primary/10 p-4">
+            <p className="text-sm">{saveConflict} Your current edits are still in this form.</p>
+            <Button type="button" variant="outline" className="w-fit" onClick={() => {
+              if (window.confirm("Reload the latest endpoint? This replaces your current form and saved draft.")) {
+                allowLeave.current = true;
+                void draft.clear().then(() => window.location.reload()).catch(() => {
+                  allowLeave.current = false;
+                  toast.error("Could not reload. Your edits are still in this form. Please try again.");
+                });
+              }
+            }}>Reload latest version</Button>
+          </div>
+        )}
         <EndpointDraftBar
           draft={draft}
           onDiscard={() => {
@@ -604,8 +643,10 @@ export function EndpointForm({
                     endpoint ?? duplicateFrom,
                     fixedStashId,
                     projectBaseUrl,
+                    projectAuth,
                   ),
                 )
+                .then(() => { setImported(false); setDuplicatePending(false); })
                 .catch(() =>
                   toast.error("Could not discard the draft. Please try again."),
                 );
@@ -725,7 +766,7 @@ export function EndpointForm({
               before saving.
             </p>
           )}
-          {dirty && (
+          {dirty && !isCurrentSaved() && (
             <p
               role="status"
               className="text-xs text-emerald-700 dark:text-emerald-400/90"
@@ -1485,7 +1526,7 @@ export function EndpointForm({
 
           <div
             className={cn(
-              "sticky bottom-4 z-20 flex flex-wrap items-center justify-end gap-2 rounded-md border border-border/60 p-3 shadow-lg",
+              "relative z-20 flex flex-wrap items-center justify-end gap-2 rounded-md border border-border/60 p-3 shadow-lg",
               "bg-background/72 ring-1 ring-inset ring-white/20 dark:bg-card/45 dark:ring-white/10",
               "supports-backdrop-filter:backdrop-blur-xs supports-backdrop-filter:backdrop-saturate-150",
             )}
@@ -1519,6 +1560,7 @@ export function EndpointForm({
               onClick={() => {
                 if (
                   !dirty ||
+                  isCurrentSaved() ||
                   window.confirm("Discard unsaved endpoint changes?")
                 ) {
                   allowLeave.current = true;

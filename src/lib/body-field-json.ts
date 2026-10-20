@@ -1,4 +1,6 @@
 import type { ParamField } from "./types";
+import { formatJson } from "./format-json";
+import { matchesJsonSource } from "./json-source";
 
 type BodyField = Omit<ParamField, "min" | "max"> & {
   min?: number | string;
@@ -24,6 +26,7 @@ export function bodyFieldsToJson(fields: BodyField[]) {
   if (!named.length) return { requestSchema: "", requestExample: "" };
   const properties: Record<string, unknown> = Object.create(null);
   const example: Record<string, unknown> = Object.create(null);
+  const exampleSources: Record<string, string> = Object.create(null);
   const required: string[] = [];
   for (const field of named) {
     const key = field.key.trim();
@@ -43,15 +46,16 @@ export function bodyFieldsToJson(fields: BodyField[]) {
     const source = field.value !== "" ? field.value : field.default !== undefined && field.default !== "" ? field.default : allowed?.[0];
     example[key] = source !== undefined ? typedValue(source, type)
       : type === "integer" || type === "number" ? 0 : type === "boolean" ? false : type === "array" ? [] : type === "object" ? {} : "";
+    if (source !== undefined && type !== "string" && matchesJsonSource(example[key], source)) exampleSources[key] = source.trim();
   }
   return {
     requestSchema: JSON.stringify({ type: "object", properties, ...(required.length ? { required } : {}) }, null, 2),
-    requestExample: JSON.stringify(example, null, 2),
+    requestExample: formatJson(`{${Object.keys(example).map(key => `${JSON.stringify(key)}:${exampleSources[key] ?? JSON.stringify(example[key])}`).join(",")}}`),
   };
 }
 
 export function sameJson(left: string, right: string) {
   if (left === right) return true;
-  try { return JSON.stringify(JSON.parse(left)) === JSON.stringify(JSON.parse(right)); }
+  try { return formatJson(left) === formatJson(right); }
   catch { return false; }
 }

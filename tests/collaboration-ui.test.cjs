@@ -9,6 +9,8 @@ const originalLoad = Module._load;
 let client = new QueryClient();
 let session, preview, project, mutationState, queries, mutations, confirmations;
 let removals = 0;
+let lastFormDefaults;
+const hookForm = require('react-hook-form');
 const blankMutation = { isPending: false, isError: false, mutate: () => { removals += 1; }, reset() {} };
 function reset() {
   client = new QueryClient();
@@ -18,6 +20,7 @@ function reset() {
   mutationState = blankMutation; queries = {}; mutations = []; confirmations = []; removals = 0;
 }
 Module._load = function(request, parent, isMain) {
+  if (request === 'react-hook-form') return { ...hookForm, useForm: options => { lastFormDefaults = options.defaultValues; return hookForm.useForm(options); } };
   if (request === 'react' && parent?.filename.endsWith('project-frame.tsx')) return { ...React, useSyncExternalStore: () => true };
   if (request === 'next/navigation') return { useRouter: () => ({ replace() {} }), useSearchParams: () => new URLSearchParams() };
   if (request === 'next/link') return function TestLink({ children, ...props }) { return React.createElement('a', props, children); };
@@ -206,4 +209,48 @@ test('revoking an invitation requires an explicit confirmation', () => {
   const revoke = confirmations.find(item => item.confirmLabel === 'Revoke invitation');
   assert.ok(revoke); assert.equal(revoke.trigger.props.onClick, undefined); assert.equal(removals, 0);
   revoke.onConfirm(); assert.equal(removals, 1);
+});
+
+test('new endpoints inherit project auth, while edits and duplicates retain explicit Public access', () => {
+  reset();
+  const { generateCurl } = require('../src/lib/curl.ts');
+  const stashId = '11111111-1111-4111-8111-111111111111';
+  const auth = { scheme: 'bearer', headerName: 'X-API-Key', location: 'header', description: '' };
+  const props = { projectId: 'p', stashes: [{ id: stashId, groups: [], endpoints: [] }], initialStashId: stashId, projectAuth: auth };
+  renderToStaticMarkup(React.createElement(EndpointForm, props));
+  assert.equal(lastFormDefaults.access, 'authenticated');
+  assert.match(generateCurl({ ...lastFormDefaults, requestBody: null }, auth), /Authorization: Bearer YOUR_TOKEN/);
+  const existing = { id: 'e', name: 'Public endpoint', stashId, access: 'public', updatedAt: '2026-10-20T00:00:00.000Z' };
+  renderToStaticMarkup(React.createElement(EndpointForm, { ...props, endpoint: existing }));
+  assert.equal(lastFormDefaults.access, 'public'); assert.equal(lastFormDefaults.expectedUpdatedAt, existing.updatedAt);
+  renderToStaticMarkup(React.createElement(EndpointForm, { ...props, duplicateFrom: existing }));
+  assert.equal(lastFormDefaults.access, 'public');
+  renderToStaticMarkup(React.createElement(EndpointForm, { ...props, projectAuth: { ...auth, scheme: 'none' } }));
+  assert.equal(lastFormDefaults.access, 'public');
+});
+
+test('deprecated endpoint details show a warning and strike through the title', () => {
+  reset();
+  const { EndpointDetail } = require('../src/features/endpoints/components/endpoint-detail.tsx');
+  const endpoint = { id: 'e', name: 'Old orders', method: 'GET', path: '/orders', baseUrl: '', version: 'v1', access: 'public', tags: [], headers: [], queryParams: [], pathParams: [], responses: [], description: '', requestBody: null };
+  const render = isDeprecated => renderToStaticMarkup(React.createElement(EndpointDetail, { projectId: 'p', role: 'viewer', endpoint: { ...endpoint, isDeprecated } }));
+  const deprecated = render(true);
+  assert.match(deprecated, />Deprecated</); assert.match(deprecated, /Avoid using it in new integrations/);
+  assert.match(deprecated, /<h1[^>]*line-through/);
+  const active = render(false);
+  assert.doesNotMatch(active, />Deprecated<|Avoid using it in new integrations|<h1[^>]*line-through/);
+});
+
+test('reopened JSON editors and read-only panels retain authored decimal spelling', () => {
+  reset();
+  const { JsonBlock } = require('../src/features/endpoints/components/endpoint-detail.tsx');
+  const body = { amount: 998 }, source = '{"amount":998.0}';
+  const stashId = '11111111-1111-4111-8111-111111111111';
+  renderToStaticMarkup(React.createElement(EndpointForm, {
+    projectId: 'p', stashes: [{ id: stashId, groups: [], endpoints: [] }],
+    endpoint: { id: 'e', stashId, requestBody: { example: body, exampleSource: source }, responses: [{ statusCode: 200, body, bodySource: source }] },
+  }));
+  assert.match(lastFormDefaults.requestExample, /998\.0/);
+  assert.match(lastFormDefaults.responses[0].body, /998\.0/);
+  assert.match(renderToStaticMarkup(React.createElement(JsonBlock, { title: 'Example', value: body, source })), /998\.0/);
 });

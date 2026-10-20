@@ -42,6 +42,10 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   await pg.exec("delete from projects where id = '00000000-0000-4000-8000-000000000001'; delete from \"user\" where id = 'migration-user';");
   await pg.exec(`insert into "user" (id,name,email) values ('owner','Owner','owner@example.com'), ('other','Other','other@example.com'), ('viewer','Viewer','viewer@example.com')`);
   const service = require('../src/server/projects.ts');
+  const updateEndpoint = async (userId, projectId, endpointId, values) => {
+    const { endpoint } = await service.getEndpoint(userId, projectId, endpointId);
+    return service.updateEndpoint(userId, projectId, endpointId, { expectedUpdatedAt: endpoint.updatedAt, ...values });
+  };
   const stashService = require('../src/server/stashes.ts');
   const collaboration = require('../src/server/collaboration.ts');
   const { endpointInputSchema } = require('../src/lib/validators.ts');
@@ -57,7 +61,7 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   await assert.rejects(service.createEndpoint('owner', a.id, { ...input, name: 'ALPHA USER', path: '/other' }), error => error.cause?.code === '23505');
   const v2 = await service.createEndpoint('owner', a.id, { ...input, version: 'v2' });
   const secret = await service.createEndpoint('other', b.id, { ...input, stashId: otherStash.id, name: 'Secret Alpha user' });
-  await assert.rejects(service.updateEndpoint('owner', a.id, secret.id, { ...input, name: 'Hacked', path: '/hacked' }), /Endpoint not found/);
+  await assert.rejects(updateEndpoint('owner', a.id, secret.id, { ...input, name: 'Hacked', path: '/hacked' }), /Endpoint not found/);
   assert.equal((await service.getEndpoint('other', b.id, secret.id)).endpoint.name, 'Secret Alpha user');
   await service.setProjectStatus('owner', a.id, 'documented');
   assert.equal((await service.getProjectDetail('owner', a.id)).status, 'documented');
@@ -163,7 +167,7 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   assert.ok(detail.stashes.find(item => item.id === secondStash.id).endpoints.some(item => item.id === created.id));
   const repeated = await service.moveEndpoint('owner', a.id, created.id, secondStash.id);
   assert.deepEqual(repeated, moved);
-  const edited = await service.updateEndpoint('owner', a.id, created.id, { ...input, description: 'Edited after moving' });
+  const edited = await updateEndpoint('owner', a.id, created.id, { ...input, description: 'Edited after moving' });
   assert.equal(edited.stashId, secondStash.id);
   assert.equal((await endpointRoute.PATCH(moveRequest(otherStash.id), endpointContext)).status, 400);
   assert.equal((await endpointRoute.PATCH(moveRequest('00000000-0000-4000-8000-000000000000'), endpointContext)).status, 400);
@@ -190,21 +194,21 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   const groupedEndpoint = await service.createEndpoint('owner', a.id, { ...input, stashId: secondStash.id, groupId: group.id, name: 'Grouped sign in', path: '/sign-in', pathParams: [] });
   assert.equal(groupedEndpoint.groupId, group.id);
   await assert.rejects(service.createEndpoint('owner', a.id, { ...input, groupId: group.id, name: 'Invalid grouping', path: '/invalid' }), /API group in this stash/);
-  await assert.rejects(service.updateEndpoint('owner', a.id, groupedEndpoint.id, { ...input, stashId: secondStash.id, groupId: otherGroup.id }), /API group in this stash/);
+  await assert.rejects(updateEndpoint('owner', a.id, groupedEndpoint.id, { ...input, stashId: secondStash.id, groupId: otherGroup.id }), /API group in this stash/);
   await assert.rejects(pg.query('update endpoints set group_id = $1 where id = $2', [otherGroup.id, groupedEndpoint.id]), error => error.code === '23503');
   let groupDetail = await service.getProjectDetail('viewer', a.id);
   assert.ok(groupDetail.stashes.find(item => item.id === secondStash.id).groups.some(item => item.id === group.id));
   assert.ok(groupDetail.stashes.every(item => item.groups.every(value => value.id !== otherGroup.id)));
   assert.equal((await groupItemRoute.PATCH(groupRequest('Session Management'), groupItemContext)).status, 200);
   const groupInput = { ...input, stashId: secondStash.id, name: groupedEndpoint.name, path: '/sign-in', pathParams: [] };
-  await service.updateEndpoint('owner', a.id, groupedEndpoint.id, { ...groupInput, groupId: null });
+  await updateEndpoint('owner', a.id, groupedEndpoint.id, { ...groupInput, groupId: null });
   assert.equal((await service.getEndpoint('owner', a.id, groupedEndpoint.id)).endpoint.groupId, null);
-  await service.updateEndpoint('owner', a.id, groupedEndpoint.id, { ...groupInput, groupId: group.id });
-  await service.updateEndpoint('owner', a.id, groupedEndpoint.id, groupInput);
+  await updateEndpoint('owner', a.id, groupedEndpoint.id, { ...groupInput, groupId: group.id });
+  await updateEndpoint('owner', a.id, groupedEndpoint.id, groupInput);
   assert.equal((await service.getEndpoint('owner', a.id, groupedEndpoint.id)).endpoint.groupId, group.id);
   await service.moveEndpoint('owner', a.id, groupedEndpoint.id, stash.id);
   assert.equal((await service.getEndpoint('owner', a.id, groupedEndpoint.id)).endpoint.groupId, null);
-  await assert.rejects(service.updateEndpoint('owner', a.id, groupedEndpoint.id, { ...groupInput, groupId: group.id }), /moved to another stash/);
+  await assert.rejects(updateEndpoint('owner', a.id, groupedEndpoint.id, { ...groupInput, groupId: group.id }), /moved to another stash/);
   const secondGrouped = await service.createEndpoint('owner', a.id, { ...groupInput, groupId: group.id, name: 'Keep after deleting group', path: '/keep' });
   testUser = { id: 'viewer', email: 'viewer@example.com' };
   assert.equal((await groupItemRoute.DELETE(new Request('http://localhost'), groupItemContext)).status, 403);
@@ -337,7 +341,7 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   const editKey = `endpoint:${stored.id}`;
   const editToken = await drafts.getEndpointDraft('owner', a.id, editKey);
   await drafts.saveEndpointDraft('owner', a.id, editKey, { revision: editToken.revision, writeOrder: 1, payload });
-  await service.updateEndpoint('owner', a.id, stored.id, { ...storedInput, draft: { key: editKey, revision: editToken.revision } });
+  await updateEndpoint('owner', a.id, stored.id, { ...storedInput, draft: { key: editKey, revision: editToken.revision } });
   assert.equal((await drafts.getEndpointDraft('owner', a.id, editKey)).payload, null);
   await service.updateProject('owner', a.id, { name: 'Alpha', description: '', baseUrl: 'https://api.shopkart.dev/v1' });
   assert.equal((await service.getProjectDetail('owner', a.id)).baseUrl, 'https://api.shopkart.dev/v1');
@@ -347,5 +351,41 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   await service.updateProject('owner', a.id, { name: 'Renamed Alpha', description: '' });
   assert.equal((await service.getProjectDetail('owner', a.id)).baseUrl, 'https://api.shopkart.dev/v1');
   await assert.rejects(service.updateProject('viewer', a.id, { name: 'Denied', description: '', baseUrl: 'https://evil.example' }), /permission/);
+  // Two editors using the same version: only the first save may change the row.
+  const conflictInput = { ...storedInput, name: 'Concurrent endpoint', path: '/concurrent' };
+  const concurrent = await service.createEndpoint('owner', a.id, conflictInput);
+  const conflictKey = `endpoint:${concurrent.id}`;
+  const conflictDraft = await drafts.getEndpointDraft('owner', a.id, conflictKey);
+  await drafts.saveEndpointDraft('owner', a.id, conflictKey, { revision: conflictDraft.revision, writeOrder: 1, payload: '{"name":"Unsaved edits"}' });
+  const competingSaves = await Promise.allSettled([
+    service.updateEndpoint('owner', a.id, concurrent.id, { ...conflictInput, expectedUpdatedAt: concurrent.updatedAt, description: 'First editor', isDeprecated: true }),
+    service.updateEndpoint('other', a.id, concurrent.id, { ...conflictInput, expectedUpdatedAt: concurrent.updatedAt, description: 'Second editor', isDeprecated: true }),
+  ]);
+  assert.equal(competingSaves.filter(result => result.status === 'fulfilled').length, 1);
+  const conflict = competingSaves.find(result => result.status === 'rejected').reason;
+  assert.equal(conflict.status, 409); assert.match(conflict.message, /changed since you opened/);
+  const winner = (await service.getEndpoint('owner', a.id, concurrent.id)).endpoint;
+  assert.notEqual(winner.updatedAt, concurrent.updatedAt);
+  assert.equal(winner.isDeprecated, true);
+  testUser = { id: 'owner', email: 'owner@example.com' };
+  const staleResponse = await endpointRoute.PATCH(new Request('http://localhost', { method: 'PATCH', body: JSON.stringify({ ...conflictInput, expectedUpdatedAt: concurrent.updatedAt, draft: { key: conflictKey, revision: conflictDraft.revision } }) }), { params: Promise.resolve({ projectId: a.id, endpointId: concurrent.id }) });
+  assert.equal(staleResponse.status, 409);
+  assert.equal((await drafts.getEndpointDraft('owner', a.id, conflictKey)).payload, '{"name":"Unsaved edits"}');
+  assert.deepEqual((await service.getEndpoint('owner', a.id, concurrent.id)).endpoint, winner);
+  await assert.rejects(service.updateEndpoint('owner', a.id, concurrent.id, conflictInput), error => error.status === 409);
+  const resolved = await service.updateEndpoint('owner', a.id, concurrent.id, { ...conflictInput, expectedUpdatedAt: winner.updatedAt, description: 'Reviewed latest version' });
+  assert.equal(resolved.description, 'Reviewed latest version');
+  const jsonSource = '{"amount":998.0,"rate":1.2300e+2}';
+  const lexical = await service.createEndpoint('owner', a.id, endpointInputSchema.parse({
+    ...storedInput, name: 'Lexical JSON example', path: '/lexical-json',
+    requestBody: { contentType: 'application/json', example: JSON.parse(jsonSource), exampleSource: jsonSource },
+    responses: [{ statusCode: 200, body: JSON.parse(jsonSource), bodySource: jsonSource }],
+  }));
+  const lexicalRoundTrip = (await service.getEndpoint('owner', a.id, lexical.id)).endpoint;
+  assert.equal(lexicalRoundTrip.requestBody.exampleSource, jsonSource);
+  assert.equal(lexicalRoundTrip.responses[0].bodySource, jsonSource);
+  const { stringifyJson } = require('../src/lib/json-source.ts');
+  assert.match(stringifyJson(lexicalRoundTrip.requestBody.example, lexicalRoundTrip.requestBody.exampleSource), /998\.0/);
+  assert.equal(endpointInputSchema.safeParse({ ...storedInput, requestBody: { example: 999, exampleSource: '998.0' } }).success, false);
   await pg.close();
 });

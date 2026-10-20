@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { canEditContent } from "@/lib/permissions";
 import type { EndpointRecord, ParamField, ProjectRole } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { stringifyJson } from "@/lib/json-source";
 import { DeleteEndpointButton } from "./delete-endpoint-button";
 
 const sectionSurfaceClass =
@@ -85,7 +86,7 @@ export function EndpointDetail({
                   </Badge>
                 ) : null}
                 {endpoint.isDeprecated ? (
-                  <Badge variant="outline">Deprecated</Badge>
+                  <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">Deprecated</Badge>
                 ) : null}
                 {endpoint.tags.length > 0 ? (
                   <div
@@ -115,11 +116,12 @@ export function EndpointDetail({
                 ) : null}
               </div>
               <div className="mt-2 flex min-w-0 items-center gap-2">
-                <h1 className="min-w-0 break-words text-3xl font-semibold tracking-[-0.04em]">
+                <h1 className={cn("min-w-0 break-words text-3xl font-semibold tracking-[-0.04em]", endpoint.isDeprecated && "line-through decoration-muted-foreground")}>
                   {endpoint.name}
                 </h1>
               </div>
               <EndpointPathBar method={endpoint.method} endpoint={endpoint} />
+              {endpoint.isDeprecated && <p role="note" className="text-sm text-amber-700 dark:text-amber-400">This endpoint is deprecated. Avoid using it in new integrations.</p>}
             </div>
             {canEditContent(role) ? (
               <div className="flex flex-wrap items-center gap-2 xl:justify-end xl:pt-11">
@@ -256,8 +258,8 @@ export function EndpointDetail({
                   endpoint.requestBody.schema,
                 )}
               />
-              <JsonBlock title="Schema" value={endpoint.requestBody.schema} />
-              <JsonBlock title="Example" value={endpoint.requestBody.example} />
+              <JsonBlock title="Schema" value={endpoint.requestBody.schema} source={endpoint.requestBody.schemaSource} />
+              <JsonBlock title="Example" value={endpoint.requestBody.example} source={endpoint.requestBody.exampleSource} />
             </div>
           ) : (
             <EmptyNote>No request body.</EmptyNote>
@@ -294,8 +296,8 @@ export function EndpointDetail({
                       </span>
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
-                      <JsonBlock title="Example" value={response.body} />
-                      <JsonBlock title="Schema" value={response.schema} />
+                      <JsonBlock title="Example" value={response.body} source={response.bodySource} />
+                      <JsonBlock title="Schema" value={response.schema} source={response.schemaSource} />
                     </div>
                     {fields.length > 0 ? (
                       <div className="flex min-w-0 flex-col gap-2">
@@ -406,11 +408,11 @@ function ParamSection({
   );
 }
 
-export function JsonBlock({ title, value }: { title: string; value: unknown }) {
+export function JsonBlock({ title, value, source }: { title: string; value: unknown; source?: string }) {
   const text =
-    value === undefined || value === null || value === ""
+    !source && (value === undefined || value === null || value === "")
       ? ""
-      : JSON.stringify(value, null, 2);
+      : stringifyJson(value, source);
   const isSchema = title === "Schema";
   const TitleIcon = isSchema ? BracesIcon : Code2Icon;
   const scrollClass =

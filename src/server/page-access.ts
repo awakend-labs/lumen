@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 import { z } from "zod";
 import { requireEditor, requireReader, requireUser } from "./access";
 import { HttpError } from "./http";
@@ -19,7 +20,7 @@ export async function requireProjectPageAccess(projectId: string, path: string, 
   }
 }
 
-export async function loadProjectPage(projectId: string) {
+export const loadProjectPage = cache(async (projectId: string) => {
   if (!z.uuid().safeParse(projectId).success) notFound();
   try {
     const user = await requireUser();
@@ -31,4 +32,20 @@ export async function loadProjectPage(projectId: string) {
     }
     throw error;
   }
+});
+
+export async function loadEndpointPage(projectId: string, endpointId: string) {
+  if (!z.uuid().safeParse(endpointId).success) notFound();
+  const project = await loadProjectPage(projectId);
+  const endpoint = project.stashes.flatMap(stash => stash.endpoints).find(endpoint => endpoint.id === endpointId);
+  if (!endpoint) notFound();
+  return endpoint;
+}
+
+export async function loadStashPage(projectId: string, stashId: string) {
+  if (!z.uuid().safeParse(stashId).success) notFound();
+  const project = await loadProjectPage(projectId);
+  const stash = project.stashes.find(stash => stash.id === stashId);
+  if (!stash) notFound();
+  return stash;
 }

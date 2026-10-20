@@ -50,9 +50,9 @@ function resolveRouteDisplay(
   try {
     const url = endpointUrl(trimmedBase, endpoint.path, endpoint.version);
     return {
-      copyValue: url.toString(),
+      copyValue: url.toString().replace(/%7B/gi, "{").replace(/%7D/gi, "}"),
       origin: url.origin,
-      pathname: `${url.pathname}${url.search}`,
+      pathname: `${url.pathname}${url.search}`.replace(/%7B/gi, "{").replace(/%7D/gi, "}"),
     };
   } catch {
     return {

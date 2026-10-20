@@ -4,10 +4,18 @@ const assert=require('node:assert/strict');
 const React=require('react');
 const {create,act}=require('react-test-renderer');
 const {useForm}=require('react-hook-form');
-const {bodyFieldsToJson}=require('../src/lib/body-field-json.ts');
+const {bodyFieldsToJson,sameJson}=require('../src/lib/body-field-json.ts');
 const {useBodyFieldJson}=require('../src/features/endpoints/use-body-field-json.ts');
 global.IS_REACT_ACT_ENVIRONMENT=true;
 const field={key:'email',type:'string',value:'jamie@example.com',required:true,description:'Account email',format:'email',min:'',max:'',default:'',enumValues:[]};
+
+test('generated numeric examples retain decimal spelling from the body field', () => {
+  const result = bodyFieldsToJson([{ ...field, key: 'amount', type: 'number', value: '998.0' }]);
+  assert.match(result.requestExample, /998\.0/);
+  assert.equal(JSON.parse(result.requestExample).amount, 998);
+  assert.equal(sameJson('{"amount":998.0}', '{"amount":998}'), false);
+  assert.equal(sameJson('{"amount":998.0}', '{ "amount": 998.0 }'), true);
+});
 
 test('body fields produce an ordered schema and typed example with constraints',()=>{
   const result=bodyFieldsToJson([field,{...field,key:'count',type:'integer',value:'0',min:'0',max:'100',format:'',required:false},{...field,key:'enabled',type:'boolean',value:'false',format:''},{...field,key:'roles',type:'array',value:'["member"]',format:''}]);

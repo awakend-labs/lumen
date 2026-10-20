@@ -86,4 +86,29 @@ test('edits entered before recovery completes autosave after its normal debounce
   assert.equal(f.writes.length,1);assert.equal(f.writes[0].method,'PUT');
   assert.equal(JSON.parse(f.writes[0].payload).name,'New endpoint');
   assert.equal(f.draft.status,'Draft saved');
+  assert.equal(f.draft.isCurrentSaved(), true);
+  await f.edit('name', 'More edits');
+  assert.equal(f.draft.isCurrentSaved(), false);
+});
+
+test('discard clears the leave warning baseline and subsequent edits are unsaved again', async t => {
+  const f = await fixture(t); await f.recover(null);
+  await f.edit('name', 'Discard this');
+  assert.equal(f.draft.isCurrentSaved(), false);
+  const baseline = { name: 'Original', baseUrl: 'https://api.example.com', responses: [] };
+  await act(async () => { await f.draft.discard(baseline); });
+  assert.equal(f.draft.isCurrentSaved(), true);
+  assert.deepEqual(f.form.getValues(), baseline);
+  await f.flush(); assert.equal(f.writes.filter(write => write.method === 'PUT').length, 0);
+  await f.edit('name', 'New change'); assert.equal(f.draft.isCurrentSaved(), false);
+});
+
+test('restored drafts are safe to leave, but recovery errors and failed saves still warn', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const f = await fixture(t); await f.recover(f.saved);
+  assert.equal(f.draft.isCurrentSaved(), true);
+  global.fetch = async () => Response.json({ error: 'Unavailable' }, { status: 503 });
+  await f.edit('name', 'Not persisted');
+  await act(async () => { t.mock.timers.tick(600); });
+  assert.equal(f.draft.error, true); assert.equal(f.draft.isCurrentSaved(), false);
 });
