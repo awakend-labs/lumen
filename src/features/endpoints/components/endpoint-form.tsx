@@ -82,6 +82,7 @@ import { nextResponseStatus } from "@/lib/response-status";
 import { ResponseStatusField } from "./response-status-field";
 import { DeleteEndpointButton } from "./delete-endpoint-button";
 import { JsonEditor } from "./json-editor";
+import { useBodyFieldJson } from "../use-body-field-json";
 import { ParamTable, type ParamSectionName } from "./param-table";
 
 const sectionSurfaceClass = "lumen-section";
@@ -386,6 +387,7 @@ export function EndpointForm({
     }),
   );
   const description = form.watch("description");
+  const bodyJson = useBodyFieldJson(form, draft.loading || draft.hasRecoveredDraft);
   const method = form.watch("method");
   const path = form.watch("path");
   const name = form.watch("name");
@@ -1192,6 +1194,19 @@ export function EndpointForm({
                     values. Arrays send repeated fields.
                   </p>
                 )}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    {bodyJson.hasCustomJson ? "Custom JSON is preserved as body fields change." : "Schema and example follow body fields. Edit either JSON document to customize it."}
+                  </p>
+                  <Button type="button" variant="ghost" size="sm"
+                    disabled={draft.loading || draft.hasRecoveredDraft || !form.watch("bodyFields").some(field => field.key.trim())}
+                    onClick={() => {
+                      if (bodyJson.hasCustomJson && !window.confirm("Replace the request schema and example with JSON generated from body fields?")) return;
+                      bodyJson.regenerate();
+                    }}>
+                    <BracesIcon data-icon="inline-start" />Regenerate from fields
+                  </Button>
+                </div>
                 <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
                   <Field
                     data-invalid={
@@ -1213,6 +1228,7 @@ export function EndpointForm({
                           {...editorField}
                           id="request-schema"
                           label="JSON schema"
+                          onChange={value => { bodyJson.trackEdit("requestSchema", value); editorField.onChange(value); }}
                           placeholder={JSON_SCHEMA_PLACEHOLDER}
                           invalid={Boolean(fieldState.error)}
                           disabled={!hydrated}
@@ -1243,6 +1259,7 @@ export function EndpointForm({
                           {...editorField}
                           id="request-example"
                           label="Request example"
+                          onChange={value => { bodyJson.trackEdit("requestExample", value); editorField.onChange(value); }}
                           placeholder={JSON_EXAMPLE_PLACEHOLDER}
                           invalid={Boolean(fieldState.error)}
                           disabled={!hydrated}

@@ -408,7 +408,7 @@ function ParamSection({
   );
 }
 
-function JsonBlock({ title, value }: { title: string; value: unknown }) {
+export function JsonBlock({ title, value }: { title: string; value: unknown }) {
   const text =
     value === undefined || value === null || value === ""
       ? ""
@@ -425,8 +425,10 @@ function JsonBlock({ title, value }: { title: string; value: unknown }) {
       </div>
       {text ? (
         <pre
+          tabIndex={0}
+          aria-label={`${title} JSON`}
           className={cn(
-            "overflow-auto p-3 font-mono text-xs leading-5",
+            "h-64 overflow-auto overscroll-contain p-3 font-mono text-xs leading-5 [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent] [&::-webkit-scrollbar]:size-1.5 [&::-webkit-scrollbar-thumb]:rounded-sm [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent",
             insetSurfaceClass,
           )}
         >
@@ -435,7 +437,7 @@ function JsonBlock({ title, value }: { title: string; value: unknown }) {
       ) : (
         <p
           className={cn(
-            "px-3 py-2.5 text-sm leading-snug text-muted-foreground",
+            "h-64 overflow-auto px-3 py-2.5 text-sm leading-snug text-muted-foreground [scrollbar-width:thin]",
             insetSurfaceClass,
           )}
         >
