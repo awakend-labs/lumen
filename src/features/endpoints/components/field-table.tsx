@@ -1,22 +1,33 @@
 import type { ParamField } from "@/lib/types";
+import { CheckIcon, MinusIcon } from "lucide-react";
+import { ParameterTable, parameterRowClass } from "./parameter-table";
 
-export function FieldTable({ fields }: { fields: ParamField[] }) {
+export function FieldTable({ fields, label = "Fields", headers = false, fieldLabel = "Field" }: { fields: ParamField[]; label?: string; headers?: boolean; fieldLabel?: string }) {
   if (!fields.length) return <p className="text-sm text-muted-foreground">No fields documented.</p>;
-  return <div className="max-w-full overflow-x-auto rounded-md border border-border/30 dark:border-white/5">
-    <table className="w-full text-left text-sm">
-      <thead className="bg-muted/40 text-xs text-muted-foreground"><tr>{["Field", "Type", "Required", "Description / constraints"].map(label => <th key={label} className="p-3 font-medium">{label}</th>)}</tr></thead>
-      <tbody>{fields.map((field, index) => <tr key={`${field.key}-${index}`} className="border-t border-border/30 align-top dark:border-white/5">
-        <td className="break-all p-3 font-mono">{field.key}</td><td className="p-3 font-mono">{field.type ?? "string"}</td><td className="p-3">{field.required ? "Yes" : "No"}</td>
-        <td className="min-w-48 break-words p-3"><p>{field.description || "—"}</p><div className="mt-1 space-y-1 text-xs text-muted-foreground">
+  const cellClass = "border-l border-primary/10 p-3 align-top break-words [overflow-wrap:anywhere]";
+  return <ParameterTable label={label} columns={[
+    { label: headers ? "Header" : fieldLabel, width: "w-[22%]" },
+    ...(!headers ? [{ label: "Type", width: "w-28" }] : []),
+    { label: headers ? "Value" : "Example", width: "w-[24%]" },
+    { label: "Description / constraints" },
+    { label: "Required", width: "w-24", centered: true },
+  ]}>
+      {fields.map((field, index) => <tr key={`${field.key}-${index}`} className={parameterRowClass(index)}>
+        <td className="p-3 align-top font-mono break-all">{field.key}</td>
+        {!headers && <td className={`${cellClass} font-mono text-xs`}>{field.type ?? "string"}</td>}
+        <td className={`${cellClass} font-mono text-xs leading-6 whitespace-pre-wrap`}>{field.value || <span className="text-muted-foreground">—</span>}</td>
+        <td className={cellClass}><p className="whitespace-pre-wrap">{field.description || "—"}</p><div className="mt-1 space-y-1 text-xs text-muted-foreground">
           {field.enum?.length ? <p>Enum: {field.enum.join(", ")}</p> : null}
           {field.default !== undefined && field.default !== "" && <p>Default: {field.default}</p>}
           {field.format && <p>Format: {field.format}</p>}
           {field.min !== undefined && <p>Min: {field.min}</p>}{field.max !== undefined && <p>Max: {field.max}</p>}
-          {field.value && <p>Example: {field.value}</p>}
         </div></td>
-      </tr>)}</tbody>
-    </table>
-  </div>;
+        <td className={`${cellClass} text-center`}><span className="inline-flex items-center gap-1.5 text-xs">
+          {field.required ? <CheckIcon aria-hidden className="size-3.5 text-accent-foreground dark:text-primary/85" /> : <MinusIcon aria-hidden className="size-3.5 text-muted-foreground" />}
+          {field.required ? "Yes" : "No"}
+        </span></td>
+      </tr>)}
+  </ParameterTable>;
 }
 
 export function schemaFields(schema: unknown, prefix = "", depth = 0): ParamField[] {

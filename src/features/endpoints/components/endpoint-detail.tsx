@@ -402,7 +402,7 @@ function ParamSection({
       {params.length === 0 ? (
         <EmptyNote>None.</EmptyNote>
       ) : (
-        <FieldTable fields={params} />
+        <FieldTable fields={params} label={title} headers={title === "Headers"} fieldLabel="Parameter" />
       )}
     </DetailSection>
   );

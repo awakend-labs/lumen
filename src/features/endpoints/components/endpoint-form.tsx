@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { pathParameterNames, validEndpointPath } from "@/lib/endpoint-path";
 import { baseUrlSchema, endpointInputSchema } from "@/lib/validators";
@@ -16,14 +16,12 @@ import {
   MapPinIcon,
   PencilLineIcon,
   PlusIcon,
-  QuoteIcon,
   RouteIcon,
   SaveIcon,
   SearchIcon,
   TagIcon,
   Trash2Icon,
   TriangleAlertIcon,
-  TypeIcon,
   VariableIcon,
   XIcon,
   TerminalSquare,
@@ -83,6 +81,8 @@ import { Label } from "@/components/ui/label";
 import { nextResponseStatus } from "@/lib/response-status";
 import { ResponseStatusField } from "./response-status-field";
 import { DeleteEndpointButton } from "./delete-endpoint-button";
+import { JsonEditor } from "./json-editor";
+import { ParamTable, type ParamSectionName } from "./param-table";
 
 const sectionSurfaceClass = "lumen-section";
 
@@ -92,11 +92,6 @@ const JSON_SCHEMA_PLACEHOLDER = '{ "type": "object" }';
 const JSON_EXAMPLE_PLACEHOLDER = '{ "id": "example" }';
 const JSON_RESPONSE_BODY_PLACEHOLDER = '{ "ok": true }';
 
-const JSON_EDITOR_ROWS = 8;
-const jsonEditorTextareaClass = cn(
-  "field-sizing-fixed min-h-44 resize-y font-mono text-xs leading-5",
-  insetSurfaceClass,
-);
 
 const jsonText = z.string().refine((value) => {
   if (!value.trim()) return true;
@@ -195,11 +190,14 @@ const endpointFormSchema = z.object({
   isDeprecated: z.boolean(),
 });
 
-type EndpointFormValues = z.infer<typeof endpointFormSchema>;
+export type EndpointFormValues = z.infer<typeof endpointFormSchema>;
 
 function normalizeTagsForForm(value: unknown): string[] {
   if (Array.isArray(value)) {
-    return value.map(String).map((tag) => tag.trim()).filter(Boolean);
+    return value
+      .map(String)
+      .map((tag) => tag.trim())
+      .filter(Boolean);
   }
   if (typeof value === "string") {
     return value
@@ -245,86 +243,6 @@ const emptyParam = {
   value: "",
   required: false,
   description: "",
-};
-
-type ParamSectionName = "headers" | "queryParams" | "pathParams" | "bodyFields";
-
-const QUERY_AND_PATH_TYPES = [
-  "string",
-  "integer",
-  "number",
-  "boolean",
-] as const;
-
-const PARAM_COPY: Record<
-  ParamSectionName,
-  {
-    nameLabel: string;
-    nameIcon: LucideIcon;
-    namePlaceholder: string;
-    valueLabel: string;
-    valueIcon: LucideIcon;
-    valuePlaceholder: string;
-    descriptionPlaceholder: string;
-    empty: string;
-    add: string;
-    showType: boolean;
-    types: readonly string[];
-  }
-> = {
-  headers: {
-    nameLabel: "Header",
-    nameIcon: ListTreeIcon,
-    namePlaceholder: "Authorization",
-    valueLabel: "Value",
-    valueIcon: Code2Icon,
-    valuePlaceholder: "Bearer token",
-    descriptionPlaceholder: "What this header is for",
-    empty: "No headers yet.",
-    add: "Add header",
-    showType: false,
-    types: ["string"],
-  },
-  queryParams: {
-    nameLabel: "Parameter",
-    nameIcon: SearchIcon,
-    namePlaceholder: "page",
-    valueLabel: "Example",
-    valueIcon: QuoteIcon,
-    valuePlaceholder: "1",
-    descriptionPlaceholder: "How this query value is used",
-    empty: "No query parameters yet.",
-    add: "Add parameter",
-    showType: true,
-    types: QUERY_AND_PATH_TYPES,
-  },
-  pathParams: {
-    nameLabel: "Parameter",
-    nameIcon: VariableIcon,
-    namePlaceholder: "id",
-    valueLabel: "Example",
-    valueIcon: QuoteIcon,
-    valuePlaceholder: "42",
-    descriptionPlaceholder: "What this path segment represents",
-    empty:
-      "No path parameters yet. Add {id} to the route, or use Add parameter.",
-    add: "Add parameter",
-    showType: true,
-    types: QUERY_AND_PATH_TYPES,
-  },
-  bodyFields: {
-    nameLabel: "Field",
-    nameIcon: BracesIcon,
-    namePlaceholder: "email",
-    valueLabel: "Example",
-    valueIcon: QuoteIcon,
-    valuePlaceholder: "user@example.com",
-    descriptionPlaceholder: "What this field represents",
-    empty: "No body fields yet.",
-    add: "Add field",
-    showType: true,
-    types: FIELD_TYPES,
-  },
 };
 
 function pretty(value: unknown) {
@@ -1287,12 +1205,19 @@ export function EndpointForm({
                       />
                       JSON schema
                     </FieldLabel>
-                    <Textarea
-                      id="request-schema"
-                      rows={JSON_EDITOR_ROWS}
-                      placeholder={JSON_SCHEMA_PLACEHOLDER}
-                      className={jsonEditorTextareaClass}
-                      {...form.register("requestSchema")}
+                    <Controller
+                      control={form.control}
+                      name={"requestSchema"}
+                      render={({ field: editorField, fieldState }) => (
+                        <JsonEditor
+                          {...editorField}
+                          id="request-schema"
+                          label="JSON schema"
+                          placeholder={JSON_SCHEMA_PLACEHOLDER}
+                          invalid={Boolean(fieldState.error)}
+                          disabled={!hydrated}
+                        />
+                      )}
                     />
                     <FieldError
                       errors={[form.formState.errors.requestSchema]}
@@ -1310,12 +1235,19 @@ export function EndpointForm({
                       />
                       Example
                     </FieldLabel>
-                    <Textarea
-                      id="request-example"
-                      rows={JSON_EDITOR_ROWS}
-                      placeholder={JSON_EXAMPLE_PLACEHOLDER}
-                      className={jsonEditorTextareaClass}
-                      {...form.register("requestExample")}
+                    <Controller
+                      control={form.control}
+                      name={"requestExample"}
+                      render={({ field: editorField, fieldState }) => (
+                        <JsonEditor
+                          {...editorField}
+                          id="request-example"
+                          label="Request example"
+                          placeholder={JSON_EXAMPLE_PLACEHOLDER}
+                          invalid={Boolean(fieldState.error)}
+                          disabled={!hydrated}
+                        />
+                      )}
                     />
                     <FieldError
                       errors={[form.formState.errors.requestExample]}
@@ -1429,12 +1361,19 @@ export function EndpointForm({
                         />
                         Example body
                       </FieldLabel>
-                      <Textarea
-                        id={`response-body-${field.id}`}
-                        rows={JSON_EDITOR_ROWS}
-                        placeholder={JSON_RESPONSE_BODY_PLACEHOLDER}
-                        className={jsonEditorTextareaClass}
-                        {...form.register(`responses.${index}.body`)}
+                      <Controller
+                        control={form.control}
+                        name={`responses.${index}.body`}
+                        render={({ field: editorField, fieldState }) => (
+                          <JsonEditor
+                            {...editorField}
+                            id={`response-body-${field.id}`}
+                            label="Response example body"
+                            placeholder={JSON_RESPONSE_BODY_PLACEHOLDER}
+                            invalid={Boolean(fieldState.error)}
+                            disabled={!hydrated}
+                          />
+                        )}
                       />
                       <FieldError
                         errors={[
@@ -1459,12 +1398,19 @@ export function EndpointForm({
                         />
                         Schema
                       </FieldLabel>
-                      <Textarea
-                        id={`response-schema-${field.id}`}
-                        rows={JSON_EDITOR_ROWS}
-                        placeholder={JSON_SCHEMA_PLACEHOLDER}
-                        className={jsonEditorTextareaClass}
-                        {...form.register(`responses.${index}.schema`)}
+                      <Controller
+                        control={form.control}
+                        name={`responses.${index}.schema`}
+                        render={({ field: editorField, fieldState }) => (
+                          <JsonEditor
+                            {...editorField}
+                            id={`response-schema-${field.id}`}
+                            label="Response schema"
+                            placeholder={JSON_SCHEMA_PLACEHOLDER}
+                            invalid={Boolean(fieldState.error)}
+                            disabled={!hydrated}
+                          />
+                        )}
                       />
                       <FieldError
                         errors={[
@@ -1618,190 +1564,10 @@ function ParamList({
   watch: ReturnType<typeof useForm<EndpointFormValues>>["watch"];
   setValue: ReturnType<typeof useForm<EndpointFormValues>>["setValue"];
 }) {
-  const copy = PARAM_COPY[name];
-  return (
-    <FormSection
-      icon={icon}
-      title={title}
-      description={hint}
-      action={
-        <Button type="button" variant="outline" size="sm" onClick={append}>
-          <PlusIcon data-icon="inline-start" />
-          {copy.add}
-        </Button>
-      }
-    >
-      {fields.length === 0 ? (
-        <p
-          className={cn(
-            "border-dashed px-3 py-4 text-sm text-muted-foreground dark:border-white/5 dark:bg-black/15",
-            insetSurfaceClass,
-          )}
-        >
-          {copy.empty}
-        </p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {fields.map((field, index) => (
-            <ParamRow
-              key={field.id}
-              name={name}
-              index={index}
-              register={register}
-              watch={watch}
-              setValue={setValue}
-              onRemove={() => remove(index)}
-            />
-          ))}
-        </div>
-      )}
-    </FormSection>
-  );
+  return <ParamTable icon={icon} title={title} hint={hint} fields={fields}
+    append={append} remove={remove} register={register} name={name}
+    watch={watch} setValue={setValue} Section={FormSection} />;
 }
-
-function ParamRow({
-  name,
-  index,
-  register,
-  watch,
-  setValue,
-  onRemove,
-}: {
-  name: ParamSectionName;
-  index: number;
-  register: ReturnType<typeof useForm<EndpointFormValues>>["register"];
-  watch: ReturnType<typeof useForm<EndpointFormValues>>["watch"];
-  setValue: ReturnType<typeof useForm<EndpointFormValues>>["setValue"];
-  onRemove: () => void;
-}) {
-  const copy = PARAM_COPY[name];
-  const isPath = name === "pathParams";
-  const required = watch(`${name}.${index}.required`);
-
-  return (
-    <div
-      className={cn(
-        "group grid min-w-0 gap-4 rounded-md border border-border bg-background/60 p-4 transition-colors focus-within:border-primary/50 hover:border-primary/30 dark:bg-black/15",
-        insetSurfaceClass,
-      )}
-    >
-      <div
-        className={cn(
-          "grid min-w-0 items-end gap-3",
-          copy.showType && "sm:grid-cols-[minmax(0,1fr)_9rem]",
-        )}
-      >
-        <ParamLabel icon={copy.nameIcon} label={copy.nameLabel}>
-          <Input
-            aria-label={copy.nameLabel}
-            readOnly={isPath}
-            placeholder={copy.namePlaceholder}
-            className="font-mono text-sm"
-            {...register(`${name}.${index}.key`)}
-          />
-        </ParamLabel>
-        {copy.showType ? (
-          <ParamLabel icon={TypeIcon} label="Type">
-            <Select
-              value={watch(`${name}.${index}.type`)}
-              onValueChange={(value) =>
-                setValue(
-                  `${name}.${index}.type`,
-                  value as (typeof FIELD_TYPES)[number],
-                  { shouldDirty: true },
-                )
-              }
-            >
-              <SelectTrigger
-                id={`${name}-${index}-type`}
-                aria-label="Type"
-                className="w-full font-mono"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {copy.types.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </ParamLabel>
-        ) : (
-          <input type="hidden" {...register(`${name}.${index}.type`)} />
-        )}
-      </div>
-
-      <ParamLabel icon={copy.valueIcon} label={copy.valueLabel}>
-        <Input
-          aria-label={copy.valueLabel}
-          placeholder={copy.valuePlaceholder}
-          className={name === "headers" ? "font-mono text-sm" : undefined}
-          {...register(`${name}.${index}.value`)}
-        />
-      </ParamLabel>
-
-      <div className="grid min-w-0 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-        <ParamLabel icon={AlignLeftIcon} label="Description">
-          <Input
-            aria-label="Description"
-            placeholder={copy.descriptionPlaceholder}
-            {...register(`${name}.${index}.description`)}
-          />
-        </ParamLabel>
-        <div className="flex h-9 items-center justify-between gap-3 sm:justify-end">
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground select-none">
-            <Switch
-              disabled={isPath}
-              checked={required}
-              onCheckedChange={(checked) =>
-                setValue(`${name}.${index}.required`, checked, {
-                  shouldDirty: true,
-                })
-              }
-              aria-label="Required"
-            />
-            Required
-          </label>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Remove"
-            className="text-muted-foreground hover:text-destructive"
-            onClick={onRemove}
-          >
-            <Trash2Icon />
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ParamLabel({
-  label,
-  icon: Icon,
-  children,
-}: {
-  label: string;
-  icon: LucideIcon;
-  children: ReactNode;
-}) {
-  return (
-    <label className="grid min-w-0 gap-1.5">
-      <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <Icon className="size-3.5" aria-hidden />
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
 function fieldToForm(field: ParamField) {
   return {
     ...emptyParam,
