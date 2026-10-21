@@ -5,11 +5,12 @@ import { validateGroup } from "./api-groups";
 import { slugify } from "@/lib/slug";
 import type {
   EndpointRecord,
+  EndpointSummary,
   ProjectDetail,
+  ProjectSummary,
   ProjectListItem,
   ProjectStashPreview,
   ProjectStatus,
-  StashRecord,
 } from "@/lib/types";
 import type { EndpointInput, ProjectInput } from "@/lib/validators";
 import { requireEditor, requireOwner, touchProject } from "./access";
@@ -39,8 +40,10 @@ async function uniqueSlug(name: string) {
 }
 
 function toEndpoint(row: typeof endpoints.$inferSelect): EndpointRecord {
+  const { responsePreview, ...document } = row;
+  void responsePreview; // Generated card metadata belongs only in summary responses.
   return {
-    ...row,
+    ...document,
     method: row.method,
     headers: row.headers ?? [],
     queryParams: row.queryParams ?? [],
@@ -74,6 +77,14 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
   if (rows.length === 0) return [];
 
   const ids = rows.map((row) => row.id);
+  const rankedPreviews = db.select({
+    projectId: stashes.projectId,
+    id: stashes.id,
+    name: stashes.name,
+    color: stashes.color,
+    createdAt: stashes.createdAt,
+    rank: sql<number>`row_number() over (partition by ${stashes.projectId} order by ${stashes.createdAt} desc, ${stashes.id} desc)`.as("preview_rank"),
+  }).from(stashes).where(inArray(stashes.projectId, ids)).as("ranked_previews");
   const [stashCounts, endpointCounts, previewRows] = await db.batch([db
     .select({
       projectId: stashes.projectId,
@@ -93,14 +104,14 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
 
   db
     .select({
-      projectId: stashes.projectId,
-      id: stashes.id,
-      name: stashes.name,
-      color: stashes.color,
+      projectId: rankedPreviews.projectId,
+      id: rankedPreviews.id,
+      name: rankedPreviews.name,
+      color: rankedPreviews.color,
     })
-    .from(stashes)
-    .where(inArray(stashes.projectId, ids))
-    .orderBy(desc(stashes.createdAt), desc(stashes.id))]);
+    .from(rankedPreviews)
+    .where(sql`${rankedPreviews.rank} <= 2`)
+    .orderBy(desc(rankedPreviews.createdAt), desc(rankedPreviews.id))]);
 
   const stashMap = new Map(stashCounts.map((row) => [row.projectId, row.count]));
   const endpointMap = new Map(
@@ -134,9 +145,11 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
 export async function createProject(userId: string, input: ProjectInput) {
   const slug = await uniqueSlug(input.name);
   const description = input.description.trim() ? input.description.trim() : null;
-  const [project] = await db
+  const projectId = crypto.randomUUID();
+  const [[project]] = await db.batch([db
     .insert(projects)
     .values({
+      id: projectId,
       name: input.name,
       description,
       baseUrl: input.baseUrl ?? "",
@@ -144,23 +157,42 @@ export async function createProject(userId: string, input: ProjectInput) {
       status: input.status ?? "in_progress",
       ownerId: userId,
     })
-    .returning();
-
-  if (!project) throw new HttpError(500, "Could not create the project");
-
-  await db.insert(projectMembers).values({
-    projectId: project.id,
+    .returning(), db.insert(projectMembers).values({
+    projectId,
     userId,
     role: "owner",
-  });
+  })]);
+
+  if (!project) throw new HttpError(500, "Could not create the project");
 
   return project;
 }
 
-export async function getProjectDetail(
+const endpointSummaryColumns = {
+  id: endpoints.id, projectId: endpoints.projectId, stashId: endpoints.stashId,
+  groupId: endpoints.groupId, name: endpoints.name, method: endpoints.method,
+  path: endpoints.path, baseUrl: endpoints.baseUrl, version: endpoints.version,
+  description: endpoints.description, tags: endpoints.tags, access: endpoints.access,
+  isDeprecated: endpoints.isDeprecated, order: endpoints.order,
+  createdAt: endpoints.createdAt, updatedAt: endpoints.updatedAt,
+  firstResponse: endpoints.responsePreview,
+};
+
+export async function getProjectDetail(userId: string, projectId: string): Promise<ProjectDetail> {
+  return getProjectData(userId, projectId, false);
+}
+
+export async function getProjectSummary(userId: string, projectId: string): Promise<ProjectSummary> {
+  return getProjectData(userId, projectId, true);
+}
+
+function getProjectData(userId: string, projectId: string, summaryOnly: false): Promise<ProjectDetail>;
+function getProjectData(userId: string, projectId: string, summaryOnly: true): Promise<ProjectSummary>;
+async function getProjectData(
   userId: string,
   projectId: string,
-): Promise<ProjectDetail> {
+  summaryOnly: boolean,
+): Promise<ProjectDetail | ProjectSummary> {
   const [project] = await db
     .select({ ...getTableColumns(projects), role: projectMembers.role })
     .from(projects)
@@ -175,7 +207,7 @@ export async function getProjectDetail(
     .where(eq(stashes.projectId, projectId))
     .orderBy(asc(stashes.order), asc(stashes.createdAt)),
   db
-    .select()
+    .select(summaryOnly ? endpointSummaryColumns : getTableColumns(endpoints))
     .from(endpoints)
     .where(eq(endpoints.projectId, projectId))
     .orderBy(asc(endpoints.order), asc(endpoints.createdAt)),
@@ -183,15 +215,24 @@ export async function getProjectDetail(
     .innerJoin(stashes, eq(apiGroups.stashId, stashes.id)).where(eq(stashes.projectId, projectId))
     .orderBy(asc(apiGroups.createdAt), asc(apiGroups.id))]);
 
-  const grouped = new Map<string, EndpointRecord[]>();
+  const grouped = new Map<string, (EndpointSummary | EndpointRecord)[]>();
   for (const row of endpointRows) {
     const list = grouped.get(row.stashId) ?? [];
-    list.push(toEndpoint(row));
+    // The full projection is used only by the retained full-document API.
+    list.push(summaryOnly ? { ...row, firstResponse: "firstResponse" in row ? row.firstResponse : null, tags: row.tags ?? [], createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString() }
+      : toEndpoint(row as typeof endpoints.$inferSelect));
     grouped.set(row.stashId, list);
   }
 
-  const stashRecords: StashRecord[] = stashRows.map((stash) => ({
-    groups: groupRows.filter(group => group.stashId === stash.id),
+  const groupsByStash = new Map<string, typeof groupRows>();
+  for (const group of groupRows) {
+    const list = groupsByStash.get(group.stashId) ?? [];
+    list.push(group);
+    groupsByStash.set(group.stashId, list);
+  }
+
+  const stashRecords = stashRows.map((stash) => ({
+    groups: groupsByStash.get(stash.id) ?? [],
     id: stash.id,
     projectId: stash.projectId,
     name: stash.name,
@@ -217,7 +258,7 @@ export async function getProjectDetail(
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
     stashes: stashRecords,
-  };
+  } as ProjectDetail | ProjectSummary;
 }
 
 export async function updateProject(
@@ -433,8 +474,10 @@ export async function reorderEndpoints(
   }
 
   if (ids.length) {
-    const updates = ids.map((id, index) => db.update(endpoints).set({ order: index, updatedAt: new Date() }).where(and(eq(endpoints.id, id), eq(endpoints.projectId, projectId))));
-    await db.batch([updates[0], ...updates.slice(1)]);
+    await db.update(endpoints).set({
+      order: sql`ordering.ordinality - 1`, updatedAt: new Date(),
+    }).from(sql`unnest(ARRAY[${sql.join(ids.map(id => sql`${id}::uuid`), sql`, `)}]) WITH ORDINALITY AS ordering(id, ordinality)`)
+      .where(and(eq(endpoints.id, sql`ordering.id`), eq(endpoints.projectId, projectId), eq(endpoints.stashId, stashId)));
   }
   await touchProject(projectId);
 }

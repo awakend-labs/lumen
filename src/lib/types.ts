@@ -124,6 +124,13 @@ export type StashRecord = {
   endpoints: EndpointRecord[];
 };
 
+export type EndpointSummary = Pick<EndpointRecord,
+  "id" | "projectId" | "stashId" | "groupId" | "name" | "method" | "path" |
+  "baseUrl" | "version" | "description" | "tags" | "access" | "isDeprecated" |
+  "order" | "createdAt" | "updatedAt"
+> & { firstResponse: Pick<ResponseDoc, "statusCode" | "description"> | null };
+export type StashSummary = Omit<StashRecord, "endpoints"> & { endpoints: EndpointSummary[] };
+
 export type ApiGroupRecord = { id: string; stashId: string; name: string };
 
 export type ProjectDetail = {
@@ -140,6 +147,8 @@ export type ProjectDetail = {
   updatedAt: string;
   stashes: StashRecord[];
 };
+
+export type ProjectSummary = Omit<ProjectDetail, "stashes"> & { stashes: StashSummary[] };
 
 export type ProjectStashPreview = {
   id: string;

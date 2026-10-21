@@ -1,0 +1,1 @@
+ALTER TABLE "endpoints" ADD COLUMN "response_preview" jsonb GENERATED ALWAYS AS (case when responses->0 is null then null else jsonb_set(jsonb_set('{}'::jsonb, '{statusCode}', coalesce(responses::jsonb->0->'statusCode', 'null'::jsonb)), '{description}', coalesce(responses::jsonb->0->'description', 'null'::jsonb)) end) STORED;

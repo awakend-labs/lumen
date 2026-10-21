@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { searchCachedWorkspace } from "@/lib/workspace-search";
-import type { ProjectDetail, ProjectListItem } from "@/lib/types";
+import type { ProjectSummary, ProjectListItem } from "@/lib/types";
 
 type Result = { id: string; kind: string; title: string; context: string; href: string; };
 
@@ -62,7 +62,7 @@ export function GlobalSearch() {
   });
 
   const waiting = input.trim() !== query || results.isFetching;
-  const cachedDetails = client.getQueriesData<ProjectDetail>({ queryKey: ["projects"] }).flatMap(([key, data]) => key.length === 2 && data?.stashes ? [data] : []);
+  const cachedDetails = client.getQueriesData<ProjectSummary>({ queryKey: ["project-summary"], predicate: query => query.state.status === "success" }).flatMap(([, data]) => data?.stashes ? [data] : []);
   const local = searchCachedWorkspace(input, client.getQueryData<ProjectListItem[]>(["projects"]) ?? [], cachedDetails);
   const visibleResults = [...new Map([...local, ...(input.trim() === query ? results.data ?? [] : [])].map(result => [`${result.kind}:${result.id}`, result])).values()];
   const selectedIndex = Math.min(activeIndex, Math.max(0, visibleResults.length - 1));

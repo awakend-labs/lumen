@@ -71,6 +71,13 @@
       "when": 1792490231315,
       "tag": "0009_response_error_format",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792575759615,
+      "tag": "0010_faulty_venus",
+      "breakpoints": true
     }
   ]
 }

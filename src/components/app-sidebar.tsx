@@ -23,7 +23,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { ProjectListItem, StashRecord } from "@/lib/types";
+import type { ProjectListItem, StashSummary } from "@/lib/types";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useTheme } from "next-themes";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -251,7 +251,7 @@ function ProjectStashes({ projectId, pathname }: { projectId: string; pathname: 
   );
 }
 
-function StashTree({ stash, projectId, pathname }: { stash: StashRecord; projectId: string; pathname: string }) {
+function StashTree({ stash, projectId, pathname }: { stash: StashSummary; projectId: string; pathname: string }) {
   const href = `/projects/${projectId}/stashes/${stash.id}`;
   const active = pathname === href || pathname.startsWith(`${href}/`);
   const [open, setOpen] = useTreeOpen(pathname, active);

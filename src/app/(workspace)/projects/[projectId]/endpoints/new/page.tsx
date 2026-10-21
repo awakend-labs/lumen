@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, use } from "react";
 import { WorkspaceBreadcrumb, endpointTrail } from "@/components/workspace-breadcrumb";
 import { EndpointForm } from "@/features/endpoints/components/endpoint-form";
+import { useEndpoint } from "@/features/endpoints/queries";
 import { ProjectFrame } from "@/features/projects/components/project-frame";
 import { stashDotClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -27,11 +28,16 @@ export default function NewEndpointPage({
 function NewEndpoint({ projectId }: { projectId: string; }) {
   const search = useSearchParams();
   const stashId = search.get("stash") ?? undefined;
+  const duplicateId = search.get("duplicate") ?? "";
+  const source = useEndpoint(projectId, duplicateId);
+
+  if (duplicateId && source.isPending) return <p className="lumen-page text-sm text-muted-foreground">Loading endpoint to duplicate…</p>;
+  if (duplicateId && (source.isError || !source.data)) return <div className="lumen-page"><p role="alert">{source.error?.message ?? "The endpoint to duplicate is unavailable."}</p><Button asChild variant="outline"><Link href={`/projects/${projectId}`}>Back to project</Link></Button></div>;
 
   return (
     <ProjectFrame projectId={projectId} editable>
       {(project) => {
-        const duplicate = project.stashes.flatMap(stash => stash.endpoints).find(endpoint => endpoint.id === search.get("duplicate"));
+        const duplicate = duplicateId ? source.data?.endpoint : undefined;
         const selectedStash = project.stashes.find(stash => stash.id === (duplicate?.stashId ?? stashId));
         return (
         <div className="lumen-page flex flex-col gap-8">
@@ -126,7 +132,7 @@ function NewEndpoint({ projectId }: { projectId: string; }) {
           ) : <EndpointForm
             projectId={project.id}
             stashes={project.stashes}
-            key={selectedStash.id}
+            key={`${selectedStash.id}:${duplicate?.id ?? "new"}`}
             initialStashId={selectedStash.id}
             projectBaseUrl={project.baseUrl}
             projectAuth={project.auth}

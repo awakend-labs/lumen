@@ -1,6 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { DeferredDialog } from "@/components/deferred-dialog";
+
+import * as m from "framer-motion/m";
 import {
   ArrowRight,
   ArrowUpDownIcon,
@@ -15,8 +17,9 @@ import {
 } from "lucide-react";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { RenameDialog } from "@/components/rename-dialog";
+import { lazy, useMemo, useRef, useState } from "react";
+const loadRenameDialog = () => import("@/components/rename-dialog").then(module => ({ default: module.RenameDialog }));
+const RenameDialog = lazy(loadRenameDialog);
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { CompactMarkdown } from "@/components/compact-markdown";
 import { PageHeader } from "@/components/page-header";
@@ -401,10 +404,11 @@ function ProjectCard({
   deleting: boolean;
 }) {
   const [renaming, setRenaming] = useState(false);
+  const actionTrigger = useRef<HTMLButtonElement>(null);
   const stashLabel = project.stashCount === 1 ? "stash" : "stashes";
   const endpointLabel = project.endpointCount === 1 ? "endpoint" : "endpoints";
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, delay: index * 0.04 }}
@@ -460,6 +464,7 @@ function ProjectCard({
                     <Button
                       variant="ghost"
                       size="icon-sm"
+                      ref={actionTrigger}
                       aria-label="Project actions"
                     >
                       <MoreHorizontalIcon />
@@ -550,14 +555,14 @@ function ProjectCard({
           </div>
         </div>
       </Card>
-      <RenameDialog
+      {renaming && <DeferredDialog returnFocus={actionTrigger} title="Rename project" onClose={() => setRenaming(false)}><RenameDialog
         kind="project"
         projectId={project.id}
         name={project.name}
         open={renaming}
         onOpenChange={setRenaming}
-      />
-    </motion.div>
+      /></DeferredDialog>}
+    </m.div>
   );
 }
 

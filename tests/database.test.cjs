@@ -272,6 +272,13 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   const projectPage = await ProjectLayout(pageProps);
   assert.equal(projectPage.props.children, 'protected content');
   assert.equal(projectPage.props.state.queries[0].state.data.stashes[0].endpoints[0].id, inviteEndpoint.id);
+  assert.deepEqual(projectPage.props.state.queries[0].queryKey, ['project-summary', inviteProject.id]);
+  assert.equal(Object.hasOwn(projectPage.props.state.queries[0].state.data.stashes[0].endpoints[0], 'responses'), false);
+  const EndpointLayout = require('../src/app/(workspace)/projects/[projectId]/endpoints/[endpointId]/layout.tsx').default;
+  const endpointPage = await EndpointLayout(pageProps);
+  assert.deepEqual(endpointPage.props.state.queries[0].queryKey, ['endpoints', inviteProject.id, inviteEndpoint.id]);
+  assert.equal(endpointPage.props.state.queries[0].state.data.endpoint.id, inviteEndpoint.id);
+  assert.equal(endpointPage.props.state.queries[0].state.data.role, 'viewer');
   const redirectsToProject = error => error.digest?.startsWith('NEXT_REDIRECT;') && error.digest.includes(`/projects/${inviteProject.id}`);
   await assert.rejects(EditLayout(pageProps), redirectsToProject);
   await assert.rejects(NewLayout(pageProps), redirectsToProject);

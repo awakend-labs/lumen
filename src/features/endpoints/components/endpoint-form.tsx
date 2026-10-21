@@ -1,6 +1,8 @@
 ﻿"use client";
 
-import { useEffect, useRef, useState } from "react";
+import { DeferredDialog } from "@/components/deferred-dialog";
+
+import { lazy, memo, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import { stringifyJson } from "@/lib/json-source";
@@ -30,9 +32,12 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch,
+  type UseFormReturn,
+} from "react-hook-form";
 import { z } from "zod";
-import { CurlImportDialog } from "./curl-import-dialog";
+const loadCurlImportDialog = () => import("./curl-import-dialog").then(module => ({ default: module.CurlImportDialog }));
+const CurlImportDialog = lazy(loadCurlImportDialog);
 import { EndpointTagsField } from "./endpoint-tags-field";
 import type { CurlDraft } from "@/lib/curl";
 import { SectionNav, sectionId } from "@/components/section-nav";
@@ -69,7 +74,7 @@ import {
   ACCESS_LEVELS,
   type ParamField,
   type EndpointRecord,
-  type StashRecord,
+  type StashSummary,
   type ProjectAuth,
 } from "@/lib/types";
 import type { EndpointInput } from "@/lib/validators";
@@ -376,7 +381,7 @@ export function EndpointForm({
   importCurl = false,
 }: {
   projectId: string;
-  stashes: StashRecord[];
+  stashes: StashSummary[];
   endpoint?: EndpointRecord;
   initialStashId?: string;
   duplicateFrom?: EndpointRecord;
@@ -399,9 +404,7 @@ export function EndpointForm({
   const save = useSaveEndpoint(projectId, endpoint?.id);
   const fixedStashId =
     endpoint?.stashId ?? duplicateFrom?.stashId ?? initialStashId ?? "";
-  const form = useForm<EndpointFormValues>({
-    resolver: zodResolver(endpointFormSchema),
-    defaultValues: toFormValues(
+  const [defaultValues] = useState(() => toFormValues(
       endpoint ??
         (duplicateFrom
           ? {
@@ -412,7 +415,10 @@ export function EndpointForm({
       fixedStashId,
       projectBaseUrl,
       projectAuth,
-    ),
+    ));
+  const form = useForm<EndpointFormValues>({
+    resolver: zodResolver(endpointFormSchema),
+    defaultValues,
   });
   const headers = useFieldArray({ control: form.control, name: "headers" });
   const queryParams = useFieldArray({
@@ -423,10 +429,7 @@ export function EndpointForm({
     control: form.control,
     name: "pathParams",
   });
-  const bodyFields = useFieldArray({
-    control: form.control,
-    name: "bodyFields",
-  });
+
   const responses = useFieldArray({ control: form.control, name: "responses" });
   const draft = useEndpointDraft(
     projectId,
@@ -439,16 +442,8 @@ export function EndpointForm({
       stashId: fixedStashId,
     }),
   );
-  const description = form.watch("description");
-  const bodyJson = useBodyFieldJson(
-    form,
-    draft.loading || draft.hasRecoveredDraft,
-  );
   const method = form.watch("method");
-  const path = form.watch("path");
-  const name = form.watch("name");
-  const endpointPreviewName = name.trim() || "Untitled endpoint";
-  const endpointNameUntitled = !name.trim();
+
   useEffect(() => {
     if (endpoint || draft.loading || !form.getFieldState("method").isDirty)
       return;
@@ -524,16 +519,7 @@ export function EndpointForm({
       document.removeEventListener("click", click, true);
     };
   }, [dirty, isCurrentSaved]);
-  useEffect(() => {
-    const current = form.getValues("pathParams");
-    const next = pathParameterNames(path).map((key) => ({
-      ...(current.find((field) => field.key === key) ?? emptyParam),
-      key,
-      required: true,
-    }));
-    if (JSON.stringify(current) !== JSON.stringify(next))
-      form.setValue("pathParams", next, { shouldDirty: true });
-  }, [path, form]);
+
 
   function submit(values: EndpointFormValues) {
     if (draft.loading || draft.hasRecoveredDraft) {
@@ -779,6 +765,8 @@ export function EndpointForm({
                 type="button"
                 variant="outline"
                 size="sm"
+                onPointerEnter={() => { void loadCurlImportDialog(); }}
+                onFocus={() => { void loadCurlImportDialog(); }}
                 onClick={() => setImportOpen(true)}
               >
                 <TerminalSquare data-icon="inline-start" />
@@ -786,11 +774,11 @@ export function EndpointForm({
               </Button>
             </div>
           )}
-          <CurlImportDialog
+          {importOpen && <DeferredDialog title="Import from cURL" onClose={() => setImportOpen(false)}><CurlImportDialog
             open={importOpen}
             onOpenChange={setImportOpen}
             onImport={importRequest}
-          />
+          /></DeferredDialog>}
           <Dialog open={pathDialogOpen} onOpenChange={setPathDialogOpen}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
@@ -827,12 +815,12 @@ export function EndpointForm({
                   type="button"
                   disabled={
                     !/^[A-Za-z_][A-Za-z0-9_]*$/.test(pathParameterName) ||
-                    pathParameterNames(path).includes(pathParameterName)
+                    pathParameterNames(form.getValues("path")).includes(pathParameterName)
                   }
                   onClick={() => {
                     form.setValue(
                       "path",
-                      `${path.replace(/\/$/, "")}/{${pathParameterName}}`,
+                      `${form.getValues("path").replace(/\/$/, "")}/{${pathParameterName}}`,
                       { shouldDirty: true, shouldValidate: true },
                     );
                     setPathDialogOpen(false);
@@ -857,33 +845,8 @@ export function EndpointForm({
               Unsaved changes · save before leaving this page.
             </p>
           )}
-          <div
-            className={cn(
-              "flex min-w-0 max-w-full items-center gap-3 overflow-hidden px-4 py-3",
-              sectionSurfaceClass,
-            )}
-          >
-            <MethodBadge method={method} className="h-6 min-w-16" />
-            <EndpointVersionBadge version={form.watch("version")} />
-            <span className="min-w-0 flex-1 truncate font-mono text-sm font-medium">
-              {path.trim() || "/"}
-            </span>
-            <span
-              className="hidden min-w-0 max-w-48 shrink-0 items-center border-l border-border/70 pl-3 sm:inline-flex md:max-w-xs"
-              title={endpointPreviewName}
-            >
-              <span
-                className={cn(
-                  "truncate text-sm leading-snug",
-                  endpointNameUntitled
-                    ? "italic text-muted-foreground"
-                    : "font-semibold tracking-[-0.01em] text-foreground/80",
-                )}
-              >
-                {endpointPreviewName}
-              </span>
-            </span>
-          </div>
+          <RoutePreview form={form} />
+          <PathParameterSync form={form} />
 
           <FormSection
             icon={RouteIcon}
@@ -1138,48 +1101,7 @@ export function EndpointForm({
               </Select>
             </Field>
           </FormSection>
-          <FormSection
-            icon={FileTextIcon}
-            title="Description"
-            description="Markdown is supported. Preview it before you save."
-          >
-            <Tabs defaultValue="write" className="gap-3">
-              <TabsList
-                variant="line"
-                className="h-auto w-fit shrink-0 self-start gap-1 bg-transparent p-0"
-              >
-                <TabsTrigger value="write" className="flex-none gap-1.5 px-2">
-                  <PencilLineIcon className="size-3.5" aria-hidden />
-                  Write
-                </TabsTrigger>
-                <TabsTrigger value="preview" className="flex-none gap-1.5 px-2">
-                  <EyeIcon className="size-3.5" aria-hidden />
-                  Preview
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="write">
-                <MarkdownWriteField
-                  className={insetSurfaceClass}
-                  registration={form.register("description")}
-                  onValue={(value) =>
-                    form.setValue("description", value, { shouldDirty: true })
-                  }
-                />
-              </TabsContent>
-              <TabsContent
-                value="preview"
-                className={cn("min-h-40 p-4", insetSurfaceClass)}
-              >
-                {description.trim() ? (
-                  <MarkdownView content={description} />
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Nothing to preview yet.
-                  </p>
-                )}
-              </TabsContent>
-            </Tabs>
-          </FormSection>
+          <DescriptionSection form={form} />
 
           <ParamList
             icon={ListTreeIcon}
@@ -1190,7 +1112,7 @@ export function EndpointForm({
             remove={headers.remove}
             register={form.register}
             name="headers"
-            watch={form.watch}
+            control={form.control}
             setValue={form.setValue}
           />
           <ParamList
@@ -1202,7 +1124,7 @@ export function EndpointForm({
             remove={queryParams.remove}
             register={form.register}
             name="queryParams"
-            watch={form.watch}
+            control={form.control}
             setValue={form.setValue}
           />
           <ParamList
@@ -1218,7 +1140,7 @@ export function EndpointForm({
               const key = form.getValues(`pathParams.${index}.key`);
               form.setValue(
                 "path",
-                path
+                form.getValues("path")
                   .replace(
                     new RegExp(`\\{${key}\\}|:${key}(?![A-Za-z0-9_])`, "g"),
                     "",
@@ -1229,228 +1151,11 @@ export function EndpointForm({
             }}
             register={form.register}
             name="pathParams"
-            watch={form.watch}
+            control={form.control}
             setValue={form.setValue}
           />
 
-          <ParamList
-            icon={BracesIcon}
-            title="Body fields"
-            hint="Document fields, their types, and constraints. Use JSON schema below for nested or advanced schemas."
-            fields={bodyFields.fields}
-            append={() => bodyFields.append(emptyParam)}
-            remove={bodyFields.remove}
-            register={form.register}
-            name="bodyFields"
-            watch={form.watch}
-            setValue={form.setValue}
-          />
-          <FormSection
-            icon={BracesIcon}
-            title="Request body"
-            description="Choose a request format and document a sample payload."
-          >
-            <Field>
-              <FieldLabel>Body format</FieldLabel>
-              <Select
-                value={form.watch("bodyFormat")}
-                onValueChange={(value) => {
-                  form.setValue(
-                    "bodyFormat",
-                    value as EndpointFormValues["bodyFormat"],
-                    { shouldDirty: true },
-                  );
-                  const index = form
-                    .getValues("headers")
-                    .findIndex(
-                      (header) => header.key.toLowerCase() === "content-type",
-                    );
-                  if (index >= 0) {
-                    if (value === "multipart/form-data") headers.remove(index);
-                    else
-                      form.setValue(`headers.${index}.value`, value, {
-                        shouldDirty: true,
-                      });
-                  }
-                }}
-              >
-                <SelectTrigger
-                  className="w-full sm:w-72"
-                  aria-label="Body format"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="application/json">JSON</SelectItem>
-                    <SelectItem value="application/x-www-form-urlencoded">
-                      URL-encoded form
-                    </SelectItem>
-                    <SelectItem value="multipart/form-data">
-                      Multipart form
-                    </SelectItem>
-                    <SelectItem value="text/plain">Plain text</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-            {form.watch("bodyFormat") === "text/plain" ? (
-              <Field>
-                <FieldLabel htmlFor="request-raw">Raw body</FieldLabel>
-                <Textarea
-                  id="request-raw"
-                  rows={8}
-                  className="font-mono text-xs"
-                  {...form.register("requestRaw")}
-                />
-                <FieldError errors={[form.formState.errors.requestRaw]} />
-              </Field>
-            ) : (
-              <>
-                {form.watch("bodyFormat") !== "application/json" && (
-                  <p className="text-xs text-muted-foreground">
-                    In Example, use a JSON object of form field names and
-                    values. Arrays send repeated fields.
-                  </p>
-                )}
-                <div
-                  className={cn(
-                    "flex flex-col gap-3 rounded-sm border border-border p-3 sm:flex-row sm:items-center sm:justify-between",
-                    bodyJson.hasCustomJson
-                      ? "bg-primary/5 dark:bg-primary/[0.07]"
-                      : "bg-muted/30 dark:bg-muted/20",
-                  )}
-                >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span
-                      className={cn(
-                        "flex size-9 shrink-0 items-center justify-center rounded-sm border border-border/70",
-                        bodyJson.hasCustomJson
-                          ? "bg-primary/10 text-primary dark:bg-primary/15"
-                          : "bg-background/80 text-muted-foreground dark:bg-background/40",
-                      )}
-                      aria-hidden
-                    >
-                      {bodyJson.hasCustomJson ? (
-                        <PencilLineIcon className="size-4" />
-                      ) : (
-                        <BracesIcon className="size-4" />
-                      )}
-                    </span>
-                    <div className="min-w-0 space-y-0.5">
-                      <p className="text-xs font-semibold tracking-[-0.01em] text-foreground">
-                        {bodyJson.hasCustomJson
-                          ? "Custom schema and example"
-                          : "Linked to body fields"}
-                      </p>
-                      <p className="text-xs leading-relaxed text-muted-foreground">
-                        {bodyJson.hasCustomJson
-                          ? "Your JSON stays as-is when body fields change. Regenerate to rebuild from fields."
-                          : "Schema and example update from body fields. Edit either JSON block to customize."}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full shrink-0 bg-background/80 sm:w-auto"
-                    disabled={
-                      draft.loading ||
-                      draft.hasRecoveredDraft ||
-                      !form
-                        .watch("bodyFields")
-                        .some((field) => field.key.trim())
-                    }
-                    onClick={() => {
-                      if (
-                        bodyJson.hasCustomJson &&
-                        !window.confirm(
-                          "Replace the request schema and example with JSON generated from body fields?",
-                        )
-                      ) {
-                        return;
-                      }
-                      bodyJson.regenerate();
-                    }}
-                  >
-                    <RefreshCwIcon data-icon="inline-start" />
-                    Regenerate from fields
-                  </Button>
-                </div>
-                <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-                  <Field
-                    data-invalid={
-                      Boolean(form.formState.errors.requestSchema) || undefined
-                    }
-                  >
-                    <FieldLabel htmlFor="request-schema" className="gap-1.5">
-                      <BracesIcon
-                        className="size-3.5 text-muted-foreground"
-                        aria-hidden
-                      />
-                      JSON schema
-                    </FieldLabel>
-                    <Controller
-                      control={form.control}
-                      name={"requestSchema"}
-                      render={({ field: editorField, fieldState }) => (
-                        <JsonEditor
-                          {...editorField}
-                          id="request-schema"
-                          label="JSON schema"
-                          onChange={(value) => {
-                            bodyJson.trackEdit("requestSchema", value);
-                            editorField.onChange(value);
-                          }}
-                          placeholder={JSON_SCHEMA_PLACEHOLDER}
-                          invalid={Boolean(fieldState.error)}
-                          disabled={!hydrated}
-                        />
-                      )}
-                    />
-                    <FieldError
-                      errors={[form.formState.errors.requestSchema]}
-                    />
-                  </Field>
-                  <Field
-                    data-invalid={
-                      Boolean(form.formState.errors.requestExample) || undefined
-                    }
-                  >
-                    <FieldLabel htmlFor="request-example" className="gap-1.5">
-                      <Code2Icon
-                        className="size-3.5 text-muted-foreground"
-                        aria-hidden
-                      />
-                      Example
-                    </FieldLabel>
-                    <Controller
-                      control={form.control}
-                      name={"requestExample"}
-                      render={({ field: editorField, fieldState }) => (
-                        <JsonEditor
-                          {...editorField}
-                          id="request-example"
-                          label="Request example"
-                          onChange={(value) => {
-                            bodyJson.trackEdit("requestExample", value);
-                            editorField.onChange(value);
-                          }}
-                          placeholder={JSON_EXAMPLE_PLACEHOLDER}
-                          invalid={Boolean(fieldState.error)}
-                          disabled={!hydrated}
-                        />
-                      )}
-                    />
-                    <FieldError
-                      errors={[form.formState.errors.requestExample]}
-                    />
-                  </Field>
-                </div>
-              </>
-            )}
-          </FormSection>
+          <RequestBodySection form={form} removeHeader={headers.remove} hydrated={hydrated} paused={draft.loading || draft.hasRecoveredDraft} />
 
           <FormSection
             icon={InboxIcon}
@@ -1629,7 +1334,7 @@ function ParamList({
   remove,
   register,
   name,
-  watch,
+  control,
   setValue,
 }: {
   icon?: LucideIcon;
@@ -1640,7 +1345,7 @@ function ParamList({
   remove: (index: number) => void;
   register: ReturnType<typeof useForm<EndpointFormValues>>["register"];
   name: ParamSectionName;
-  watch: ReturnType<typeof useForm<EndpointFormValues>>["watch"];
+  control: UseFormReturn<EndpointFormValues>["control"];
   setValue: ReturnType<typeof useForm<EndpointFormValues>>["setValue"];
 }) {
   return (
@@ -1653,7 +1358,7 @@ function ParamList({
       remove={remove}
       register={register}
       name={name}
-      watch={watch}
+      control={control}
       setValue={setValue}
       Section={FormSection}
     />
@@ -1671,3 +1376,315 @@ function fieldToForm(field: ParamField) {
     max: field.max === undefined ? "" : String(field.max),
   };
 }
+
+const DescriptionSection = memo(function DescriptionSection({ form }: { form: UseFormReturn<EndpointFormValues> }) {
+  return (          <FormSection
+            icon={FileTextIcon}
+            title="Description"
+            description="Markdown is supported. Preview it before you save."
+          >
+            <Tabs defaultValue="write" className="gap-3">
+              <TabsList
+                variant="line"
+                className="h-auto w-fit shrink-0 self-start gap-1 bg-transparent p-0"
+              >
+                <TabsTrigger value="write" className="flex-none gap-1.5 px-2">
+                  <PencilLineIcon className="size-3.5" aria-hidden />
+                  Write
+                </TabsTrigger>
+                <TabsTrigger value="preview" className="flex-none gap-1.5 px-2">
+                  <EyeIcon className="size-3.5" aria-hidden />
+                  Preview
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="write">
+                <MarkdownWriteField
+                  className={insetSurfaceClass}
+                  registration={form.register("description")}
+                  onValue={(value) =>
+                    form.setValue("description", value, { shouldDirty: true })
+                  }
+                />
+              </TabsContent>
+              <TabsContent
+                value="preview"
+                className={cn("min-h-40 p-4", insetSurfaceClass)}
+              >
+                <DescriptionPreview form={form} />
+              </TabsContent>
+            </Tabs>
+          </FormSection>);
+});
+function DescriptionPreview({ form }: { form: UseFormReturn<EndpointFormValues> }) {
+  const description = useWatch({ control: form.control, name: "description" });
+  return description.trim() ? <MarkdownView content={description} /> : <p className="text-sm text-muted-foreground">Nothing to preview yet.</p>;
+}
+const RoutePreview = memo(function RoutePreview({ form }: { form: UseFormReturn<EndpointFormValues> }) {
+  const [method, path, name, version] = useWatch({ control: form.control, name: ["method", "path", "name", "version"] });
+  const endpointPreviewName = name.trim() || "Untitled endpoint";
+  const endpointNameUntitled = !name.trim();
+  return (          <div
+            className={cn(
+              "flex min-w-0 max-w-full items-center gap-3 overflow-hidden px-4 py-3",
+              sectionSurfaceClass,
+            )}
+          >
+            <MethodBadge method={method} className="h-6 min-w-16" />
+            <EndpointVersionBadge version={version} />
+            <span className="min-w-0 flex-1 truncate font-mono text-sm font-medium">
+              {path.trim() || "/"}
+            </span>
+            <span
+              className="hidden min-w-0 max-w-48 shrink-0 items-center border-l border-border/70 pl-3 sm:inline-flex md:max-w-xs"
+              title={endpointPreviewName}
+            >
+              <span
+                className={cn(
+                  "truncate text-sm leading-snug",
+                  endpointNameUntitled
+                    ? "italic text-muted-foreground"
+                    : "font-semibold tracking-[-0.01em] text-foreground/80",
+                )}
+              >
+                {endpointPreviewName}
+              </span>
+            </span>
+          </div>);
+});
+function PathParameterSync({ form }: { form: UseFormReturn<EndpointFormValues> }) {
+  const path = useWatch({ control: form.control, name: "path" });
+  useEffect(() => {
+    const current = form.getValues("pathParams");
+    const next = pathParameterNames(path).map((key) => ({
+      ...(current.find((field) => field.key === key) ?? emptyParam),
+      key,
+      required: true,
+    }));
+    if (JSON.stringify(current) !== JSON.stringify(next))
+      form.setValue("pathParams", next, { shouldDirty: true });
+  }, [path, form]);
+  return null;
+}
+const RequestBodySection = memo(function RequestBodySection({ form, removeHeader, paused, hydrated }: {
+  form: UseFormReturn<EndpointFormValues>; removeHeader: (index: number) => void; paused: boolean; hydrated: boolean;
+}) {
+  const bodyFields = useFieldArray({ control: form.control, name: "bodyFields" });
+  const [bodyFormat, fieldValues] = useWatch({ control: form.control, name: ["bodyFormat", "bodyFields"] });
+  const bodyJson = useBodyFieldJson(form, paused);
+  return <>          <ParamList
+            icon={BracesIcon}
+            title="Body fields"
+            hint="Document fields, their types, and constraints. Use JSON schema below for nested or advanced schemas."
+            fields={bodyFields.fields}
+            append={() => bodyFields.append(emptyParam)}
+            remove={bodyFields.remove}
+            register={form.register}
+            name="bodyFields"
+            control={form.control}
+            setValue={form.setValue}
+          />
+          <FormSection
+            icon={BracesIcon}
+            title="Request body"
+            description="Choose a request format and document a sample payload."
+          >
+            <Field>
+              <FieldLabel>Body format</FieldLabel>
+              <Select
+                value={bodyFormat}
+                onValueChange={(value) => {
+                  form.setValue(
+                    "bodyFormat",
+                    value as EndpointFormValues["bodyFormat"],
+                    { shouldDirty: true },
+                  );
+                  const index = form
+                    .getValues("headers")
+                    .findIndex(
+                      (header) => header.key.toLowerCase() === "content-type",
+                    );
+                  if (index >= 0) {
+                    if (value === "multipart/form-data") removeHeader(index);
+                    else
+                      form.setValue(`headers.${index}.value`, value, {
+                        shouldDirty: true,
+                      });
+                  }
+                }}
+              >
+                <SelectTrigger
+                  className="w-full sm:w-72"
+                  aria-label="Body format"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="application/json">JSON</SelectItem>
+                    <SelectItem value="application/x-www-form-urlencoded">
+                      URL-encoded form
+                    </SelectItem>
+                    <SelectItem value="multipart/form-data">
+                      Multipart form
+                    </SelectItem>
+                    <SelectItem value="text/plain">Plain text</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+            {bodyFormat === "text/plain" ? (
+              <Field>
+                <FieldLabel htmlFor="request-raw">Raw body</FieldLabel>
+                <Textarea
+                  id="request-raw"
+                  rows={8}
+                  className="font-mono text-xs"
+                  {...form.register("requestRaw")}
+                />
+                <FieldError errors={[form.formState.errors.requestRaw]} />
+              </Field>
+            ) : (
+              <>
+                {bodyFormat !== "application/json" && (
+                  <p className="text-xs text-muted-foreground">
+                    In Example, use a JSON object of form field names and
+                    values. Arrays send repeated fields.
+                  </p>
+                )}
+                <div
+                  className={cn(
+                    "flex flex-col gap-3 rounded-sm border border-border p-3 sm:flex-row sm:items-center sm:justify-between",
+                    bodyJson.hasCustomJson
+                      ? "bg-primary/5 dark:bg-primary/[0.07]"
+                      : "bg-muted/30 dark:bg-muted/20",
+                  )}
+                >
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span
+                      className={cn(
+                        "flex size-9 shrink-0 items-center justify-center rounded-sm border border-border/70",
+                        bodyJson.hasCustomJson
+                          ? "bg-primary/10 text-primary dark:bg-primary/15"
+                          : "bg-background/80 text-muted-foreground dark:bg-background/40",
+                      )}
+                      aria-hidden
+                    >
+                      {bodyJson.hasCustomJson ? (
+                        <PencilLineIcon className="size-4" />
+                      ) : (
+                        <BracesIcon className="size-4" />
+                      )}
+                    </span>
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="text-xs font-semibold tracking-[-0.01em] text-foreground">
+                        {bodyJson.hasCustomJson
+                          ? "Custom schema and example"
+                          : "Linked to body fields"}
+                      </p>
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {bodyJson.hasCustomJson
+                          ? "Your JSON stays as-is when body fields change. Regenerate to rebuild from fields."
+                          : "Schema and example update from body fields. Edit either JSON block to customize."}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full shrink-0 bg-background/80 sm:w-auto"
+                    disabled={
+                      paused ||
+                      !fieldValues
+                        .some((field) => field.key.trim())
+                    }
+                    onClick={() => {
+                      if (
+                        bodyJson.hasCustomJson &&
+                        !window.confirm(
+                          "Replace the request schema and example with JSON generated from body fields?",
+                        )
+                      ) {
+                        return;
+                      }
+                      bodyJson.regenerate();
+                    }}
+                  >
+                    <RefreshCwIcon data-icon="inline-start" />
+                    Regenerate from fields
+                  </Button>
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  <Field
+                    data-invalid={
+                      Boolean(form.formState.errors.requestSchema) || undefined
+                    }
+                  >
+                    <FieldLabel htmlFor="request-schema" className="gap-1.5">
+                      <BracesIcon
+                        className="size-3.5 text-muted-foreground"
+                        aria-hidden
+                      />
+                      JSON schema
+                    </FieldLabel>
+                    <Controller
+                      control={form.control}
+                      name={"requestSchema"}
+                      render={({ field: editorField, fieldState }) => (
+                        <JsonEditor
+                          {...editorField}
+                          id="request-schema"
+                          label="JSON schema"
+                          onChange={(value) => {
+                            bodyJson.trackEdit("requestSchema", value);
+                            editorField.onChange(value);
+                          }}
+                          placeholder={JSON_SCHEMA_PLACEHOLDER}
+                          invalid={Boolean(fieldState.error)}
+                          disabled={!hydrated}
+                        />
+                      )}
+                    />
+                    <FieldError
+                      errors={[form.formState.errors.requestSchema]}
+                    />
+                  </Field>
+                  <Field
+                    data-invalid={
+                      Boolean(form.formState.errors.requestExample) || undefined
+                    }
+                  >
+                    <FieldLabel htmlFor="request-example" className="gap-1.5">
+                      <Code2Icon
+                        className="size-3.5 text-muted-foreground"
+                        aria-hidden
+                      />
+                      Example
+                    </FieldLabel>
+                    <Controller
+                      control={form.control}
+                      name={"requestExample"}
+                      render={({ field: editorField, fieldState }) => (
+                        <JsonEditor
+                          {...editorField}
+                          id="request-example"
+                          label="Request example"
+                          onChange={(value) => {
+                            bodyJson.trackEdit("requestExample", value);
+                            editorField.onChange(value);
+                          }}
+                          placeholder={JSON_EXAMPLE_PLACEHOLDER}
+                          invalid={Boolean(fieldState.error)}
+                          disabled={!hydrated}
+                        />
+                      )}
+                    />
+                    <FieldError
+                      errors={[form.formState.errors.requestExample]}
+                    />
+                  </Field>
+                </div>
+              </>
+            )}
+          </FormSection></>;
+});

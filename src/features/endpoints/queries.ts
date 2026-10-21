@@ -11,8 +11,9 @@ import {
   saveEndpoint,
 } from "@/features/endpoints/api";
 import { projectKeys } from "@/features/projects/queries";
-import type { EndpointRecord, ProjectDetail } from "@/lib/types";
+import type { ProjectSummary } from "@/lib/types";
 import type { EndpointInput } from "@/lib/validators";
+import { toEndpointSummary } from "@/lib/endpoint-summary";
 
 export const endpointKeys = {
   detail: (projectId: string, endpointId: string) =>
@@ -20,16 +21,10 @@ export const endpointKeys = {
 };
 
 export function useEndpoint(projectId: string, endpointId: string) {
-  const client = useQueryClient();
   return useQuery({
     queryKey: endpointKeys.detail(projectId, endpointId),
-    queryFn: () => fetchEndpoint(projectId, endpointId),
-    initialData: () => {
-      const project = client.getQueryData<ProjectDetail>(projectKeys.detail(projectId));
-      const endpoint = project?.stashes.flatMap(stash => stash.endpoints).find(endpoint => endpoint.id === endpointId);
-      return endpoint && project ? { endpoint, role: project.role } : undefined;
-    },
-    initialDataUpdatedAt: () => client.getQueryState(projectKeys.detail(projectId))?.dataUpdatedAt,
+    queryFn: ({ signal }) => fetchEndpoint(projectId, endpointId, signal),
+    enabled: projectId.length > 0 && endpointId.length > 0,
     staleTime: 30_000,
     refetchOnWindowFocus: "always",
     retry: (count, error) => count < 1 && (!(error instanceof ApiError) || error.status >= 500),
@@ -41,17 +36,22 @@ export function useSaveEndpoint(projectId: string, endpointId?: string) {
   const router = useRouter();
   return useMutation({
     mutationFn: (input: EndpointInput) => saveEndpoint(projectId, input, endpointId),
+    onMutate: () => Promise.all([
+      queryClient.cancelQueries({ queryKey: projectKeys.summary(projectId), exact: true }),
+      ...(endpointId ? [queryClient.cancelQueries({ queryKey: endpointKeys.detail(projectId, endpointId), exact: true })] : []),
+    ]),
     onSuccess: (endpoint) => {
-      const project = queryClient.getQueryData<ProjectDetail>(projectKeys.detail(projectId));
+      const project = queryClient.getQueryData<ProjectSummary>(projectKeys.summary(projectId));
       if (project) queryClient.setQueryData(endpointKeys.detail(projectId, endpoint.id), { endpoint, role: project.role });
-      if (project) queryClient.setQueryData<ProjectDetail>(projectKeys.detail(projectId), {
+      if (project) queryClient.setQueryData<ProjectSummary>(projectKeys.summary(projectId), {
         ...project, stashes: project.stashes.map(stash => ({ ...stash,
           endpoints: stash.id === endpoint.stashId
-            ? [...stash.endpoints.filter(item => item.id !== endpoint.id), endpoint].sort((a, b) => a.order - b.order)
+            ? [...stash.endpoints.filter(item => item.id !== endpoint.id), toEndpointSummary(endpoint)].sort((a, b) => a.order - b.order)
             : stash.endpoints.filter(item => item.id !== endpoint.id),
         })),
       });
-      queryClient.invalidateQueries({ queryKey: projectKeys.all, refetchType: "none" });
+      queryClient.invalidateQueries({ queryKey: projectKeys.all, exact: true, refetchType: "none" });
+      queryClient.invalidateQueries({ queryKey: projectKeys.summary(projectId), exact: true, refetchType: "none" });
       toast.success(endpointId ? "Endpoint updated" : "Endpoint created");
       router.replace(`/projects/${projectId}/endpoints/${endpoint.id}`);
     },
@@ -64,12 +64,12 @@ export function useDeleteEndpoint(projectId: string) {
   return useMutation({
     mutationFn: (endpointId: string) => deleteEndpoint(projectId, endpointId),
     onMutate: async (endpointId) => {
-      await queryClient.cancelQueries({ queryKey: projectKeys.detail(projectId) });
-      const previous = queryClient.getQueryData<ProjectDetail>(
-        projectKeys.detail(projectId),
+      await queryClient.cancelQueries({ queryKey: projectKeys.summary(projectId) });
+      const previous = queryClient.getQueryData<ProjectSummary>(
+        projectKeys.summary(projectId),
       );
       if (previous) {
-        queryClient.setQueryData<ProjectDetail>(projectKeys.detail(projectId), {
+        queryClient.setQueryData<ProjectSummary>(projectKeys.summary(projectId), {
           ...previous,
           stashes: previous.stashes.map((stash) => ({
             ...stash,
@@ -81,14 +81,18 @@ export function useDeleteEndpoint(projectId: string) {
     },
     onError: (error: Error, _id, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(projectKeys.detail(projectId), context.previous);
+        queryClient.setQueryData(projectKeys.summary(projectId), context.previous);
       }
       toast.error(error.message);
     },
-    onSuccess: () => toast.success("Endpoint deleted"),
+    onSuccess: (_result, endpointId) => {
+      queryClient.removeQueries({ queryKey: endpointKeys.detail(projectId, endpointId), exact: true });
+      queryClient.invalidateQueries({ queryKey: ["search"] });
+      toast.success("Endpoint deleted");
+    },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
-      queryClient.invalidateQueries({ queryKey: projectKeys.all });
+      queryClient.invalidateQueries({ queryKey: projectKeys.summary(projectId) });
+      queryClient.invalidateQueries({ queryKey: projectKeys.all, exact: true });
     },
   });
 }
@@ -99,12 +103,12 @@ export function useReorderEndpoints(projectId: string) {
     mutationFn: ({ stashId, ids }: { stashId: string; ids: string[] }) =>
       reorderEndpoints(projectId, stashId, ids),
     onMutate: async ({ stashId, ids }) => {
-      await queryClient.cancelQueries({ queryKey: projectKeys.detail(projectId) });
-      const previous = queryClient.getQueryData<ProjectDetail>(
-        projectKeys.detail(projectId),
+      await queryClient.cancelQueries({ queryKey: projectKeys.summary(projectId) });
+      const previous = queryClient.getQueryData<ProjectSummary>(
+        projectKeys.summary(projectId),
       );
       if (previous) {
-        queryClient.setQueryData<ProjectDetail>(projectKeys.detail(projectId), {
+        queryClient.setQueryData<ProjectSummary>(projectKeys.summary(projectId), {
           ...previous,
           stashes: previous.stashes.map((stash) => {
             if (stash.id !== stashId) return stash;
@@ -113,7 +117,7 @@ export function useReorderEndpoints(projectId: string) {
               ...stash,
               endpoints: ids
                 .map((id) => byId.get(id))
-                .filter((endpoint): endpoint is EndpointRecord => Boolean(endpoint)),
+                .filter((endpoint): endpoint is NonNullable<typeof endpoint> => Boolean(endpoint)),
             };
           }),
         });
@@ -122,12 +126,12 @@ export function useReorderEndpoints(projectId: string) {
     },
     onError: (error: Error, _vars, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(projectKeys.detail(projectId), context.previous);
+        queryClient.setQueryData(projectKeys.summary(projectId), context.previous);
       }
       toast.error(error.message);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
+      queryClient.invalidateQueries({ queryKey: projectKeys.summary(projectId) });
     },
   });
 }

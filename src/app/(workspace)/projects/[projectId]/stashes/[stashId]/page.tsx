@@ -34,7 +34,7 @@ import { StashDialog } from "@/features/stashes/components/stash-dialog";
 import { StashStatusControl } from "@/features/stashes/components/stash-status-control";
 import { useDeleteStash, useUpdateStash } from "@/features/stashes/queries";
 import { canEditContent } from "@/lib/permissions";
-import type { ProjectDetail } from "@/lib/types";
+import type { ProjectSummary } from "@/lib/types";
 
 export default function StashPage({
   params,
@@ -54,7 +54,7 @@ function StashView({
   project,
   stashId,
 }: {
-  project: ProjectDetail;
+  project: ProjectSummary;
   stashId: string;
 }) {
   const router = useRouter();

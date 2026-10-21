@@ -1,13 +1,17 @@
 import { api } from "@/lib/api";
-import type { ProjectDetail, ProjectListItem, ProjectStatus } from "@/lib/types";
+import type { ProjectDetail, ProjectSummary, ProjectListItem, ProjectStatus } from "@/lib/types";
 import type { ProjectInput } from "@/lib/validators";
 
-export function fetchProjects() {
-  return api<ProjectListItem[]>("/api/projects");
+export function fetchProjects(signal?: AbortSignal) {
+  return api<ProjectListItem[]>("/api/projects", { signal });
 }
 
-export function fetchProject(projectId: string) {
-  return api<ProjectDetail>(`/api/projects/${projectId}`);
+export function fetchProject(projectId: string, signal?: AbortSignal) {
+  return api<ProjectDetail>(`/api/projects/${projectId}`, { signal });
+}
+
+export function fetchProjectSummary(projectId: string, signal?: AbortSignal) {
+  return api<ProjectSummary>(`/api/projects/${projectId}/summary`, { signal });
 }
 
 export function createProject(input: ProjectInput) {

@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useWatch, type UseFieldArrayReturn, type UseFormReturn } from "react-hook-form";
+import { DeferredDialog } from "@/components/deferred-dialog";
+
+import { lazy, memo, useEffect, useMemo, useState } from "react";
+import { useFormState, useWatch, type UseFieldArrayReturn, type UseFormReturn } from "react-hook-form";
 import { PlusIcon, StarIcon, Trash2Icon, LayersIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -12,7 +14,8 @@ import type { EndpointFormValues } from "./endpoint-form";
 import type { ResponseErrorFormat } from "@/lib/types";
 import { ResponseStatusField } from "./response-status-field";
 import { ResponseContractEditor, generatedResponseSchema } from "./response-contract-editor";
-import { ProjectErrorFormatDialog } from "./project-error-format-dialog";
+const loadProjectErrorFormatDialog = () => import("./project-error-format-dialog").then(module => ({ default: module.ProjectErrorFormatDialog }));
+const ProjectErrorFormatDialog = lazy(loadProjectErrorFormatDialog);
 
 type Props = { projectId: string; form: UseFormReturn<EndpointFormValues>; rows: UseFieldArrayReturn<EndpointFormValues, "responses">; disabled: boolean; paused: boolean };
 
@@ -20,31 +23,33 @@ export function ResponsesEditor({ projectId, form, rows, disabled, paused }: Pro
   const project = useProject(projectId);
   const shared = project.data?.responseErrorFormat;
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const values = useWatch({ control: form.control, name: "responses" });
-  const method = form.watch("method");
+  const values = useWatch({ control: form.control, name: "responses", compute: values => values.map(({ statusCode, isSuccess }) => ({ statusCode, isSuccess })) });
+  const codes = useMemo(() => values.map(response => response.statusCode), [values]);
+  const method = useWatch({ control: form.control, name: "method" });
   const next = nextResponseStatus(values, method);
   return <div className="flex min-w-0 flex-col gap-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <p className="max-w-lg text-xs leading-relaxed text-muted-foreground">Start with a real response. Lumen generates its contract; you can refine it when needed.</p>
-      <Button type="button" size="sm" variant="outline" onClick={() => setSettingsOpen(true)}><LayersIcon className="size-3.5" aria-hidden />Project error format</Button>
+      <Button type="button" size="sm" variant="outline" onPointerEnter={() => { void loadProjectErrorFormatDialog(); }} onFocus={() => { void loadProjectErrorFormatDialog(); }} onClick={() => setSettingsOpen(true)}><LayersIcon className="size-3.5" aria-hidden />Project error format</Button>
     </div>
     <div className="flex flex-col gap-6">
-      {rows.fields.map((row, index) => <ResponseRow key={row.id} id={row.id} index={index} form={form} shared={shared} disabled={disabled} paused={paused} onRemove={() => rows.remove(index)} />)}
+      {rows.fields.map((row, index) => <ResponseRow key={row.id} id={row.id} index={index} form={form} shared={shared} disabled={disabled} paused={paused} usedCodes={codes} onRemove={rows.remove} />)}
     </div>
     {!rows.fields.length && <p className="rounded-md border border-dashed p-5 text-sm text-muted-foreground">Add the successful response first, then document the errors callers should handle.</p>}
     <Button type="button" variant="outline" size="sm" className="w-fit" disabled={next === undefined} onClick={() => rows.append({ statusCode: next ?? 200, description: "", body: "", schema: "", schemaMode: "generated", isSuccess: !values.some(response => response.isSuccess) && (next ?? 200) < 300, useSharedError: false })}><PlusIcon data-icon="inline-start" />Add response</Button>
-    <ProjectErrorFormatDialog projectId={projectId} value={shared} open={settingsOpen} onOpenChange={setSettingsOpen} />
+    {settingsOpen && <DeferredDialog title="Project error format" onClose={() => setSettingsOpen(false)}><ProjectErrorFormatDialog projectId={projectId} value={shared} open={settingsOpen} onOpenChange={setSettingsOpen} /></DeferredDialog>}
   </div>;
 }
 
-function ResponseRow({ id, index, form, shared, disabled, paused, onRemove }: {
-  id: string; index: number; form: UseFormReturn<EndpointFormValues>; shared?: ResponseErrorFormat | null; disabled: boolean; paused: boolean; onRemove: () => void;
+const ResponseRow = memo(function ResponseRow({ id, index, form, shared, disabled, paused, usedCodes, onRemove }: {
+  id: string; index: number; form: UseFormReturn<EndpointFormValues>; shared?: ResponseErrorFormat | null; disabled: boolean; paused: boolean; usedCodes: (number | "")[]; onRemove: (index: number) => void;
 }) {
   const value = useWatch({ control: form.control, name: `responses.${index}` });
   const mode = value.schemaMode ?? (value.schema.trim() ? "custom" : "generated");
   const errorResponse = value.statusCode !== "" && value.statusCode >= 400;
   const successResponse = value.statusCode !== "" && value.statusCode >= 200 && value.statusCode < 300;
-  const errors = form.formState.errors.responses?.[index];
+  const state = useFormState({ control: form.control, name: `responses.${index}` });
+  const errors = state.errors.responses?.[index];
   const set = (key: "body" | "schema", next: string) => form.setValue(`responses.${index}.${key}`, next, { shouldDirty: true, shouldValidate: true });
   useEffect(() => {
     if (paused || mode !== "generated" || value.useSharedError) return;
@@ -56,7 +61,7 @@ function ResponseRow({ id, index, form, shared, disabled, paused, onRemove }: {
   }, [paused, mode, value.body, value.schema, value.schemaMode, value.useSharedError, form, index]);
   return <div className="flex min-w-0 flex-col gap-4 border-t border-border pt-5 first:pt-0 first:border-t-0">
     <div className="grid gap-3 sm:grid-cols-[110px_minmax(0,1fr)_auto] sm:items-end">
-      <ResponseStatusField id={`status-${id}`} value={value.statusCode} usedCodes={form.watch("responses").filter((_, row) => row !== index).map(response => response.statusCode)} error={errors?.statusCode}
+      <ResponseStatusField id={`status-${id}`} value={value.statusCode} usedCodes={usedCodes.filter((_, row) => row !== index)} error={errors?.statusCode}
         onChange={statusCode => {
           form.setValue(`responses.${index}.statusCode`, statusCode, { shouldDirty: true });
           if (statusCode === "" || statusCode < 400) form.setValue(`responses.${index}.useSharedError`, false, { shouldDirty: true });
@@ -64,7 +69,7 @@ function ResponseRow({ id, index, form, shared, disabled, paused, onRemove }: {
           void form.trigger("responses");
         }} />
       <Field className="min-w-0"><FieldLabel htmlFor={`response-desc-${id}`}>When it happens</FieldLabel><Input id={`response-desc-${id}`} placeholder={errorResponse ? "Email already registered" : "Login succeeded"} {...form.register(`responses.${index}.description`)} /></Field>
-      <Button type="button" variant="ghost" size="icon" className="justify-self-end text-muted-foreground hover:text-destructive" aria-label={`Remove response ${value.statusCode || index + 1}`} onClick={onRemove}><Trash2Icon /></Button>
+      <Button type="button" variant="ghost" size="icon" className="justify-self-end text-muted-foreground hover:text-destructive" aria-label={`Remove response ${value.statusCode || index + 1}`} onClick={() => onRemove(index)}><Trash2Icon /></Button>
     </div>
     <div className="flex flex-wrap items-center gap-3">
       {successResponse && <Button type="button" size="sm" variant={value.isSuccess ? "secondary" : "ghost"} aria-pressed={Boolean(value.isSuccess)} className={value.isSuccess ? "text-amber-700 dark:text-primary" : "text-muted-foreground"} onClick={() => {
@@ -76,4 +81,4 @@ function ResponseRow({ id, index, form, shared, disabled, paused, onRemove }: {
       : <ResponseContractEditor id={id} example={value.body} schema={value.schema} mode={mode} onExampleChange={next => set("body", next)} onSchemaChange={next => set("schema", next)} onModeChange={next => form.setValue(`responses.${index}.schemaMode`, next, { shouldDirty: true })} disabled={disabled} exampleError={errors?.body?.message} schemaError={errors?.schema?.message} />}
     {errors?.description && <p role="alert" className="text-xs text-destructive">{errors.description.message}</p>}
   </div>;
-}
+});

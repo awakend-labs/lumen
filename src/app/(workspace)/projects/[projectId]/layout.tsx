@@ -8,6 +8,6 @@ export default async function ProjectLayout({ children, params }: {
   const { projectId } = await params;
   const project = await loadProjectPage(projectId);
   const client = new QueryClient();
-  client.setQueryData(["projects", projectId], project);
+  client.setQueryData(["project-summary", projectId], project);
   return <HydrationBoundary state={dehydrate(client)}>{children}</HydrationBoundary>;
 }

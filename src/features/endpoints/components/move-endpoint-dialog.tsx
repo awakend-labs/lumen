@@ -14,7 +14,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 export function MoveEndpointDialog({ projectId, endpoint, onClose }: {
   projectId: string;
-  endpoint: EndpointRecord;
+  endpoint: Pick<EndpointRecord, "id" | "name" | "stashId">;
   onClose: () => void;
 }) {
   const project = useProject(projectId);
@@ -28,7 +28,8 @@ export function MoveEndpointDialog({ projectId, endpoint, onClose }: {
     onSuccess: async (saved) => {
       if (project.data) client.setQueryData(["endpoints", projectId, endpoint.id], { endpoint: saved, role: project.data.role });
       await Promise.all([
-        client.invalidateQueries({ queryKey: ["projects"] }),
+        client.invalidateQueries({ queryKey: ["projects"], exact: true }),
+        client.invalidateQueries({ queryKey: ["project-summary", projectId], exact: true }),
         client.invalidateQueries({ queryKey: ["endpoints", projectId, endpoint.id] }),
         client.invalidateQueries({ queryKey: ["search"] }),
       ]);

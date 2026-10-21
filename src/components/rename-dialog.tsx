@@ -32,8 +32,9 @@ export function RenameDialog({ kind, projectId, itemId, name, open, onOpenChange
     },
     onSuccess: async () => {
       await Promise.all([
-        client.invalidateQueries({ queryKey: ["projects"] }),
-        client.invalidateQueries({ queryKey: ["endpoints", projectId] }),
+        client.invalidateQueries({ queryKey: ["projects"], exact: true }),
+        client.invalidateQueries({ queryKey: ["project-summary", projectId], exact: true }),
+        ...(kind === "endpoint" ? [client.invalidateQueries({ queryKey: ["endpoints", projectId, itemId], exact: true })] : []),
         client.invalidateQueries({ queryKey: ["search"] }),
       ]);
       toast.success(`${kind[0].toUpperCase()}${kind.slice(1)} renamed`);

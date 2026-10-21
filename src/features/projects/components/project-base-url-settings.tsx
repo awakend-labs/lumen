@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { GlobeIcon } from "lucide-react";
 import { useUpdateProject } from "@/features/projects/queries";
-import type { ProjectDetail } from "@/lib/types";
+import type { ProjectSummary } from "@/lib/types";
 import { baseUrlSchema } from "@/lib/validators";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
-export function ProjectBaseUrlSettings({ project }: { project: ProjectDetail }) {
+export function ProjectBaseUrlSettings({ project }: { project: ProjectSummary }) {
   const [baseUrl, setBaseUrl] = useState(project.baseUrl);
   const [error, setError] = useState<string | null>(null);
   const update = useUpdateProject(project.id);

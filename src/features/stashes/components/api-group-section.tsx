@@ -29,7 +29,8 @@ export function ApiGroupControl({ projectId, stashId, group }: {
     }),
     onSuccess: async (_, action) => {
       await Promise.all([
-        client.invalidateQueries({ queryKey: ["projects"] }),
+        client.invalidateQueries({ queryKey: ["projects"], exact: true }),
+        client.invalidateQueries({ queryKey: ["project-summary", projectId], exact: true }),
         client.invalidateQueries({ queryKey: ["endpoints", projectId] }),
       ]);
       toast.success(action === "delete" ? "Group deleted. Endpoints are now ungrouped." : group ? "API group renamed" : "API group created");

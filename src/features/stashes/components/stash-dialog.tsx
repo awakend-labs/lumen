@@ -53,7 +53,7 @@ export function StashDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pending?: boolean;
-  stash?: StashRecord | null;
+  stash?: Pick<StashRecord, "name" | "description" | "color" | "status"> | null;
   onSubmit: (values: StashInput) => void;
 }) {
   const form = useForm({

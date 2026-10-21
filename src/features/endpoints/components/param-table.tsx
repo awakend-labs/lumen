@@ -3,7 +3,7 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { UseFormReturn } from "react-hook-form";
+import { useWatch, type UseFormReturn } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -106,7 +106,7 @@ export function ParamTable({
   remove,
   register,
   name,
-  watch,
+  control,
   setValue,
   Section,
 }: {
@@ -118,7 +118,7 @@ export function ParamTable({
   remove: (index: number) => void;
   register: UseFormReturn<EndpointFormValues>["register"];
   name: ParamSectionName;
-  watch: UseFormReturn<EndpointFormValues>["watch"];
+  control: UseFormReturn<EndpointFormValues>["control"];
   setValue: UseFormReturn<EndpointFormValues>["setValue"];
   Section: (props: {
     icon?: LucideIcon;
@@ -168,7 +168,7 @@ export function ParamTable({
                     name={name}
                     index={index}
                     register={register}
-                    watch={watch}
+                    control={control}
                     setValue={setValue}
                     onRemove={() => remove(index)}
                   />
@@ -184,20 +184,20 @@ function ParamTableRow({
   name,
   index,
   register,
-  watch,
+  control,
   setValue,
   onRemove,
 }: {
   name: ParamSectionName;
   index: number;
   register: UseFormReturn<EndpointFormValues>["register"];
-  watch: UseFormReturn<EndpointFormValues>["watch"];
+  control: UseFormReturn<EndpointFormValues>["control"];
   setValue: UseFormReturn<EndpointFormValues>["setValue"];
   onRemove: () => void;
 }) {
   const copy = PARAM_COPY[name];
   const isPath = name === "pathParams";
-  const required = watch(`${name}.${index}.required`);
+  const [required, type] = useWatch({ control, name: [`${name}.${index}.required`, `${name}.${index}.type`] });
   return (
     <tr className={parameterRowClass(index)}>
       <td className="p-0 align-middle focus-within:bg-white dark:focus-within:bg-primary/[0.04]">
@@ -220,7 +220,7 @@ function ParamTableRow({
       {copy.showType ? (
         <td className="border-l border-primary/10 p-0 align-middle dark:border-primary/10">
           <Select
-            value={watch(`${name}.${index}.type`)}
+            value={type}
             onValueChange={(value) =>
               setValue(
                 `${name}.${index}.type`,

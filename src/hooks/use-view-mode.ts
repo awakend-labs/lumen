@@ -14,7 +14,7 @@ export function useViewMode() {
   const queryClient = useQueryClient();
   const preferences = useQuery({
     queryKey: preferenceKey,
-    queryFn: () => api<Preferences>("/api/preferences"),
+    queryFn: ({ signal }) => api<Preferences>("/api/preferences", { signal }),
   });
 
   useEffect(() => {

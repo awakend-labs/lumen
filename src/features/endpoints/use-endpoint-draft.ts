@@ -19,6 +19,7 @@ export function useEndpointDraft<T extends FieldValues>(projectId: string, key: 
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const active = useRef(true);
   const latest = useRef("");
+  const changeVersion = useRef(0);
   const lastSaved = useRef("");
   const hasSavedSnapshot = useRef(false);
   const isCurrentSaved = useCallback(() => hasSavedSnapshot.current && !awaitingChoice.current && JSON.stringify(form.getValues()) === lastSaved.current, [form]);
@@ -54,7 +55,10 @@ export function useEndpointDraft<T extends FieldValues>(projectId: string, key: 
 
   const flushRef = useRef(() => {});
   flushRef.current = () => {
-    if (!active.current || awaitingChoice.current || !revision.current || !latest.current || latest.current === lastSaved.current) return;
+    if (!active.current || awaitingChoice.current || !revision.current) return;
+    // Flushes must include edits made since the last debounced snapshot.
+    latest.current = JSON.stringify(form.getValues());
+    if (!latest.current || latest.current === lastSaved.current) return;
     const current = generation.current;
     void fetch(path, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ revision: revision.current, writeOrder: ++writeOrder.current, payload: latest.current }), keepalive: true }).then(response => {
       if (response.status === 409 && active.current && current === generation.current) void recoverConflict.current();
@@ -93,13 +97,19 @@ export function useEndpointDraft<T extends FieldValues>(projectId: string, key: 
   useEffect(() => {
     if (loading || recovered || conflict || (!revision.current && !staleRevision.current)) return;
     const changed = () => {
-      latest.current = JSON.stringify(form.getValues());
+      const version = ++changeVersion.current;
       clearTimeout(timer.current);
-      if (!active.current || awaitingChoice.current || latest.current === lastSaved.current) return;
+      if (!active.current || awaitingChoice.current) return;
       if (staleRevision.current) { void recoverConflict.current(); return; }
       setStatus("Saving draft…");
       timer.current = setTimeout(() => {
-        const payload = latest.current; const token = revision.current; const order = ++writeOrder.current; const current = generation.current;
+        const payload = JSON.stringify(form.getValues());
+        latest.current = payload;
+        if (payload === lastSaved.current) {
+          setStatus(hasSavedSnapshot.current ? "Draft saved" : "Drafts save automatically");
+          return;
+        }
+        const token = revision.current; const order = ++writeOrder.current; const current = generation.current;
         queue.current = queue.current.catch(() => {}).then(async () => {
           if (!active.current || awaitingChoice.current || token !== revision.current || current !== generation.current) return;
           try {
@@ -107,17 +117,18 @@ export function useEndpointDraft<T extends FieldValues>(projectId: string, key: 
             if (!active.current || current !== generation.current) return;
             lastSaved.current = payload;
             hasSavedSnapshot.current = true;
-            if (active.current && latest.current === payload) { setStatus("Draft saved"); setError(false); }
+            if (active.current && changeVersion.current === version) { setStatus("Draft saved"); setError(false); }
           } catch (cause) {
             if (!active.current || current !== generation.current) return;
             if (cause instanceof ApiError && cause.status === 409) void recoverConflict.current();
-            else if (latest.current === payload) { setStatus("Draft not saved. Save the endpoint before leaving."); setError(true); }
+            else if (changeVersion.current === version) { setStatus("Draft not saved. Save the endpoint before leaving."); setError(true); }
           }
         });
       }, 600);
     };
     const subscription = form.watch(changed);
-    changed(); // Also save edits made while the initial recovery request was pending.
+    // Recovery is a synchronization boundary, not a keystroke path.
+    if (JSON.stringify(form.getValues()) !== lastSaved.current) changed();
     const flush = () => flushRef.current();
     window.addEventListener("pagehide", flush);
     return () => { subscription.unsubscribe(); window.removeEventListener("pagehide", flush); clearTimeout(timer.current); };

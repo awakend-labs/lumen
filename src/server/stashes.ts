@@ -116,8 +116,9 @@ export async function reorderStashes(
   }
 
   if (ids.length) {
-    const updates = ids.map((id, index) => db.update(stashes).set({ order: index, updatedAt: new Date() }).where(and(eq(stashes.id, id), eq(stashes.projectId, projectId))));
-    await db.batch([updates[0], ...updates.slice(1)]);
+    await db.update(stashes).set({ order: sql`ordering.ordinality - 1`, updatedAt: new Date() })
+      .from(sql`unnest(ARRAY[${sql.join(ids.map(id => sql`${id}::uuid`), sql`, `)}]) WITH ORDINALITY AS ordering(id, ordinality)`)
+      .where(and(eq(stashes.id, sql`ordering.id`), eq(stashes.projectId, projectId)));
   }
   await touchProject(projectId);
 }

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProject } from "@/features/projects/queries";
-import type { ProjectDetail } from "@/lib/types";
+import type { ProjectSummary } from "@/lib/types";
 import { canEditContent } from "@/lib/permissions";
 
 export function ProjectFrame({
@@ -20,7 +20,7 @@ export function ProjectFrame({
   editable = false,
 }: {
   projectId: string;
-  children: (project: ProjectDetail) => React.ReactNode;
+  children: (project: ProjectSummary) => React.ReactNode;
   editable?: boolean;
 }) {
   const project = useProject(projectId);

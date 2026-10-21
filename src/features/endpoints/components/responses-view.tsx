@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Code2Icon, StarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -28,19 +28,27 @@ export function ResponsesView({ responses, method, endpointName, shared }: { res
         </TabsTrigger>)}
       </TabsList>
     </div>
-    {responses.map(original => {
-      const response = resolveResponse(original, shared);
-      const missingShared = original.useSharedError && !shared;
-      const noBody = response.statusCode === 204 || response.statusCode === 304 || method === "HEAD";
-      const example = response.body !== undefined ? stringifyJson(response.body, response.bodySource) : "";
-      const schema = response.schema;
-      const typeName = `${endpointName.split(/[^A-Za-z0-9]+/).filter(Boolean).map(part => part[0].toUpperCase() + part.slice(1)).join("") || "Endpoint"}Response${response.statusCode}`;
-      const type = noBody && schema === undefined ? `export type ${typeName} = void;\n` : responseTypeScript(schema, typeName);
-      return <TabsContent key={response.statusCode} value={String(response.statusCode)} className="min-w-0 space-y-4">
+    {responses.map(original => <TabsContent key={original.statusCode} value={String(original.statusCode)} className="min-w-0 space-y-4">
+      <ResponsePanel original={original} shared={shared} method={method} endpointName={endpointName} />
+    </TabsContent>)}
+  </Tabs>;
+}
+
+function ResponsePanel({ original, shared, method, endpointName }: { original: ResponseDoc; shared?: ResponseErrorFormat | null; method: HttpMethod; endpointName: string }) {
+  const response = useMemo(() => resolveResponse(original, shared), [original, shared]);
+  const missingShared = original.useSharedError && !shared;
+  const noBody = response.statusCode === 204 || response.statusCode === 304 || method === "HEAD";
+  const example = useMemo(() => response.body !== undefined ? stringifyJson(response.body, response.bodySource) : "", [response.body, response.bodySource]);
+  const schema = response.schema;
+  const schemaText = useMemo(() => schema !== undefined ? stringifyJson(schema, response.schemaSource) : "", [schema, response.schemaSource]);
+  return <>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0"><p className="break-words text-sm font-medium">{response.description || "No description yet."}</p>{response.useSharedError && <p className="mt-1 text-xs text-muted-foreground">Uses the project error format</p>}</div>
           <Button type="button" size="sm" variant="outline" className="shrink-0" disabled={Boolean(missingShared) || (schema === undefined && !noBody)} onClick={async () => {
-            try { await navigator.clipboard.writeText(type); toast.success("TypeScript copied"); } catch { toast.error("Could not copy TypeScript. Please try again."); }
+            try {
+              const typeName = `${endpointName.split(/[^A-Za-z0-9]+/).filter(Boolean).map(part => part[0].toUpperCase() + part.slice(1)).join("") || "Endpoint"}Response${response.statusCode}`;
+              const type = noBody && schema === undefined ? `export type ${typeName} = void;\n` : responseTypeScript(schema, typeName);
+              await navigator.clipboard.writeText(type); toast.success("TypeScript copied"); } catch { toast.error("Could not copy TypeScript. Please try again."); }
           }}><Code2Icon className="size-3.5" aria-hidden />Copy as TypeScript</Button>
         </div>
         {missingShared ? <p role="alert" className="text-sm text-destructive">The project error format is unavailable. Ask an editor to configure it.</p>
@@ -50,8 +58,6 @@ export function ResponsesView({ responses, method, endpointName, shared }: { res
             </div>
             {schema !== undefined ? <ResponseFieldTree schema={schema} /> : <p className="self-center text-sm text-muted-foreground">{noBody ? "No response fields." : "No response contract documented yet."}</p>}
           </div>}
-        {schema !== undefined && !missingShared && <details className="rounded-md border border-border/60 px-3 py-2"><summary className="cursor-pointer text-xs text-muted-foreground">View JSON schema</summary><div className="mt-2 flex justify-end"><CopyButton value={stringifyJson(schema, response.schemaSource)} label={`Copy response ${response.statusCode} schema`} /></div><pre tabIndex={0} className="max-h-64 overflow-auto pb-3 font-mono text-xs leading-5 [scrollbar-width:thin]"><HighlightedJson text={stringifyJson(schema, response.schemaSource)} /></pre></details>}
-      </TabsContent>;
-    })}
-  </Tabs>;
+        {schema !== undefined && !missingShared && <details className="rounded-md border border-border/60 px-3 py-2"><summary className="cursor-pointer text-xs text-muted-foreground">View JSON schema</summary><div className="mt-2 flex justify-end"><CopyButton value={schemaText} label={`Copy response ${response.statusCode} schema`} /></div><pre tabIndex={0} className="max-h-64 overflow-auto pb-3 font-mono text-xs leading-5 [scrollbar-width:thin]"><HighlightedJson text={schemaText} /></pre></details>}
+  </>;
 }

@@ -1,3 +1,4 @@
+import { memo } from "react";
 const TOKEN =
   /"(?:\\.|[^"\\])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\b(?:true|false|null)\b|[{}[\],:]/g;
 
@@ -25,7 +26,7 @@ function tokenizeJson(source: string) {
   return parts;
 }
 
-export function HighlightedJson({ text }: { text: string }) {
+export const HighlightedJson = memo(function HighlightedJson({ text }: { text: string }) {
   return tokenizeJson(text).map((part, index) =>
     part.kind ? (
       <span key={index} className={`json-${part.kind}`}>
@@ -35,4 +36,4 @@ export function HighlightedJson({ text }: { text: string }) {
       part.text
     ),
   );
-}
+});

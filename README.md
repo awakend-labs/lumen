@@ -49,12 +49,30 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 | Command | Does |
 | --- | --- |
 | `pnpm dev` | Local Next.js |
+| `pnpm dev:turbo` | Opt-in Turbopack development; ordinary `dev` remains available |
 | `pnpm lint` | ESLint |
+| `pnpm typecheck` | TypeScript validation |
 | `pnpm test` | The small test suite |
 | `pnpm db:generate` | Write a Drizzle migration |
 | `pnpm db:migrate` | Apply migrations (your machine, not the Worker) |
 | `pnpm db:studio` | Drizzle Studio |
 | `pnpm preview` | OpenNext build, then a local Workers preview |
 | `pnpm deploy` | OpenNext build, then Cloudflare Workers |
+| `pnpm build:cloudflare` | Build the Worker artifact once |
+| `pnpm preview:built` | Preview the last successful Worker build |
+| `pnpm deploy:built` | Deploy the last successful Worker build |
+| `pnpm upload:built` | Upload the last successful Worker build |
 
 Production runs on Cloudflare Workers via `@opennextjs/cloudflare`. Put `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and `NEXT_PUBLIC_APP_URL` on the Worker. Point both URL vars at the live origin, then migrate the database from your machine before you ship schema changes.
+
+Cloudflare Workers Builds already installs dependencies. Use `pnpm run build:cloudflare` as its build command and `pnpm exec opennextjs-cloudflare deploy` as its deploy command. Avoid an additional install in the build command or a second build in the deploy command. Verify build-cache restore/save messages on consecutive runs in the Cloudflare dashboard. These dashboard settings are not controlled by this repository.
+
+Only use the `:built` commands after a successful build of the current source and build-time environment. Rebuild after either changes. Production continues to use Webpack and built-in lint/type validation. Test `dev:turbo` before adopting it as your usual development command.
+
+Ordinary Next development uses `.env` without starting Cloudflare binding emulation. When testing bindings, set `LUMEN_CF_DEV=1` in the process before running `pnpm dev`. Use OpenNext preview for actual Worker runtime validation.
+
+The landing font is bundled in `public/fonts/plus-jakarta-sans` with its SIL Open Font License. Its existing weight, language subsets, Latin preload and fallback metrics are preserved; builds no longer download it from Google.
+
+Project navigation loads endpoint summaries; detail/edit and duplication load complete endpoint documents separately. **Apply migration `0010_faulty_venus` with `pnpm db:migrate` before deploying this version.** It adds the generated response preview used by summary queries.
+
+See [performance implementation and benchmark results](docs/performance-optimization-progress.md) for all report items, local verification, benchmark commands, and the remaining Cloudflare/staging checks. The pinned Next version currently fails OpenNext's maintenance-support check, so a passing Next build alone does not establish Worker release readiness.

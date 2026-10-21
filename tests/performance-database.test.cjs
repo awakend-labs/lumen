@@ -1,0 +1,64 @@
+require('./register.cjs');
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const Module = require('node:module');
+const { createLocalDatabase } = require('./helpers/neon-pglite.cjs');
+let db;
+let currentUser = { id: 'owner' };
+const databaseProxy = new Proxy({}, { get(_target, key) { const value = db[key]; return typeof value === 'function' ? value.bind(db) : value; } });
+const originalLoad = Module._load;
+Module._load = function(request, parent, isMain) {
+  if (request === '@/db') return { db: databaseProxy };
+  if (request === './session' && parent?.filename.endsWith('access.ts')) return { getServerSession: async () => currentUser ? { user: currentUser } : null };
+  return originalLoad.call(this, request, parent, isMain);
+};
+
+test('Neon adapter batches project creation atomically and rolls back a failed membership insert', async t => {
+  const local = await createLocalDatabase(); db = local.db; t.after(() => local.pg.close());
+  await local.pg.exec(`insert into "user" (id,name,email) values ('owner','Owner','owner@example.com')`);
+  const service = require('../src/server/projects.ts');
+  const project = await service.createProject('owner', { name: 'Atomic', description: '' });
+  assert.equal(local.counters.transactions, 1);
+  assert.equal((await service.getProjectDetail('owner', project.id)).role, 'owner');
+  local.failBefore(sql => { if (sql.startsWith('insert into "project_members"')) throw new Error('Membership insert failure'); });
+  await assert.rejects(service.createProject('owner', { name: 'Must roll back', description: '' }), /Membership insert failure/);
+  assert.equal((await local.pg.query("select count(*)::int as count from projects where name = 'Must roll back'")).rows[0].count, 0);
+});
+
+test('summary reads exclude heavy documents, preserve card metadata, and keep targeted documents and authorization intact', async t => {
+  const local = await createLocalDatabase(); db = local.db; t.after(() => local.pg.close());
+  await local.pg.exec(`insert into "user" (id,name,email) values ('owner','Owner','owner@example.com'), ('outsider','Other','other@example.com')`);
+  const service = require('../src/server/projects.ts');
+  const stashes = require('../src/server/stashes.ts');
+  const { endpointInputSchema } = require('../src/lib/validators.ts');
+  const project = await service.createProject('owner', { name: 'Documents', description: '' });
+  const stash = await stashes.createStash('owner', project.id, { name: 'Routes', description: '', color: 'blue' });
+  const endpoint = await service.createEndpoint('owner', project.id, endpointInputSchema.parse({ stashId: stash.id, name: 'Precision', method: 'GET', path: '/precise', version: '', requestBody: { example: { total: 998 }, exampleSource: '{"total":998.0}' }, responses: [{ statusCode: 200, description: 'Exact response', body: { data: 'x'.repeat(12000) } }] }));
+  const summary = await service.getProjectSummary('owner', project.id);
+  const row = summary.stashes[0].endpoints[0];
+  assert.deepEqual(row.firstResponse, { statusCode: 200, description: 'Exact response' });
+  assert.equal(row.version, '');
+  for (const field of ['headers', 'queryParams', 'pathParams', 'requestBody', 'responses']) assert.equal(Object.hasOwn(row, field), false);
+  const targeted = await service.getEndpoint('owner', project.id, endpoint.id);
+  assert.equal(targeted.endpoint.requestBody.exampleSource, '{"total":998.0}');
+  assert.equal(targeted.endpoint.responses[0].body.data.length, 12000);
+  assert.equal(Object.hasOwn(targeted.endpoint, 'responsePreview'), false);
+  assert.ok(JSON.stringify(summary).length < JSON.stringify(await service.getProjectDetail('owner', project.id)).length / 4);
+  await assert.rejects(service.getProjectSummary('outsider', project.id), /not found/);
+  await assert.rejects(service.getEndpoint('outsider', project.id, endpoint.id), /not found/);
+  const { endpoints } = require('../src/db/schema');
+  const { eq } = require('drizzle-orm');
+  await db.update(endpoints).set({ responses: [{ statusCode: 201, description: 'Changed after write' }] }).where(eq(endpoints.id, endpoint.id));
+  assert.deepEqual((await service.getProjectSummary('owner', project.id)).stashes[0].endpoints[0].firstResponse, { statusCode: 201, description: 'Changed after write' });
+  const summaryRoute = require('../src/app/api/projects/[projectId]/summary/route.ts');
+  const context = { params: Promise.resolve({ projectId: project.id }) };
+  currentUser = { id: 'owner' };
+  const allowed = await summaryRoute.GET(new Request('http://localhost'), context);
+  assert.equal(allowed.status, 200);
+  assert.match(allowed.headers.get('cache-control'), /no-store/);
+  currentUser = { id: 'outsider' };
+  assert.equal((await summaryRoute.GET(new Request('http://localhost'), context)).status, 404);
+  currentUser = null;
+  assert.equal((await summaryRoute.GET(new Request('http://localhost'), context)).status, 401);
+  currentUser = { id: 'owner' };
+});

@@ -2,9 +2,10 @@ import { api } from "@/lib/api";
 import type { EndpointRecord, ProjectRole } from "@/lib/types";
 import type { EndpointInput } from "@/lib/validators";
 
-export function fetchEndpoint(projectId: string, endpointId: string) {
+export function fetchEndpoint(projectId: string, endpointId: string, signal?: AbortSignal) {
   return api<{ endpoint: EndpointRecord; role: ProjectRole }>(
     `/api/projects/${projectId}/endpoints/${endpointId}`,
+    { signal },
   );
 }
 

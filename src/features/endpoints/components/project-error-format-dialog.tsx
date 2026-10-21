@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { stringifyJson } from "@/lib/json-source";
 import { responseErrorFormatSchema } from "@/lib/validators";
-import type { ProjectDetail, ResponseErrorFormat } from "@/lib/types";
+import type { ProjectSummary, ResponseErrorFormat } from "@/lib/types";
 import { ResponseContractEditor, generatedResponseSchema } from "./response-contract-editor";
 
 export function ProjectErrorFormatDialog({ projectId, value, open, onOpenChange }: {
@@ -30,10 +30,10 @@ export function ProjectErrorFormatDialog({ projectId, value, open, onOpenChange 
   }, [open, value]);
   const save = useMutation({
     mutationFn: (input: ResponseErrorFormat) => api<ResponseErrorFormat>(`/api/projects/${projectId}/response-error-format`, { method: "PUT", body: JSON.stringify(input) }),
-    onMutate: () => client.cancelQueries({ queryKey: ["projects", projectId] }),
+    onMutate: () => client.cancelQueries({ queryKey: ["project-summary", projectId] }),
     onSuccess: result => {
-      client.setQueryData<ProjectDetail>(["projects", projectId], current => current ? { ...current, responseErrorFormat: result } : current);
-      client.invalidateQueries({ queryKey: ["projects", projectId], refetchType: "none" });
+      client.setQueryData<ProjectSummary>(["project-summary", projectId], current => current ? { ...current, responseErrorFormat: result } : current);
+      client.invalidateQueries({ queryKey: ["project-summary", projectId], refetchType: "none" });
       toast.success("Project error format saved"); onOpenChange(false);
     },
     onError: (cause: Error) => setError(cause.message),

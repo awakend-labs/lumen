@@ -26,7 +26,7 @@ Module._load = function(request, parent, isMain) {
   if (request === 'next/link') return function TestLink({ children, ...props }) { return React.createElement('a', props, children); };
   if (request === 'sonner') return { toast: { success() {}, error() {} } };
   if (request === '@/lib/auth-client') return { authClient: { useSession: () => session } };
-  if (request === '@/features/projects/queries') return { useProject: () => project, projectKeys: { all: ['projects'], detail: id => ['projects', id] } };
+  if (request === '@/features/projects/queries') return { useProject: () => project, projectKeys: { all: ['projects'], detail: id => ['projects', id], summary: id => ['project-summary', id] } };
   if (request === '@/features/invitations/queries') return { useInvitationPreview: () => preview, useAcceptInvitation: () => mutationState };
   if (request === '@tanstack/react-query') return {
     useQueryClient: () => client,
@@ -102,12 +102,12 @@ test('member removal requires confirmation and the pending invite list does not 
 test('acceptance removes cached no-access data and navigates to a fresh project page', () => {
   reset(); let destination;
   global.window = { location: { replace: path => { destination = path; } } };
-  client.setQueryData(['projects', 'p'], { unavailable: true });
+  client.setQueryData(['project-summary', 'p'], { unavailable: true });
   client.setQueryData(['projects'], []);
   client.setQueryData(['invitation', 'fixture'], preview.data);
   useAcceptInvitation('fixture');
   mutations.at(-1).onSuccess({ projectId: 'p' });
-  assert.equal(client.getQueryData(['projects', 'p']), undefined);
+  assert.equal(client.getQueryData(['project-summary', 'p']), undefined);
   assert.equal(client.getQueryState(['projects']).isInvalidated, true);
   assert.equal(client.getQueryData(['invitation', 'fixture']).status, 'accepted');
   assert.equal(destination, '/projects/p');
@@ -129,10 +129,10 @@ test('creating an invitation cancels a stale list request before updating the ca
 });
 
 test('creating a second stash caches complete empty groups and endpoints without crashing', async () => {
-  reset(); client.setQueryData(['projects', 'p'], { id: 'p', stashes: [{ id: 'existing', groups: [], endpoints: [] }] });
+  reset(); client.setQueryData(['project-summary', 'p'], { id: 'p', stashes: [{ id: 'existing', groups: [], endpoints: [] }] });
   client.setQueryData(['projects'], [{ id: 'p', stashCount: 1, previewStashes: [{ id: 'existing' }] }]);
   useCreateStash('p'); await mutations.at(-1).onSuccess({ id: 'new', projectId: 'p', name: 'New stash' });
-  const stashes = client.getQueryData(['projects', 'p']).stashes;
+  const stashes = client.getQueryData(['project-summary', 'p']).stashes;
   assert.equal(stashes.length, 2);
   assert.deepEqual(stashes[1].groups, []); assert.deepEqual(stashes[1].endpoints, []);
   assert.equal(stashes.reduce((sum, stash) => sum + stash.groups.length + stash.endpoints.length, 0), 0);

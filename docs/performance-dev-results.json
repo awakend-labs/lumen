@@ -1,0 +1,205 @@
+{
+  "environment": "win32, Node v24.14.1; sequential runs; one first run and three warm runs per successful candidate. Development compilation does not replace production lint/type checks. Development request timings are server request/compile measurements, not browser HMR. Cloudflare packaging is outside this benchmark.",
+  "results": [
+    {
+      "bundler": "webpack",
+      "run": 0,
+      "cache": "first run in isolated output directory",
+      "startupMs": 4204.7,
+      "requests": [
+        {
+          "route": "/",
+          "ms": 7844.42
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 6390.73
+        },
+        {
+          "route": "/login",
+          "ms": 4771
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 422.69
+        }
+      ],
+      "success": true
+    },
+    {
+      "bundler": "webpack",
+      "run": 1,
+      "cache": "warm",
+      "startupMs": 3824.91,
+      "requests": [
+        {
+          "route": "/",
+          "ms": 5657.86
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 6548.61
+        },
+        {
+          "route": "/login",
+          "ms": 6472.42
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 464.31
+        }
+      ],
+      "success": true
+    },
+    {
+      "bundler": "webpack",
+      "run": 2,
+      "cache": "warm",
+      "startupMs": 4087.97,
+      "requests": [
+        {
+          "route": "/",
+          "ms": 6289.45
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 6682.52
+        },
+        {
+          "route": "/login",
+          "ms": 6901.94
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 466.75
+        }
+      ],
+      "success": true
+    },
+    {
+      "bundler": "webpack",
+      "run": 3,
+      "cache": "warm",
+      "startupMs": 3794.02,
+      "requests": [
+        {
+          "route": "/",
+          "ms": 5758.34
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 5082.83
+        },
+        {
+          "route": "/login",
+          "ms": 7016.36
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 594.86
+        }
+      ],
+      "success": true
+    },
+    {
+      "bundler": "turbopack",
+      "run": 0,
+      "cache": "first run in isolated output directory",
+      "startupMs": 3313.84,
+      "requests": [
+        {
+          "route": "/",
+          "ms": 9929.33
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 4944.35
+        },
+        {
+          "route": "/login",
+          "ms": 6038.22
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 436.92
+        }
+      ],
+      "success": true
+    },
+    {
+      "bundler": "turbopack",
+      "run": 1,
+      "cache": "warm",
+      "startupMs": 3465.42,
+      "requests": [
+        {
+          "route": "/",
+          "ms": 7111.44
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 3867.29
+        },
+        {
+          "route": "/login",
+          "ms": 5078.77
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 402.45
+        }
+      ],
+      "success": true
+    },
+    {
+      "bundler": "turbopack",
+      "run": 2,
+      "cache": "warm",
+      "startupMs": 3309.76,
+      "requests": [
+        {
+          "route": "/",
+          "ms": 7023.54
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 3777.97
+        },
+        {
+          "route": "/login",
+          "ms": 6107.69
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 485.18
+        }
+      ],
+      "success": true
+    },
+    {
+      "bundler": "turbopack",
+      "run": 3,
+      "cache": "warm",
+      "startupMs": 3679.74,
+      "requests": [
+        {
+          "route": "/",
+          "ms": 7917.06
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 5383.57
+        },
+        {
+          "route": "/login",
+          "ms": 5734.24
+        },
+        {
+          "route": "/body-json-review",
+          "ms": 326.98
+        }
+      ],
+      "success": true
+    }
+  ]
+}

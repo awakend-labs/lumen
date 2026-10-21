@@ -1,7 +1,7 @@
-import type { ProjectDetail, ProjectListItem } from "./types";
+import type { ProjectSummary, ProjectListItem } from "./types";
 export type WorkspaceSearchResult = { id: string; kind: string; title: string; context: string; href: string };
 
-export function searchCachedWorkspace(query: string, projects: ProjectListItem[], details: ProjectDetail[]): WorkspaceSearchResult[] {
+export function searchCachedWorkspace(query: string, projects: ProjectListItem[], details: ProjectSummary[]): WorkspaceSearchResult[] {
   const q = query.trim().toLowerCase(); if (q.length < 2) return [];
   const matches = (...values: string[]) => values.some(value => value.toLowerCase().includes(q));
   const results: WorkspaceSearchResult[] = projects.filter(project => matches(project.name, project.description ?? "")).map(project => ({ id: project.id, kind: "Project", title: project.name, context: "Project", href: `/projects/${project.id}` }));

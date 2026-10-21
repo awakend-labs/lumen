@@ -1,0 +1,35 @@
+{
+  "environment": "Local in-memory PostgreSQL via the Neon Drizzle adapter; synthetic documents; five measured warm reads after one warmup. No live database or network writes.",
+  "results": [
+    {
+      "endpoints": 50,
+      "fullBytes": 899167,
+      "summaryBytes": 24717,
+      "fullGzipBytes": 193640,
+      "summaryGzipBytes": 2184,
+      "fullReadMedianMs": 25,
+      "summaryReadMedianMs": 10.06,
+      "selectedEndpointBytes": 17856
+    },
+    {
+      "endpoints": 500,
+      "fullBytes": 9055919,
+      "summaryBytes": 242819,
+      "fullGzipBytes": 1929283,
+      "summaryGzipBytes": 16908,
+      "fullReadMedianMs": 183.05,
+      "summaryReadMedianMs": 22.95,
+      "selectedEndpointBytes": 17856
+    },
+    {
+      "endpoints": 2000,
+      "fullBytes": 36411921,
+      "summaryBytes": 973321,
+      "fullGzipBytes": 7716811,
+      "summaryGzipBytes": 65801,
+      "fullReadMedianMs": 271.25,
+      "summaryReadMedianMs": 39.4,
+      "selectedEndpointBytes": 17856
+    }
+  ]
+}

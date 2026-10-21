@@ -1,0 +1,15 @@
+{
+  "environment": "Installed Tailwind Oxide scanner; one warmup and five measured scans per source. Candidate counts are not generated CSS size or end-to-end build timings.",
+  "results": [
+    {
+      "source": "repository",
+      "candidates": 4830,
+      "warmMedianMs": 95.76
+    },
+    {
+      "source": "src",
+      "candidates": 3560,
+      "warmMedianMs": 75.4
+    }
+  ]
+}

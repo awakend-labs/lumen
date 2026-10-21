@@ -1,5 +1,7 @@
 "use client";
 
+import { DeferredDialog } from "@/components/deferred-dialog";
+
 import {
   DndContext,
   KeyboardSensor,
@@ -17,7 +19,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { motion } from "framer-motion";
+import * as m from "framer-motion/m";
 import {
   ChevronDownIcon,
   GripVerticalIcon,
@@ -31,9 +33,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { MoveEndpointDialog } from "./move-endpoint-dialog";
-import { RenameDialog } from "@/components/rename-dialog";
+import { lazy, useRef, useState } from "react";
+const loadMoveEndpointDialog = () => import("./move-endpoint-dialog").then(module => ({ default: module.MoveEndpointDialog }));
+const MoveEndpointDialog = lazy(loadMoveEndpointDialog);
+const loadRenameDialog = () => import("@/components/rename-dialog").then(module => ({ default: module.RenameDialog }));
+const RenameDialog = lazy(loadRenameDialog);
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { CompactMarkdown } from "@/components/compact-markdown";
 import {
@@ -82,17 +86,17 @@ import {
 import { useViewMode } from "@/hooks/use-view-mode";
 import { stashDotClass } from "@/lib/format";
 import { canEditContent } from "@/lib/permissions";
-import type { EndpointRecord, ProjectDetail, StashRecord } from "@/lib/types";
+import type { EndpointSummary, ProjectSummary, StashSummary } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type VisibleStash = { stash: StashRecord; endpoints: EndpointRecord[] };
+type VisibleStash = { stash: StashSummary; endpoints: EndpointSummary[] };
 
 export function EndpointBrowser({
   project,
   stashId,
   onCreateStash,
 }: {
-  project: ProjectDetail;
+  project: ProjectSummary;
   stashId?: string;
   onCreateStash?: () => void;
 }) {
@@ -317,7 +321,7 @@ export function EndpointBrowser({
   );
 }
 
-function matchesEndpoint(endpoint: EndpointRecord, q: string) {
+function matchesEndpoint(endpoint: EndpointSummary, q: string) {
   return (
     endpoint.name.toLowerCase().includes(q) ||
     endpoint.path.toLowerCase().includes(q) ||
@@ -340,8 +344,8 @@ function StashSection({
   bare = false,
 }: {
   projectId: string;
-  stash: StashRecord;
-  endpoints: EndpointRecord[];
+  stash: StashSummary;
+  endpoints: EndpointSummary[];
   editable: boolean;
   canReorder: boolean;
   filtering: boolean;
@@ -361,6 +365,7 @@ function StashSection({
   const [open, setOpen] = useState(true);
   const [editing, setEditing] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  const actionTrigger = useRef<HTMLButtonElement>(null);
   const update = useUpdateStash(projectId);
   const remove = useDeleteStash(projectId);
   const reorderEndpoints = useReorderEndpoints(projectId);
@@ -384,7 +389,7 @@ function StashSection({
     });
   }
 
-  const renderEndpoints = (items: EndpointRecord[]) =>
+  const renderEndpoints = (items: EndpointSummary[]) =>
     items.map((endpoint) => (
       <EndpointItem
         key={endpoint.id}
@@ -572,6 +577,7 @@ function StashSection({
                   <Button
                     variant="ghost"
                     size="icon-sm"
+                    ref={actionTrigger}
                     aria-label="Stash actions"
                   >
                     <MoreHorizontalIcon />
@@ -579,7 +585,7 @@ function StashSection({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuGroup>
-                    <DropdownMenuItem onSelect={() => setRenaming(true)}>
+                    <DropdownMenuItem onFocus={() => { void loadRenameDialog(); }} onPointerEnter={() => { void loadRenameDialog(); }} onSelect={() => setRenaming(true)}>
                       Rename
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setEditing(true)}>
@@ -623,14 +629,14 @@ function StashSection({
           <div className="stash-panel-body border-t p-4">{endpointBody}</div>
         </CollapsibleContent>
       </Collapsible>
-      <RenameDialog
+      {renaming && <DeferredDialog returnFocus={actionTrigger} title="Rename" onClose={() => setRenaming(false)}><RenameDialog
         kind="stash"
         projectId={projectId}
         itemId={stash.id}
         name={stash.name}
         open={renaming}
         onOpenChange={setRenaming}
-      />
+      /></DeferredDialog>}
       <StashDialog
         open={editing}
         onOpenChange={setEditing}
@@ -711,7 +717,7 @@ function EndpointItem({
   canReorder,
 }: {
   projectId: string;
-  endpoint: EndpointRecord;
+  endpoint: EndpointSummary;
   mode: "grid" | "list";
   editable: boolean;
   canReorder: boolean;
@@ -723,12 +729,12 @@ function EndpointItem({
   };
   const remove = useDeleteEndpoint(projectId);
   const href = `/projects/${projectId}/endpoints/${endpoint.id}`;
-  const firstResponse = endpoint.responses[0];
+  const firstResponse = endpoint.firstResponse;
 
   return (
     <div ref={sortable.setNodeRef} style={style}>
       {mode === "grid" ? (
-        <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
+        <m.div whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
           <Card className="h-full gap-2 border-border bg-card py-3 shadow-none transition-[border-color,box-shadow] hover:border-foreground/25 hover:shadow-sm">
             <CardHeader className="gap-1.5 px-4 pb-0">
               <div className="flex items-center justify-between gap-2">
@@ -788,7 +794,7 @@ function EndpointItem({
               ) : null}
             </CardContent>
           </Card>
-        </motion.div>
+        </m.div>
       ) : (
         <div className="group flex flex-wrap items-center gap-2 rounded-md border border-transparent border-b-border bg-card px-3 py-3.5 transition-[background-color,border-color] hover:border-border/50 hover:bg-foreground/[0.035] dark:hover:bg-white/[0.05] sm:flex-nowrap sm:gap-3">
           {canReorder ? (
@@ -862,18 +868,19 @@ function EndpointMenu({
   pending,
 }: {
   projectId: string;
-  endpoint: EndpointRecord;
+  endpoint: EndpointSummary;
   onDelete: () => void;
   pending: boolean;
 }) {
   const router = useRouter();
   const [renaming, setRenaming] = useState(false);
+  const actionTrigger = useRef<HTMLButtonElement>(null);
   const [moving, setMoving] = useState(false);
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" aria-label="Endpoint actions">
+          <Button variant="ghost" size="icon-sm" ref={actionTrigger} aria-label="Endpoint actions">
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>
@@ -882,7 +889,7 @@ function EndpointMenu({
             <DropdownMenuItem onSelect={() => setRenaming(true)}>
               Rename
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setMoving(true)}>
+            <DropdownMenuItem onFocus={() => { void loadMoveEndpointDialog(); }} onPointerEnter={() => { void loadMoveEndpointDialog(); }} onSelect={() => setMoving(true)}>
               Move to stash…
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -921,20 +928,20 @@ function EndpointMenu({
         </DropdownMenuContent>
       </DropdownMenu>
       {moving && (
-        <MoveEndpointDialog
+        <DeferredDialog returnFocus={actionTrigger} title="Move endpoint" onClose={() => setMoving(false)}><MoveEndpointDialog
           projectId={projectId}
           endpoint={endpoint}
           onClose={() => setMoving(false)}
-        />
+        /></DeferredDialog>
       )}
-      <RenameDialog
+      {renaming && <DeferredDialog returnFocus={actionTrigger} title="Rename" onClose={() => setRenaming(false)}><RenameDialog
         kind="endpoint"
         projectId={projectId}
         itemId={endpoint.id}
         name={endpoint.name}
         open={renaming}
         onOpenChange={setRenaming}
-      />
+      /></DeferredDialog>}
     </>
   );
 }

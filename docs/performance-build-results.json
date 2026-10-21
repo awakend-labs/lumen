@@ -1,0 +1,61 @@
+{
+  "environment": "win32, Node v24.14.1; sequential runs; one first run and three warm runs per successful candidate. Includes built-in checks. Development request timings are server request/compile measurements, not browser HMR. Cloudflare packaging is outside this benchmark.",
+  "results": [
+    {
+      "bundler": "webpack",
+      "run": 0,
+      "cache": "first run in isolated output directory",
+      "totalMs": 45696.95,
+      "success": true
+    },
+    {
+      "bundler": "webpack",
+      "run": 1,
+      "cache": "warm",
+      "totalMs": 34800.24,
+      "success": true
+    },
+    {
+      "bundler": "webpack",
+      "run": 2,
+      "cache": "warm",
+      "totalMs": 32996.14,
+      "success": true
+    },
+    {
+      "bundler": "webpack",
+      "run": 3,
+      "cache": "warm",
+      "totalMs": 33115.74,
+      "success": true
+    },
+    {
+      "bundler": "turbopack",
+      "run": 0,
+      "cache": "first run in isolated output directory",
+      "totalMs": 39999.01,
+      "success": true
+    },
+    {
+      "bundler": "turbopack",
+      "run": 1,
+      "cache": "warm",
+      "totalMs": 35239.58,
+      "success": true
+    },
+    {
+      "bundler": "turbopack",
+      "run": 2,
+      "cache": "warm",
+      "totalMs": 35680.19,
+      "success": true
+    },
+    {
+      "bundler": "turbopack",
+      "run": 3,
+      "cache": "warm",
+      "totalMs": 32870.87,
+      "success": true
+    }
+  ]
+}

@@ -8,9 +8,9 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
-  { files: ["tests/**/*.cjs"], rules: { "@typescript-eslint/no-require-imports": "off" } },
+  { files: ["tests/**/*.cjs", "scripts/**/*.cjs"], rules: { "@typescript-eslint/no-require-imports": "off" } },
   {
-    ignores: [".next/**", ".open-next/**", ".wrangler/**", "out/**", "build/**", "next-env.d.ts"],
+    ignores: [".next/**", ".next-performance/**", ".open-next/**", ".wrangler/**", "out/**", "build/**", "next-env.d.ts"],
   },
 ];
 

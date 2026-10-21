@@ -5,7 +5,7 @@ import { Shield } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import { AUTH_SCHEMES, type ProjectAuth, type ProjectDetail } from "@/lib/types";
+import { AUTH_SCHEMES, type ProjectAuth, type ProjectSummary } from "@/lib/types";
 import { projectKeys } from "@/features/projects/queries";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -20,14 +20,9 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-export const authLabels = {
-  none: "Not configured",
-  bearer: "Bearer / JWT",
-  api_key: "API key",
-  basic: "Basic",
-};
+import { authLabels } from "@/lib/auth-labels";
 
-export function ProjectAuthSettings({ project }: { project: ProjectDetail }) {
+export function ProjectAuthSettings({ project }: { project: ProjectSummary }) {
   const [value, setValue] = useState<ProjectAuth>(project.auth);
   const client = useQueryClient();
   const save = useMutation({
@@ -37,8 +32,8 @@ export function ProjectAuthSettings({ project }: { project: ProjectDetail }) {
         body: JSON.stringify(value),
       }),
     onSuccess: (auth) => {
-      client.setQueryData<ProjectDetail>(
-        projectKeys.detail(project.id),
+      client.setQueryData<ProjectSummary>(
+        projectKeys.summary(project.id),
         (current) => (current ? { ...current, auth } : current),
       );
       toast.success("Authentication documentation saved");

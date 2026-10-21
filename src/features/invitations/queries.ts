@@ -19,6 +19,7 @@ export function useAcceptInvitation(token: string) {
     onSuccess: (result) => {
       // A previously opened project may have a cached 404 from before joining.
       client.removeQueries({ queryKey: ["projects", result.projectId] });
+      client.removeQueries({ queryKey: ["project-summary", result.projectId] });
       client.invalidateQueries({ queryKey: ["projects"], refetchType: "none" });
       client.invalidateQueries({ queryKey: ["members", result.projectId], refetchType: "none" });
       client.invalidateQueries({ queryKey: ["invitations", result.projectId], refetchType: "none" });

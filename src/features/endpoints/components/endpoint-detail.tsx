@@ -17,7 +17,7 @@ import { Shield, Copy } from "lucide-react";
 import { CurlExample } from "./curl-example";
 import { FieldTable, requestBodyFields } from "./field-table";
 import { ResponsesView } from "./responses-view";
-import { authLabels } from "@/features/projects/components/project-auth-settings";
+import { authLabels } from "@/lib/auth-labels";
 import { useProject } from "@/features/projects/queries";
 import { SectionNav, sectionId } from "@/components/section-nav";
 import { EndpointPathBar } from "./endpoint-path-bar";

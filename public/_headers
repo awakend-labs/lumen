@@ -2,3 +2,7 @@
 # https://opennext.js.org/cloudflare/caching#static-assets-caching
 /_next/static/*
   Cache-Control: public,max-age=31536000,immutable
+
+# Bundled font filenames include their asset hashes. Rename when replacing a font.
+/fonts/plus-jakarta-sans/*
+  Cache-Control: public,max-age=31536000,immutable

@@ -9,7 +9,15 @@ const { QueryClient, QueryClientProvider } = require('@tanstack/react-query');
 global.IS_REACT_ACT_ENVIRONMENT = true;
 let project = { responseErrorFormat: { body: { error: 'CONFLICT', message: 'Already registered' } } };
 const originalLoad = Module._load;
+let resolvedResponses = 0, generatedTypes = 0;
 Module._load = function(request, parent, isMain) {
+  if (request === '@/lib/response-contract' && parent?.filename.endsWith('responses-view.tsx')) {
+    const contract = originalLoad.call(this, request, parent, isMain);
+    return { ...contract,
+      resolveResponse: (...args) => { resolvedResponses++; return contract.resolveResponse(...args); },
+      responseTypeScript: (...args) => { generatedTypes++; return contract.responseTypeScript(...args); },
+    };
+  }
   if (request === '@/features/projects/queries') return { useProject: () => ({ data: project }) };
   if (request === './json-editor') return { JsonEditor: function TestEditor({ id, value, label, onChange }) { return React.createElement('textarea', { id, value, 'aria-label': label, onChange: event => onChange(event.target.value) }); } };
   return originalLoad.call(this, request, parent, isMain);
@@ -17,6 +25,42 @@ Module._load = function(request, parent, isMain) {
 const { ResponsesEditor } = require('../src/features/endpoints/components/responses-editor.tsx');
 const { ResponsesView } = require('../src/features/endpoints/components/responses-view.tsx');
 const text = node => typeof node === 'string' ? node : (node.children ?? []).map(text).join('');
+
+test('inactive response tabs do no resolution work and TypeScript is generated only when copied', async t => {
+  const { Button } = require('../src/components/ui/button.tsx');
+  const oldNavigator = Object.getOwnPropertyDescriptor(global, 'navigator');
+  const oldFrame = global.requestAnimationFrame, oldCancel = global.cancelAnimationFrame;
+  global.requestAnimationFrame = callback => setTimeout(callback, 0);
+  global.cancelAnimationFrame = clearTimeout;
+  let copied, renderer;
+  Object.defineProperty(global, 'navigator', { configurable: true, value: { clipboard: { writeText: async value => { copied = value; } } } });
+  t.after(async () => {
+    await act(async () => renderer?.unmount());
+    global.requestAnimationFrame = oldFrame; global.cancelAnimationFrame = oldCancel;
+    if (oldNavigator) Object.defineProperty(global, 'navigator', oldNavigator); else delete global.navigator;
+  });
+  const responses = [
+    { statusCode: 200, description: 'Success', body: { count: 998 }, bodySource: '{"count":998.0}', schema: { type: 'object', properties: { count: { type: 'number' } } } },
+    { statusCode: 409, description: 'Conflict', useSharedError: true },
+  ];
+  resolvedResponses = 0; generatedTypes = 0;
+  const props = { responses, method: 'GET', endpointName: 'Read', shared: { body: { error: 'OLD' }, schema: { type: 'object', properties: { oldError: { type: 'string' } } } } };
+  await act(async () => { renderer = create(React.createElement(ResponsesView, props)); });
+  assert.equal(resolvedResponses, 1);
+  assert.equal(generatedTypes, 0);
+  assert.match(text(renderer.toJSON()), /998\.0/);
+  // Remount on the shared response; Radix's DOM layout effects are unavailable in this renderer.
+  const conflictProps = { ...props, responses: responses.slice(1) };
+  await act(async () => renderer.update(React.createElement(ResponsesView, { ...conflictProps, key: 'conflict' })));
+  assert.equal(resolvedResponses, 2);
+  assert.equal(generatedTypes, 0);
+  await act(async () => renderer.update(React.createElement(ResponsesView, { ...conflictProps, key: 'conflict', shared: { body: { error: 'NEW' }, schema: { type: 'object', properties: { newError: { type: 'string' } } } } })));
+  const copy = renderer.root.findAllByType(Button).find(node => text(node).includes('Copy as TypeScript'));
+  await act(async () => { await copy.props.onClick(); });
+  assert.equal(generatedTypes, 1);
+  assert.match(copied, /newError/);
+  assert.doesNotMatch(copied, /oldError/);
+});
 
 async function fixture(t) {
   const client = new QueryClient(); let form, renderer;

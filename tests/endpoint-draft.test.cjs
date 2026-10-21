@@ -91,6 +91,41 @@ test('edits entered before recovery completes autosave after its normal debounce
   assert.equal(f.draft.isCurrentSaved(), false);
 });
 
+test('typing serializes once at the save boundary, and pagehide captures the latest unqueued edit', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const f = await fixture(t); await f.recover(null);
+  const stringify = JSON.stringify;
+  let snapshots = 0;
+  JSON.stringify = function(value, ...args) {
+    if (value && typeof value.name === 'string' && Array.isArray(value.responses) && typeof value.baseUrl === 'string') snapshots++;
+    return stringify.call(this, value, ...args);
+  };
+  try {
+    for (let index = 0; index < 20; index++) await f.edit('name', `Typed ${index}`);
+    assert.equal(snapshots, 0);
+    await act(async () => { t.mock.timers.tick(600); });
+    assert.equal(snapshots, 1);
+    assert.equal(JSON.parse(f.writes[0].payload).name, 'Typed 19');
+    await f.edit('name', 'New edit before timer');
+    await f.flush();
+    assert.equal(JSON.parse(f.writes.at(-1).payload).name, 'New edit before timer');
+  } finally { JSON.stringify = stringify; }
+});
+
+test('an older in-flight save cannot mark newer edits saved', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const f = await fixture(t); await f.recover(null);
+  let finish;
+  global.fetch = async () => new Promise(resolve => { finish = resolve; });
+  await f.edit('name', 'First edit');
+  await act(async () => { t.mock.timers.tick(600); });
+  await f.edit('name', 'Second edit');
+  await act(async () => finish(Response.json({ revision: 'revision' })));
+  assert.notEqual(f.draft.status, 'Draft saved');
+  assert.equal(f.draft.isCurrentSaved(), false);
+  assert.equal(f.form.getValues('name'), 'Second edit');
+});
+
 test('discard clears the leave warning baseline and subsequent edits are unsaved again', async t => {
   const f = await fixture(t); await f.recover(null);
   await f.edit('name', 'Discard this');

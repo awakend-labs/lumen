@@ -138,6 +138,7 @@ export const endpoints = pgTable(
     pathParams: jsonb("path_params").$type<ParamField[]>().notNull().default([]),
     requestBody: json("request_body").$type<RequestBodyDoc>(),
     responses: json("responses").$type<ResponseDoc[]>().notNull().default([]),
+    responsePreview: jsonb("response_preview").$type<Pick<ResponseDoc, "statusCode" | "description"> | null>().generatedAlwaysAs(sql`case when responses->0 is null then null else jsonb_set(jsonb_set('{}'::jsonb, '{statusCode}', coalesce(responses::jsonb->0->'statusCode', 'null'::jsonb)), '{description}', coalesce(responses::jsonb->0->'description', 'null'::jsonb)) end`),
     tags: text("tags").array().notNull().default([]),
     version: text("version").notNull().default("v1"),
     access: text("access").$type<"public" | "authenticated" | "admin_only">().notNull().default("public"),
