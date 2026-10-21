@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,8 @@ import { useProject } from "@/features/projects/queries";
 import type { ProjectSummary } from "@/lib/types";
 import { canEditContent } from "@/lib/permissions";
 
+const subscribeToHydration = () => () => {};
+
 export function ProjectFrame({
   projectId,
   children,
@@ -24,8 +26,7 @@ export function ProjectFrame({
   children: (project: ProjectSummary) => React.ReactNode;
   editable?: boolean;
 }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const project = useProject(projectId);
   const pending = !mounted || (project.isPending && !project.data);
 
