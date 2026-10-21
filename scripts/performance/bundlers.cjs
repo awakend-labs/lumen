@@ -15,7 +15,7 @@ function stop(child) {
   else child.kill('SIGTERM');
 }
 async function run(bundler, run) {
-  const args = [require.resolve('next/dist/bin/next'), production ? 'build' : 'dev', ...(bundler === 'turbopack' ? ['--turbopack'] : []), ...(!production ? ['--port', '3113', '--hostname', '127.0.0.1'] : [])];
+  const args = [require.resolve('next/dist/bin/next'), production ? 'build' : 'dev', bundler === 'turbopack' ? '--turbopack' : '--webpack', ...(!production ? ['--port', '3113', '--hostname', '127.0.0.1'] : [])];
   const start = performance.now(); let output = '';
   const child = active = spawn(process.execPath, args, { cwd: process.cwd(), env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1', LUMEN_PERFORMANCE_RUN: '1', LUMEN_PERFORMANCE_BUNDLER: bundler }, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
   const exited = new Promise(resolve => child.once('exit', code => resolve(code)));
@@ -56,7 +56,7 @@ async function main() {
       if (!result.success) break;
     }
   }
-  const report = { environment: `${process.platform}, Node ${process.version}; sequential runs; one first run and three warm runs per successful candidate. ${production ? "Includes built-in checks." : "Development compilation does not replace production lint/type checks."} Development request timings are server request/compile measurements, not browser HMR. Cloudflare packaging is outside this benchmark.`, results };
+  const report = { environment: `${process.platform}, Node ${process.version}, Next ${require('next/package.json').version}; sequential runs; one first run and three warm runs per successful candidate. ${production ? "Includes Next type checks; run pnpm lint separately (Next 16 does not run ESLint)." : "Development compilation does not replace production lint/type checks."} Development request timings are server request/compile measurements, not browser HMR. Cloudflare packaging is outside this benchmark.`, results };
   fs.mkdirSync('docs', { recursive: true });
   fs.writeFileSync(`docs/performance-${production ? 'build' : 'dev'}${selectedBundler ? `-${selectedBundler}` : ''}-results.json`, JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report, null, 2));

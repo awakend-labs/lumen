@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.cjs",
-    "build": "next build",
-    "dev": "next dev",
+    "build": "pnpm run lint && next build --webpack",
+    "dev": "next dev --webpack",
     "dev:turbo": "next dev --turbopack",
     "start": "next start",
     "lint": "eslint",
@@ -47,7 +47,7 @@
     "drizzle-orm": "^0.45.4",
     "framer-motion": "^14.3.0",
     "lucide-react": "^1.59.0",
-    "next": "15.5.28",
+    "next": "16.4.2",
     "next-themes": "^0.4.6",
     "radix-ui": "^1.8.1",
     "react": "19.3.0",
@@ -62,7 +62,6 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.10",
-    "@eslint/eslintrc": "^3.3.7",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -70,11 +69,14 @@
     "dotenv": "^18.0.8",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
-    "eslint-config-next": "15.5.28",
+    "eslint-config-next": "16.4.2",
     "react-test-renderer": "19.3.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "wrangler": "^4.151.1"
   },
-  "packageManager": "pnpm@10.5.2"
+  "packageManager": "pnpm@10.5.2",
+  "engines": {
+    "node": ">=20.9.0"
+  }
 }

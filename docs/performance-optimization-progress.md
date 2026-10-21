@@ -6,7 +6,18 @@ Updated 21 October 2026. Local implementation and experiments cover the report's
 
 Apply **drizzle/0010_faulty_venus.sql** with `pnpm db:migrate` against the intended database **before deploying this application**. Summary queries require its stored generated response-preview column. This migration was generated and tested locally, not applied to Neon. It backfills existing rows and stays synchronized on writes without application maintenance. Plan its table lock/rewrite on staging for a large database.
 
-The installed OpenNext adapter rejects pinned Next.js 15.5.28 at its maintenance-support check. The framework was not upgraded and the check was not bypassed as a performance shortcut. Resolve compatibility and verify the exact Linux Worker build/preview before promotion. Passing a Next build does not establish Worker-runtime compatibility.
+The framework is now pinned to **Next.js 16.4.2** with matching `eslint-config-next` and a regenerated pnpm 10.5.2 lockfile. OpenNext 1.20.12 accepts this version without an unsupported-version flag. Verify the exact Linux Worker build/preview before promotion. Native Windows packaging can fail on symbolic-link permissions; passing a Next build does not establish Worker-runtime compatibility.
+
+## Framework upgrade follow-up
+
+- Development, production, and benchmark scripts explicitly select Webpack where intended; Next 16 changed its default to Turbopack. Existing Next 15 benchmark numbers below are historical and were not rerun or presented as Next 16 timings.
+- The production build explicitly runs ESLint before `next build --webpack`; Next 16 removed automatic lint execution. TypeScript checks remain enabled, and Next's required `jsx: react-jsx` compiler setting is retained.
+- ESLint uses the matching native flat configs. New React Compiler diagnostics remain visible as warnings in seven existing files with synchronization/ref patterns; no React Compiler is enabled. Existing hook-order, dependency, TypeScript, and Next rules remain enabled. This avoids changing autosave timing, hydration, or drag-and-drop behavior as part of a framework upgrade. The upgraded lint run reports 0 errors and 23 warnings, including the new library/navigation diagnostics.
+- Kept `src/middleware.ts` and its Edge runtime intentionally. Next 16's `proxy.ts` changes runtime to Node.js, which the installed Cloudflare adapter labels experimental. The Next upgrade guide explicitly permits retaining middleware for Edge use; the deprecation notice is expected.
+- The upgraded suite has **116 passing tests**, including new real-NextRequest regressions for protected-route callbacks, secure/nonsecure session-cookie shortcuts, public landing behavior, and login/signup expired-cookie recovery. No live database writes or deployment were performed.
+- The upgraded production Next build passed compilation, TypeScript, all 14 static pages, and tracing. A production server started successfully; the landing/sign-in pages and protected-project redirect with its query-string callback were verified in the browser.
+- The isolated Next 16 browser fixture passed path-parameter synchronization, Markdown preview, preservation of custom JSON and `998.0`, full-document duplication with a blank version, deferred error-format dialog loading/Escape/focus return, success/shared-error response tabs, TypeScript-copy success, and saved grid/list preference. Both tested tabs reported no browser console errors. The temporary fixture was removed afterward.
+- Full native Windows OpenNext packaging passed the version gate and middleware/assets bundling, then stopped creating a server-function dependency link with `EPERM: operation not permitted, symlink`. Retrying outside the sandbox gave the same Windows error. This is not a successful Worker build; retry `pnpm run build:cloudflare` on Cloudflare's Linux builder and then preview the artifact before production use.
 
 ## Every report item
 
@@ -32,7 +43,7 @@ The installed OpenNext adapter rejects pinned Next.js 15.5.28 at its maintenance
 
 ## Local measurements
 
-Raw results: [runtime](performance-runtime-results.json), [development bundlers](performance-dev-results.json), [production bundlers](performance-build-results.json), [Tailwind scanner](performance-css-results.json).
+Raw results from the original optimization pass on Next.js 15.5.28: [runtime](performance-runtime-results.json), [development bundlers](performance-dev-results.json), [production bundlers](performance-build-results.json), [Tailwind scanner](performance-css-results.json).
 
 Runtime fixtures use the installed Neon Drizzle adapter backed by local in-memory PostgreSQL, synthetic response documents, and five measured warm reads after one warmup. They do not simulate network transport or Worker limits.
 
@@ -68,6 +79,6 @@ Use declared pnpm 10.5.2. This environment's pnpm 11 launcher attempted installa
 - `pnpm review:performance`: temporary synthetic browser fixture on port 3117.
 - `pnpm benchmark:search`: reads only; requires `LUMEN_STAGING_DATABASE_URL` and `LUMEN_STAGING_USER_ID`. Does not load production .env. Plans are saved to ignored `.next-performance/search-plans.json`.
 
-For release: apply the migration, resolve Next/OpenNext support, run tests and a fresh Linux OpenNext build, preview that artifact, then check login/session expiry, roles/invitations/revocation, create/edit/duplicate/move/reorder, drafts/conflicts/unload, JSON/cURL, search/keyboard cancellation, mobile/light/dark/reduced motion, and cache privacy. Verify Cloudflare caching and staged network/placement measurements. These platform checks remain with the user as agreed.
+For release: apply the migration, run tests and a fresh Linux OpenNext build, preview that artifact, then check login/session expiry, roles/invitations/revocation, create/edit/duplicate/move/reorder, drafts/conflicts/unload, JSON/cURL, search/keyboard cancellation, mobile/light/dark/reduced motion, and cache privacy. Verify Cloudflare caching and staged network/placement measurements. These platform checks remain with the user as agreed.
 
 Configuration was checked against installed Next 15 code and official [import optimization](https://nextjs.org/docs/15/app/api-reference/config/next-config-js/optimizePackageImports) and [Turbopack](https://nextjs.org/docs/15/app/api-reference/turbopack) documentation. The requested installed `node_modules/next/dist/docs/` directory is absent. [Motion bundle guidance](https://motion.dev/docs/react-reduce-bundle-size) and [Drizzle batch API](https://orm.drizzle.team/docs/batch-api) informed those changes.

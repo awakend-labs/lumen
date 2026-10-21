@@ -20,7 +20,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Learned Workspace Facts
 
-- Lumen is a Next.js 15 App Router API documentation app (projects, stashes, endpoints); scope is documentation only, not billing, marketplace, or AI features.
+- Lumen is a Next.js 16 App Router API documentation app (projects, stashes, endpoints); scope is documentation only, not billing, marketplace, or AI features.
 - Stack: TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, Zod, Better Auth, Neon PostgreSQL, and Drizzle ORM (Neon HTTP driver via `drizzle-orm/neon-http`; the DB client is created lazily so Cloudflare Worker env is populated first).
 - Authentication is email and password only; Google OAuth is not used.
 - Project invitations are copyable share links; outbound invite email is not implemented.

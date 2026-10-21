@@ -1,6 +1,8 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
 
+// Keep the Edge middleware convention: Next 16's proxy switches to Node.js,
+// whose middleware support is still experimental in the Cloudflare adapter.
 export function middleware(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
   const { pathname, search } = request.nextUrl;
