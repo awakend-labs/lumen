@@ -2,7 +2,7 @@
 
 import { cn } from "cn";
 import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useThemePreference } from "@/components/theme-preference-provider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,7 +19,7 @@ const options = [
 ] as const;
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, isSaving } = useThemePreference();
 
   return (
     <DropdownMenu>
@@ -42,6 +42,7 @@ export function ThemeToggle({ className }: { className?: string }) {
           {options.map((option) => (
             <DropdownMenuItem
               key={option.value}
+              disabled={isSaving}
               onClick={() => setTheme(option.value)}
             >
               <option.icon data-icon="inline-start" />

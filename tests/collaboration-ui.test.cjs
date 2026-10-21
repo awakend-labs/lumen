@@ -20,6 +20,7 @@ function reset() {
   mutationState = blankMutation; queries = {}; mutations = []; confirmations = []; removals = 0;
 }
 Module._load = function(request, parent, isMain) {
+  if (request === '@/components/theme-preference-provider') return { useThemePreference: () => ({ theme: 'dark', isSaving: false, setTheme: async () => true }) };
   if (request === 'react-hook-form') return { ...hookForm, useForm: options => { lastFormDefaults = options.defaultValues; return hookForm.useForm(options); } };
   if (request === 'react' && parent?.filename.endsWith('project-frame.tsx')) return { ...React, useSyncExternalStore: () => true };
   if (request === 'next/navigation') return { useRouter: () => ({ replace() {} }), useSearchParams: () => new URLSearchParams() };

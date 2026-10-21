@@ -12,6 +12,7 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { authClient } from "@/lib/auth-client";
+import { ProfileThemeSettings } from "./profile-theme-settings";
 import {
   profileNameSchema,
   profilePasswordSchema,
@@ -123,6 +124,8 @@ export function ProfileSettings({ user }: { user: { name: string; email: string;
               </fieldset>
             </form>
           </section>
+
+          <ProfileThemeSettings />
 
           <section aria-labelledby="profile-password-heading" className="grid gap-5 border-t border-border px-5 py-7 sm:px-7 md:grid-cols-[10rem_minmax(0,1fr)] md:gap-8">
             <div>

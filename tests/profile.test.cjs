@@ -11,6 +11,7 @@ global.IS_REACT_ACT_ENVIRONMENT = true;
 let nameForm, passwordForm, updateUser, changePassword, refreshes = 0;
 let session = null;
 Module._load = function(request, parent, isMain) {
+  if (request === '@/components/theme-preference-provider') return { useThemePreference: () => ({ theme: 'dark', isSaving: false, setTheme: async () => true }) };
   if (request === 'react-hook-form') return { ...hookForm, useForm: options => {
     const form = hookForm.useForm(options);
     if ('name' in options.defaultValues) nameForm = form; else passwordForm = form;
@@ -58,7 +59,9 @@ test('profile forms use POST fallbacks, connected labels and disabled controls b
   const forms = html.match(/<form\b[^>]*>/g) ?? [];
   assert.equal(forms.length, 2);
   for (const form of forms) { assert.match(form, /method="post"/); assert.match(form, /action="\/profile"/); }
-  assert.equal((html.match(/<fieldset disabled=""/g) ?? []).length, 2);
+  assert.equal((html.match(/<fieldset disabled=""/g) ?? []).length, 3);
+  assert.match(html, /Default theme/);
+  assert.equal((html.match(/type="radio"/g) ?? []).length, 3);
   for (const id of ['profile-name', 'profile-current-password', 'profile-new-password', 'profile-confirm-password']) {
     assert.match(html, new RegExp(`for="${id}"`)); assert.match(html, new RegExp(`id="${id}"`));
   }

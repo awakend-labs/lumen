@@ -25,7 +25,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { ProjectListItem, StashSummary } from "@/lib/types";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useTheme } from "next-themes";
+import { useThemePreference } from "@/components/theme-preference-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -322,7 +322,7 @@ function StashTree({ stash, projectId, pathname }: { stash: StashSummary; projec
 
 function AccountMenu() {
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, isSaving } = useThemePreference();
   const { data } = authClient.useSession();
   const name = data?.user.name ?? "Account";
   const email = data?.user.email ?? "";
@@ -410,7 +410,7 @@ function AccountMenu() {
             <DropdownMenuGroup>
               <DropdownMenuLabel className="text-xs text-muted-foreground">Appearance</DropdownMenuLabel>
               {themeOptions.map((option) => (
-                <DropdownMenuItem key={option.value} onClick={() => setTheme(option.value)}>
+                <DropdownMenuItem key={option.value} disabled={isSaving} onClick={() => setTheme(option.value)}>
                   <option.icon data-icon="inline-start" />
                   {option.label}
                   {theme === option.value ? (
@@ -427,7 +427,7 @@ function AccountMenu() {
                   if (!confirmSignOut()) return;
                   return authClient.signOut({
                     fetchOptions: {
-                      onSuccess: () => router.push("/login"),
+                      onSuccess: () => { router.push("/login"); router.refresh(); },
                     },
                   });
                 }}

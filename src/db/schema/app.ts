@@ -14,6 +14,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { account, session, user } from "./auth";
+import { themePreferences } from "@/lib/theme";
 import type {
   HttpMethod,
   ProjectAuth,
@@ -192,11 +193,15 @@ export const projectMembers = pgTable(
   ],
 );
 
+export const themePreference = pgEnum("theme_preference", themePreferences);
+
 export const userPreferences = pgTable("user_preferences", {
   userId: text("user_id")
     .primaryKey()
     .references(() => user.id, { onDelete: "cascade" }),
   endpointView: text("endpoint_view").notNull().default("grid"),
+  // Null preserves existing users' browser choice until their first signed-in load.
+  theme: themePreference("theme"),
 });
 
 export const invitations = pgTable(
