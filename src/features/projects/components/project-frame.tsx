@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,12 +24,16 @@ export function ProjectFrame({
   children: (project: ProjectSummary) => React.ReactNode;
   editable?: boolean;
 }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const project = useProject(projectId);
-  if (project.isLoading) {
+  const pending = !mounted || (project.isPending && !project.data);
+
+  if (pending) {
     return (
-      <div className="lumen-page flex flex-col gap-4">
-        <Skeleton className="h-4 w-40" />
-        <Skeleton className="h-8 w-64" />
+      <div className="lumen-page flex flex-col gap-8">
+        <Skeleton className="h-4 w-48" />
+        <Skeleton className="h-9 w-72 max-w-full" />
         <Skeleton className="h-64 w-full rounded-md" />
       </div>
     );

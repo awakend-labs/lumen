@@ -438,8 +438,7 @@ function ProjectCard({
       >
         <div
           className={cn(
-            "flex min-w-0 flex-1 flex-col gap-3 p-4 transition-colors duration-200",
-            "group-hover:bg-foreground/[0.035] dark:group-hover:bg-white/[0.05]",
+            "project-card-body flex min-w-0 flex-1 flex-col gap-3 p-4 transition-colors duration-200",
             view === "list" && "justify-center",
           )}
         >
@@ -610,7 +609,11 @@ function WorkspaceSummary({ projects }: { projects: ProjectListItem[] }) {
         },
       ].map(({ label, value, note }) => (
         <div key={label} className="min-w-0">
-          <p className="eyebrow text-[9px] sm:text-[10px]">{label}</p>
+          <p
+            className="eyebrow text-[9px] text-[color-mix(in_srgb,var(--primary)_82%,var(--foreground))] sm:text-[10px]"
+          >
+            {label}
+          </p>
           <p className="mt-1 text-2xl font-medium tracking-[-0.06em] tabular-nums sm:text-[1.75rem]">
             {String(value).padStart(2, "0")}
             <span className="ml-1 text-primary">.</span>

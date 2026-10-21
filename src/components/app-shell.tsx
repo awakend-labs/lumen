@@ -38,7 +38,7 @@ export function AppShell({
 function ShellTitle() {
   return (
     <p className="min-w-0 max-w-[45%] truncate text-sm font-medium tracking-[0.06em] sm:max-w-none sm:flex-1">
-      API
+      API Documentation
     </p>
   );
 }

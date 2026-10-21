@@ -14,6 +14,7 @@ import {
 import {
   SortableContext,
   arrayMove,
+  rectSortingStrategy,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
@@ -26,6 +27,7 @@ import {
   InboxIcon,
   LayoutGridIcon,
   ListIcon,
+  ExternalLinkIcon,
   MoreHorizontalIcon,
   PlusIcon,
   SearchIcon,
@@ -43,6 +45,7 @@ import { CompactMarkdown } from "@/components/compact-markdown";
 import {
   EndpointVersionBadge,
   MethodBadge,
+  methodTextClass,
   statusTextClass,
 } from "@/components/method-badge";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +91,12 @@ import { stashDotClass } from "@/lib/format";
 import { canEditContent } from "@/lib/permissions";
 import type { EndpointSummary, ProjectSummary, StashSummary } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import {
+  gridReorderModifiers,
+  listReorderModifiers,
+  reorderAutoScroll,
+  reorderTransition,
+} from "@/lib/reorder";
 
 type VisibleStash = { stash: StashSummary; endpoints: EndpointSummary[] };
 
@@ -160,7 +169,7 @@ export function EndpointBrowser({
 
   function onDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
+    if (!canReorder || !over || active.id === over.id) return;
     const ids = baseStashes.map((stash) => stash.id);
     const oldIndex = ids.indexOf(String(active.id));
     const newIndex = ids.indexOf(String(over.id));
@@ -273,6 +282,8 @@ export function EndpointBrowser({
       ) : (
         <DndContext
           sensors={sensors}
+          modifiers={listReorderModifiers}
+          autoScroll={reorderAutoScroll}
           collisionDetection={closestCenter}
           onDragEnd={onDragEnd}
         >
@@ -289,6 +300,7 @@ export function EndpointBrowser({
                   endpoints={endpoints}
                   editable={editable}
                   canReorder={canReorder}
+                  canReorderStash={canReorder && baseStashes.length > 1}
                   filtering={isFiltering}
                   groupQuery={normalized}
                   mode={mode}
@@ -337,6 +349,7 @@ function StashSection({
   endpoints,
   editable,
   canReorder,
+  canReorderStash,
   filtering,
   groupQuery,
   mode,
@@ -348,19 +361,21 @@ function StashSection({
   endpoints: EndpointSummary[];
   editable: boolean;
   canReorder: boolean;
+  canReorderStash: boolean;
   filtering: boolean;
   groupQuery: string;
   mode: "grid" | "list";
   showStashLink: boolean;
   bare?: boolean;
 }) {
-  const sortable = useSortable({
+  const { setNodeRef, setActivatorNodeRef, transform, transition, isDragging, attributes, listeners } = useSortable({
     id: stash.id,
-    disabled: !canReorder || !showStashLink,
+    disabled: !canReorderStash || !showStashLink,
+    transition: reorderTransition,
   });
   const style = {
-    transform: CSS.Transform.toString(sortable.transform),
-    transition: sortable.transition,
+    transform: CSS.Translate.toString(transform),
+    transition,
   };
   const [open, setOpen] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -369,16 +384,12 @@ function StashSection({
   const update = useUpdateStash(projectId);
   const remove = useDeleteStash(projectId);
   const reorderEndpoints = useReorderEndpoints(projectId);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-
   function onDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
+    if (!canReorder || !over || active.id === over.id) return;
+    const source = stash.endpoints.find(endpoint => endpoint.id === active.id);
+    const target = stash.endpoints.find(endpoint => endpoint.id === over.id);
+    if (!source || !target || source.groupId !== target.groupId) return;
     const ids = stash.endpoints.map((endpoint) => endpoint.id);
     const oldIndex = ids.indexOf(String(active.id));
     const newIndex = ids.indexOf(String(over.id));
@@ -397,9 +408,15 @@ function StashSection({
         endpoint={endpoint}
         mode={mode}
         editable={editable}
-        canReorder={canReorder}
+        canReorder={canReorder && items.length > 1}
       />
     ));
+
+  const renderLayout = (items: EndpointSummary[]) => (
+    <EndpointLayout mode={mode} items={items} canReorder={canReorder} onDragEnd={onDragEnd}>
+      {renderEndpoints(items)}
+    </EndpointLayout>
+  );
 
   const groupedBody = stash.groups.length ? (
     <div className="flex flex-col gap-4">
@@ -432,9 +449,7 @@ function StashSection({
               }
             >
               {items.length ? (
-                <EndpointLayout mode={mode}>
-                  {renderEndpoints(items)}
-                </EndpointLayout>
+                renderLayout(items)
               ) : (
                 <p className="text-sm text-muted-foreground">
                   {filtering
@@ -451,14 +466,12 @@ function StashSection({
           count={endpoints.filter((endpoint) => !endpoint.groupId).length}
           filtering={filtering}
         >
-          <EndpointLayout mode={mode}>
-            {renderEndpoints(endpoints.filter((endpoint) => !endpoint.groupId))}
-          </EndpointLayout>
+          {renderLayout(endpoints.filter((endpoint) => !endpoint.groupId))}
         </ApiGroupSection>
       )}
     </div>
   ) : (
-    <EndpointLayout mode={mode}>{renderEndpoints(endpoints)}</EndpointLayout>
+    renderLayout(endpoints)
   );
 
   const endpointBody =
@@ -479,19 +492,6 @@ function StashSection({
           No endpoints in this stash yet.
         </p>
       )
-    ) : canReorder ? (
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={onDragEnd}
-      >
-        <SortableContext
-          items={endpoints.map((endpoint) => endpoint.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          {groupedBody}
-        </SortableContext>
-      </DndContext>
     ) : (
       groupedBody
     );
@@ -502,23 +502,24 @@ function StashSection({
 
   return (
     <section
-      ref={sortable.setNodeRef}
+      ref={setNodeRef}
       style={style}
       className={cn(
         "overflow-hidden rounded-md border border-border bg-card",
-        sortable.isDragging && "shadow-lg ring-2 ring-primary/40",
+        isDragging && "relative z-10 shadow-lg ring-2 ring-primary/40",
       )}
     >
       <Collapsible open={open} onOpenChange={setOpen}>
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            {canReorder && showStashLink ? (
+            {canReorderStash && showStashLink ? (
               <button
                 type="button"
-                className="shrink-0 self-center text-muted-foreground"
+                ref={setActivatorNodeRef}
+                className="shrink-0 cursor-grab touch-none self-center select-none text-muted-foreground active:cursor-grabbing"
                 aria-label="Reorder stash"
-                {...sortable.attributes}
-                {...sortable.listeners}
+                {...attributes}
+                {...listeners}
               >
                 <GripVerticalIcon className="size-4" />
               </button>
@@ -553,6 +554,19 @@ function StashSection({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {showStashLink ? (
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 rounded-sm border-stash-green/55 bg-transparent px-3 text-stash-green shadow-none hover:border-stash-green/75 hover:bg-stash-green/10 hover:text-stash-green dark:border-stash-green/50 dark:bg-transparent dark:hover:border-stash-green/70 dark:hover:bg-stash-green/12"
+              >
+                <Link href={`/projects/${projectId}/stashes/${stash.id}`}>
+                  <ExternalLinkIcon className="size-3.5" />
+                  Open
+                </Link>
+              </Button>
+            ) : null}
             {editable && (
               <ApiGroupControl projectId={projectId} stashId={stash.id} />
             )}
@@ -691,12 +705,22 @@ function EmptyStashState({
 
 function EndpointLayout({
   mode,
+  items,
+  canReorder,
+  onDragEnd,
   children,
 }: {
   mode: "grid" | "list";
+  items: EndpointSummary[];
+  canReorder: boolean;
+  onDragEnd: (event: DragEndEvent) => void;
   children: React.ReactNode;
 }) {
-  return (
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const layout = (
     <div
       className={
         mode === "grid"
@@ -706,6 +730,17 @@ function EndpointLayout({
     >
       {children}
     </div>
+  );
+  if (!canReorder || items.length < 2) return layout;
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}
+      modifiers={mode === "grid" ? gridReorderModifiers : listReorderModifiers}
+      autoScroll={reorderAutoScroll}>
+      <SortableContext items={items.map(endpoint => endpoint.id)}
+        strategy={mode === "grid" ? rectSortingStrategy : verticalListSortingStrategy}>
+        {layout}
+      </SortableContext>
+    </DndContext>
   );
 }
 
@@ -722,10 +757,12 @@ function EndpointItem({
   editable: boolean;
   canReorder: boolean;
 }) {
-  const sortable = useSortable({ id: endpoint.id, disabled: !canReorder });
+  const { setNodeRef, setActivatorNodeRef, transform, transition, isDragging, isSorting, attributes, listeners } = useSortable({
+    id: endpoint.id, disabled: !canReorder, transition: reorderTransition,
+  });
   const style = {
-    transform: CSS.Transform.toString(sortable.transform),
-    transition: sortable.transition,
+    transform: CSS.Translate.toString(transform),
+    transition,
   };
   const router = useRouter();
   const remove = useDeleteEndpoint(projectId);
@@ -734,9 +771,9 @@ function EndpointItem({
   const openEndpoint = () => router.push(href);
 
   return (
-    <div ref={sortable.setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} className={cn(isDragging && "relative z-10")}>
       {mode === "grid" ? (
-        <m.div whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
+        <m.div whileHover={isSorting ? undefined : { y: -2 }} transition={{ duration: 0.15 }}>
           <Card
             role="link"
             tabIndex={0}
@@ -751,7 +788,7 @@ function EndpointItem({
                 openEndpoint();
               }
             }}
-            className="endpoint-grid-card h-full cursor-pointer gap-2 border-border bg-card py-3 shadow-none transition-[border-color,box-shadow] hover:border-foreground/30 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="endpoint-grid-card h-full cursor-pointer gap-2 border-border bg-card py-3 shadow-none transition-[border-color,box-shadow] hover:border-foreground/15 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             <CardHeader className="gap-1.5 px-4 pb-0">
               <div className="flex items-center justify-between gap-2">
@@ -767,9 +804,10 @@ function EndpointItem({
                   {canReorder ? (
                     <button
                       type="button"
-                      className="text-muted-foreground"
-                      {...sortable.attributes}
-                      {...sortable.listeners}
+                      ref={setActivatorNodeRef}
+                      className="cursor-grab touch-none select-none text-muted-foreground active:cursor-grabbing"
+                      {...attributes}
+                      {...listeners}
                       aria-label={`Reorder ${endpoint.name}`}
                     >
                       <GripVerticalIcon />
@@ -796,11 +834,16 @@ function EndpointItem({
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-1.5 px-4 pt-0">
-              <p className="truncate font-mono text-xs text-muted-foreground">
+              <p
+                className={cn(
+                  "truncate font-mono text-xs font-semibold",
+                  methodTextClass[endpoint.method],
+                )}
+              >
                 {endpoint.path}
               </p>
               <CompactMarkdown
-                className="line-clamp-2 leading-5 [&_p]:leading-5"
+                className="text-xs leading-4 [&_p]:text-xs [&_p]:leading-4 line-clamp-2"
                 content={endpoint.description || "No description"}
               />
               {endpoint.isDeprecated ? (
@@ -819,9 +862,10 @@ function EndpointItem({
           {canReorder ? (
             <button
               type="button"
-              className="text-muted-foreground"
-              {...sortable.attributes}
-              {...sortable.listeners}
+              ref={setActivatorNodeRef}
+              className="cursor-grab touch-none select-none text-muted-foreground active:cursor-grabbing"
+              {...attributes}
+              {...listeners}
               aria-label={`Reorder ${endpoint.name}`}
             >
               <GripVerticalIcon className="size-4" />

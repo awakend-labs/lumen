@@ -299,7 +299,7 @@ function toFormValues(
     groupId: endpoint?.groupId ?? "ungrouped",
     name: endpoint?.name ?? "",
     method: endpoint?.method ?? "GET",
-    path: endpoint?.path ?? "/",
+    path: endpoint?.path ?? "",
     description: endpoint?.description ?? "",
     headers: (endpoint?.headers ?? []).map(fieldToForm),
     queryParams: (endpoint?.queryParams ?? []).map(fieldToForm),
@@ -977,7 +977,7 @@ export function EndpointForm({
                       "font-mono font-medium",
                       methodTextClass[method],
                     )}
-                    placeholder="/auth/logout"
+                    placeholder="/"
                     aria-invalid={Boolean(form.formState.errors.path)}
                     {...form.register("path")}
                   />

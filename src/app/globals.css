@@ -392,13 +392,19 @@
     border-color: color-mix(in srgb, var(--foreground) 24%, var(--border));
     box-shadow: 0 10px 30px #00000008;
   }
+  .project-card:hover .project-card-body {
+    background-color: color-mix(in srgb, var(--foreground) 10%, var(--card));
+  }
+  .dark .project-card:hover .project-card-body {
+    background-color: color-mix(in srgb, var(--background) 18%, var(--card));
+  }
   .api-group-panel {
     border-color: color-mix(in srgb, var(--foreground) 12%, var(--border));
-    background-color: color-mix(in srgb, var(--foreground) 11%, var(--card));
+    background-color: color-mix(in srgb, var(--foreground) 15%, var(--card));
   }
   .dark .api-group-panel {
     border-color: color-mix(in srgb, var(--background) 25%, var(--border));
-    background-color: color-mix(in srgb, var(--background) 62%, var(--card));
+    background-color: color-mix(in srgb, var(--background) 72%, var(--card));
   }
   .stash-panel-body {
     background-color: color-mix(in srgb, var(--background) 32%, var(--card));
@@ -461,11 +467,15 @@
     box-shadow: 0 5px 14px rgb(0 0 0 / 0.2);
   }
   .lumen-section.endpoint-editor-section {
+    background-color: color-mix(in srgb, var(--foreground) 2.5%, var(--card));
     background-image: linear-gradient(
       168deg,
-      color-mix(in srgb, var(--surface-highlight) 40%, transparent),
+      color-mix(in srgb, var(--surface-highlight) 22%, transparent),
       transparent 72%
     );
+  }
+  .dark .lumen-section.endpoint-editor-section {
+    background: #25272c;
   }
   :is(.brand-mark, [data-slot="button"][data-variant="default"]) {
     background-image: var(--accent-gradient);
@@ -603,11 +613,46 @@
     border-radius: var(--radius-md);
     box-shadow: 0 24px 100px #00000026;
   }
+  [data-slot="alert-dialog-content"].status-change-dialog {
+    background-color: color-mix(
+      in srgb,
+      var(--foreground) 10%,
+      var(--card)
+    ) !important;
+    background-image: none !important;
+  }
+  .dark [data-slot="alert-dialog-content"].status-change-dialog {
+    background-color: color-mix(
+      in srgb,
+      var(--background) 78%,
+      var(--card)
+    ) !important;
+    background-image: none !important;
+  }
+  [data-slot="alert-dialog-content"].status-change-dialog
+    [data-slot="alert-dialog-footer"] {
+    background-color: color-mix(
+      in srgb,
+      var(--foreground) 12%,
+      var(--muted)
+    ) !important;
+  }
+  .dark
+    [data-slot="alert-dialog-content"].status-change-dialog
+    [data-slot="alert-dialog-footer"] {
+    background-color: color-mix(
+      in srgb,
+      var(--background) 82%,
+      var(--muted)
+    ) !important;
+  }
   [data-slot="alert-dialog-action"].status-change-confirm:hover:not(:disabled) {
     background-color: color-mix(in srgb, var(--destructive) 28%, transparent);
     color: var(--destructive);
   }
-  [data-slot="alert-dialog-action"].status-change-confirm:active:not(:disabled) {
+  [data-slot="alert-dialog-action"].status-change-confirm:active:not(
+      :disabled
+    ) {
     background-color: color-mix(in srgb, var(--destructive) 34%, transparent);
     color: var(--destructive);
   }

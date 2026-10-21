@@ -57,7 +57,9 @@ export function ConfirmStatusChange({
         onOpenChange(next);
       }}
     >
-      <AlertDialogContent className="gap-5 p-5 sm:max-w-md">
+      <AlertDialogContent
+        className="status-change-dialog gap-5 border-border px-5 py-5 sm:max-w-md"
+      >
         <AlertDialogHeader>
           <AlertDialogMedia
             className={cn(
@@ -80,9 +82,16 @@ export function ConfirmStatusChange({
           <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" />
           <StatusChip icon={ToIcon} label={toLabel} className={toClassName} />
         </div>
-        <AlertDialogFooter className="-mx-5 -mb-5 p-5">
-          <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+        <AlertDialogFooter className="-mx-5 -mb-5 px-5 py-5">
+          <AlertDialogCancel
+            size="sm"
+            className="min-w-[5.25rem] px-4"
+            disabled={pending}
+          >
+            Cancel
+          </AlertDialogCancel>
           <AlertDialogAction
+            size="sm"
             variant="outline"
             className="status-change-confirm border-destructive/45 bg-background text-destructive transition-[background-color] duration-200 hover:bg-destructive/25 hover:text-destructive active:bg-destructive/30 active:text-destructive"
             disabled={pending}
