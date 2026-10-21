@@ -727,22 +727,43 @@ function EndpointItem({
     transform: CSS.Transform.toString(sortable.transform),
     transition: sortable.transition,
   };
+  const router = useRouter();
   const remove = useDeleteEndpoint(projectId);
   const href = `/projects/${projectId}/endpoints/${endpoint.id}`;
   const firstResponse = endpoint.firstResponse;
+  const openEndpoint = () => router.push(href);
 
   return (
     <div ref={sortable.setNodeRef} style={style}>
       {mode === "grid" ? (
         <m.div whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
-          <Card className="h-full gap-2 border-border bg-card py-3 shadow-none transition-[border-color,box-shadow] hover:border-foreground/25 hover:shadow-sm">
+          <Card
+            role="link"
+            tabIndex={0}
+            aria-label={`Open ${endpoint.name}`}
+            onClick={openEndpoint}
+            onKeyDown={(event) => {
+              if (
+                event.target === event.currentTarget &&
+                (event.key === "Enter" || event.key === " ")
+              ) {
+                event.preventDefault();
+                openEndpoint();
+              }
+            }}
+            className="endpoint-grid-card h-full cursor-pointer gap-2 border-border bg-card py-3 shadow-none transition-[border-color,box-shadow] hover:border-foreground/30 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
             <CardHeader className="gap-1.5 px-4 pb-0">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <MethodBadge method={endpoint.method} />
                   <EndpointVersionBadge version={endpoint.version} />
                 </div>
-                <div className="flex items-center">
+                <div
+                  className="flex items-center"
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
+                >
                   {canReorder ? (
                     <button
                       type="button"
@@ -771,9 +792,7 @@ function EndpointItem({
                     "line-through decoration-muted-foreground",
                 )}
               >
-                <Link href={href} className="hover:underline">
-                  {endpoint.name}
-                </Link>
+                {endpoint.name}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-1.5 px-4 pt-0">

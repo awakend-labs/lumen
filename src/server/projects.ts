@@ -85,7 +85,7 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
     createdAt: stashes.createdAt,
     rank: sql<number>`row_number() over (partition by ${stashes.projectId} order by ${stashes.createdAt} desc, ${stashes.id} desc)`.as("preview_rank"),
   }).from(stashes).where(inArray(stashes.projectId, ids)).as("ranked_previews");
-  const [stashCounts, endpointCounts, previewRows] = await db.batch([db
+  const [stashCounts, endpointCounts, apiGroupCounts, previewRows] = await db.batch([db
     .select({
       projectId: stashes.projectId,
       count: sql<number>`count(*)::int`,
@@ -101,6 +101,15 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
     .from(endpoints)
     .where(inArray(endpoints.projectId, ids))
     .groupBy(endpoints.projectId),
+  db
+    .select({
+      projectId: stashes.projectId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(apiGroups)
+    .innerJoin(stashes, eq(apiGroups.stashId, stashes.id))
+    .where(inArray(stashes.projectId, ids))
+    .groupBy(stashes.projectId),
 
   db
     .select({
@@ -116,6 +125,9 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
   const stashMap = new Map(stashCounts.map((row) => [row.projectId, row.count]));
   const endpointMap = new Map(
     endpointCounts.map((row) => [row.projectId, row.count]),
+  );
+  const apiGroupMap = new Map(
+    apiGroupCounts.map((row) => [row.projectId, row.count]),
   );
   const previewMap = new Map<string, ProjectStashPreview[]>();
   for (const stash of previewRows) {
@@ -136,6 +148,7 @@ export async function listProjects(userId: string): Promise<ProjectListItem[]> {
     role: row.role,
     stashCount: stashMap.get(row.id) ?? 0,
     endpointCount: endpointMap.get(row.id) ?? 0,
+    apiGroupCount: apiGroupMap.get(row.id) ?? 0,
     previewStashes: previewMap.get(row.id) ?? [],
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

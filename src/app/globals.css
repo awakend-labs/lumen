@@ -426,6 +426,40 @@
   ) {
     background-image: var(--surface-gradient);
   }
+  .endpoint-grid-card {
+    background-image:
+      radial-gradient(
+        ellipse at top left,
+        color-mix(in srgb, var(--primary) 0.75%, transparent),
+        transparent 58%
+      ),
+      linear-gradient(
+        165deg,
+        color-mix(in srgb, var(--surface-highlight) 40%, transparent),
+        transparent 55%
+      );
+    transition:
+      border-color 200ms ease,
+      box-shadow 200ms ease,
+      background-image 200ms ease;
+  }
+  .endpoint-grid-card:hover {
+    background-image:
+      radial-gradient(
+        ellipse at top left,
+        color-mix(in srgb, var(--primary) 1.1%, transparent),
+        transparent 52%
+      ),
+      linear-gradient(
+        165deg,
+        color-mix(in srgb, var(--surface-highlight) 58%, transparent),
+        transparent 50%
+      );
+    box-shadow: 0 5px 14px rgb(0 0 0 / 0.05);
+  }
+  .dark .endpoint-grid-card:hover {
+    box-shadow: 0 5px 14px rgb(0 0 0 / 0.2);
+  }
   .lumen-section.endpoint-editor-section {
     background-image: linear-gradient(
       168deg,
@@ -568,6 +602,14 @@
   [data-slot="alert-dialog-content"] {
     border-radius: var(--radius-md);
     box-shadow: 0 24px 100px #00000026;
+  }
+  [data-slot="alert-dialog-action"].status-change-confirm:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--destructive) 28%, transparent);
+    color: var(--destructive);
+  }
+  [data-slot="alert-dialog-action"].status-change-confirm:active:not(:disabled) {
+    background-color: color-mix(in srgb, var(--destructive) 34%, transparent);
+    color: var(--destructive);
   }
   [data-slot="dropdown-menu-content"],
   [data-slot="select-content"] {

@@ -174,8 +174,9 @@ export function ProjectBoard() {
               onValueChange={(value) => setSort(value as ProjectSort)}
             >
               <SelectTrigger
+                size="sm"
                 aria-label="Sort projects"
-                className="h-8 min-h-8 w-auto min-w-44 gap-2 bg-background py-0 pr-2.5 pl-3 text-sm dark:bg-white/3"
+                className="h-7 min-h-7 w-auto min-w-36 gap-2 bg-background py-0 pr-2 pl-2.5 text-sm dark:bg-white/3"
               >
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
@@ -202,6 +203,8 @@ export function ProjectBoard() {
               onValueChange={(value) => value && setView(value as BoardView)}
               variant="outline"
               size="sm"
+              spacing={2}
+              className="gap-1.5 border-0 bg-transparent p-0 shadow-none"
             >
               <ToggleGroupItem value="grid" aria-label="Grid view">
                 <LayoutGridIcon className="size-4" />
@@ -571,29 +574,39 @@ function WorkspaceSummary({ projects }: { projects: ProjectListItem[] }) {
     (sum, project) => sum + project.endpointCount,
     0,
   );
-  const documented = projects.filter(
-    (project) => project.status === "documented",
-  ).length;
+  const stashes = projects.reduce(
+    (sum, project) => sum + project.stashCount,
+    0,
+  );
+  const apiGroups = projects.reduce(
+    (sum, project) => sum + project.apiGroupCount,
+    0,
+  );
   return (
     <section
       aria-label="Workspace overview"
-      className="grid grid-cols-3 gap-3 border-y border-border py-4 sm:gap-5"
+      className="grid grid-cols-2 gap-3 border-y border-border py-4 sm:grid-cols-4 sm:gap-5"
     >
       {[
         {
           label: "Projects",
           value: projects.length,
-          note: "In your workspace",
+          note: "In this workspace",
         },
         {
           label: "Endpoints",
           value: endpoints,
-          note: "Details worth documenting",
+          note: "Every path accounted for",
         },
         {
-          label: "Documented",
-          value: documented,
-          note: "Projects marked complete",
+          label: "Stashes",
+          value: stashes,
+          note: "Color-coded collections",
+        },
+        {
+          label: "API groups",
+          value: apiGroups,
+          note: "Folders within folders",
         },
       ].map(({ label, value, note }) => (
         <div key={label} className="min-w-0">

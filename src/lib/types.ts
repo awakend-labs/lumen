@@ -166,6 +166,7 @@ export type ProjectListItem = {
   status: ProjectStatus;
   stashCount: number;
   endpointCount: number;
+  apiGroupCount: number;
   previewStashes: ProjectStashPreview[];
   createdAt: string;
   updatedAt: string;
