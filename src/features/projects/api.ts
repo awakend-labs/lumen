@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
 import type { ProjectDetail, ProjectSummary, ProjectListItem, ProjectStatus } from "@/lib/types";
-import type { ProjectInput } from "@/lib/validators";
+import type { ProjectBaseUrlInput, ProjectInput } from "@/lib/validators";
 
 export function fetchProjects(signal?: AbortSignal) {
   return api<ProjectListItem[]>("/api/projects", { signal });
@@ -29,6 +29,13 @@ export function setProjectStatusRequest(projectId: string, status: ProjectStatus
   return api(`/api/projects/${projectId}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
+  });
+}
+
+export function updateProjectBaseUrl(projectId: string, input: ProjectBaseUrlInput) {
+  return api<{ baseUrl: string; updatedEndpointCount: number }>(`/api/projects/${projectId}/base-url`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
   });
 }
 

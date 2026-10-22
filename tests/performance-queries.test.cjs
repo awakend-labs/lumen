@@ -18,6 +18,33 @@ const { useSaveEndpoint, useDeleteEndpoint } = require('../src/features/endpoint
 const { toEndpointSummary } = require('../src/lib/endpoint-summary.ts');
 const { useUpdateStash } = require('../src/features/stashes/queries.ts');
 
+test('bulk URL updates invalidate only selected endpoint caches and the affected project', async t => {
+  const f = await fixture(t, () => projects.useUpdateProjectBaseUrl('p'));
+  const affected = [['projects'], ['project-summary', 'p'], ['projects', 'p'], ['endpoints', 'p', 'selected']];
+  const unaffected = [['project-summary', 'other'], ['endpoints', 'p', 'unselected'], ['endpoints', 'other', 'foreign']];
+  for (const key of [...affected, ...unaffected]) f.client.setQueryData(key, { endpoint: { stashId: key.at(-1) === 'selected' ? 'chosen' : 'keep' } });
+  let sent;
+  global.fetch = async (url, init) => { sent = { url, method: init.method, input: JSON.parse(init.body) }; return Response.json({ baseUrl: 'https://new.example.com', updatedEndpointCount: 1 }); };
+  await f.mount();
+  const input = { baseUrl: 'https://new.example.com', stashIds: ['chosen'] };
+  await act(async () => { await f.result.mutateAsync(input); });
+  assert.deepEqual(sent, { url: '/api/projects/p/base-url', method: 'PATCH', input });
+  affected.forEach(key => assert.equal(f.client.getQueryState(key).isInvalidated, true, JSON.stringify(key)));
+  unaffected.forEach(key => assert.equal(f.client.getQueryState(key).isInvalidated, false, JSON.stringify(key)));
+});
+
+test('failed bulk URL updates preserve cache state', async t => {
+  const f = await fixture(t, () => projects.useUpdateProjectBaseUrl('p'));
+  const key = ['endpoints', 'p', 'e'];
+  const original = { endpoint: { stashId: 's', baseUrl: 'https://old.example.com' } };
+  f.client.setQueryData(key, original);
+  global.fetch = async () => Response.json({ error: 'Could not save' }, { status: 500 });
+  await f.mount();
+  await act(async () => { await assert.rejects(f.result.mutateAsync({ baseUrl: 'https://new.example.com', stashIds: ['s'] }), /Could not save/); });
+  assert.deepEqual(f.client.getQueryData(key), original);
+  assert.equal(f.client.getQueryState(key).isInvalidated, false);
+});
+
 async function fixture(t, hook) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity }, mutations: { retry: false } } });
   let result, renderer;

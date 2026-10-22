@@ -48,6 +48,11 @@ export const projectStatusSchema = z.object({
   status: z.enum(PROJECT_STATUSES),
 });
 
+export const projectBaseUrlSchema = z.object({
+  baseUrl: baseUrlSchema,
+  stashIds: z.array(z.uuid()),
+});
+
 export const stashInputSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80, "Name must be 80 characters or fewer."),
   description: z.string().trim().max(500, "Description must be 500 characters or fewer.").optional().default(""),
@@ -194,6 +199,7 @@ export const memberRoleSchema = z.object({
 });
 
 export type ProjectInput = z.infer<typeof projectInputSchema>;
+export type ProjectBaseUrlInput = z.infer<typeof projectBaseUrlSchema>;
 export type StashInput = z.infer<typeof stashInputSchema>;
 export type EndpointInput = z.infer<typeof endpointInputSchema>;
 export type InvitationInput = z.infer<typeof invitationInputSchema>;

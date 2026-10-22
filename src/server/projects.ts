@@ -12,7 +12,7 @@ import type {
   ProjectStashPreview,
   ProjectStatus,
 } from "@/lib/types";
-import type { EndpointInput, ProjectInput } from "@/lib/validators";
+import type { EndpointInput, ProjectBaseUrlInput, ProjectInput } from "@/lib/validators";
 import { requireEditor, requireOwner, touchProject } from "./access";
 import { HttpError } from "./http";
 import { canEditContent } from "@/lib/permissions";
@@ -310,6 +310,39 @@ export async function setProjectStatus(
     .returning({ id: projects.id, status: projects.status });
   if (!project) throw new HttpError(404, "Project not found");
   return project;
+}
+
+export async function updateProjectBaseUrl(userId: string, projectId: string, input: ProjectBaseUrlInput) {
+  await requireOwner(userId, projectId);
+  const stashIds = [...new Set(input.stashIds)];
+  if (stashIds.length) {
+    const selected = await db.select({ id: stashes.id }).from(stashes)
+      .where(and(eq(stashes.projectId, projectId), inArray(stashes.id, stashIds)));
+    if (selected.length !== stashIds.length) {
+      throw new HttpError(400, "Some selected stashes are no longer in this project. Reload and try again.");
+    }
+  }
+
+  const saveProject = db.update(projects).set({ baseUrl: input.baseUrl, updatedAt: new Date() })
+    .where(eq(projects.id, projectId)).returning({ baseUrl: projects.baseUrl });
+  if (!stashIds.length) {
+    const [project] = await saveProject;
+    if (!project) throw new HttpError(404, "Project not found");
+    return { ...project, updatedEndpointCount: 0 };
+  }
+
+  // Neon HTTP batches run in one transaction: the default and endpoint URLs save together.
+  const [[project], updated] = await db.batch([
+    saveProject,
+    db.update(endpoints).set({
+      baseUrl: input.baseUrl,
+      // An open editor must detect this change instead of restoring the old URL on save.
+      updatedAt: sql`greatest(date_trunc('milliseconds', clock_timestamp()), ${endpoints.updatedAt} + interval '1 millisecond')`,
+    }).where(and(eq(endpoints.projectId, projectId), inArray(endpoints.stashId, stashIds)))
+      .returning({ id: endpoints.id }),
+  ]);
+  if (!project) throw new HttpError(404, "Project not found");
+  return { ...project, updatedEndpointCount: updated.length };
 }
 
 export async function deleteProject(userId: string, projectId: string) {

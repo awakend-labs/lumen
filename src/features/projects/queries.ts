@@ -10,9 +10,10 @@ import {
   fetchProjects,
   setProjectStatusRequest,
   updateProject,
+  updateProjectBaseUrl,
 } from "@/features/projects/api";
 import type { ProjectSummary, ProjectListItem, ProjectStatus } from "@/lib/types";
-import type { ProjectInput } from "@/lib/validators";
+import type { ProjectBaseUrlInput, ProjectInput } from "@/lib/validators";
 
 export const projectKeys = {
   all: ["projects"] as const,
@@ -97,6 +98,32 @@ export function useSetProjectStatus() {
       queryClient.invalidateQueries({ queryKey: projectKeys.all, exact: true });
       queryClient.invalidateQueries({ queryKey: projectKeys.summary(projectId) });
     },
+  });
+}
+
+export function useUpdateProjectBaseUrl(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ProjectBaseUrlInput) => updateProjectBaseUrl(projectId, input),
+    onSuccess: async (result, input) => {
+      const stashIds = new Set(input.stashIds);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: projectKeys.all, exact: true }),
+        queryClient.invalidateQueries({ queryKey: projectKeys.summary(projectId), exact: true }),
+        queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId), exact: true }),
+        queryClient.invalidateQueries({
+          queryKey: ["endpoints", projectId],
+          predicate: query => {
+            const data = query.state.data as { endpoint?: { stashId: string } } | undefined;
+            return Boolean(data?.endpoint && stashIds.has(data.endpoint.stashId));
+          },
+        }),
+      ]);
+      toast.success(result.updatedEndpointCount
+        ? `Base URL updated for ${result.updatedEndpointCount} endpoint${result.updatedEndpointCount === 1 ? "" : "s"}`
+        : "Project base URL updated");
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 }
 
