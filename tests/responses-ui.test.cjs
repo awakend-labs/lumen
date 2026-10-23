@@ -11,6 +11,9 @@ let project = { responseErrorFormat: { body: { error: 'CONFLICT', message: 'Alre
 const originalLoad = Module._load;
 let resolvedResponses = 0, generatedTypes = 0;
 Module._load = function(request, parent, isMain) {
+  if (request === '@/components/ui/select') return Object.fromEntries(['Select', 'SelectContent', 'SelectItem', 'SelectTrigger', 'SelectValue'].map(name => [name,
+    function SelectPart({ children, ...props }) { return React.createElement('div', props, children); },
+  ]));
   if (request === '@/lib/response-contract' && parent?.filename.endsWith('responses-view.tsx')) {
     const contract = originalLoad.call(this, request, parent, isMain);
     return { ...contract,

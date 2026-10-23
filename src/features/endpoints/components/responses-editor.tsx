@@ -25,8 +25,7 @@ export function ResponsesEditor({ projectId, form, rows, disabled, paused }: Pro
   const [settingsOpen, setSettingsOpen] = useState(false);
   const values = useWatch({ control: form.control, name: "responses", compute: values => values.map(({ statusCode, isSuccess }) => ({ statusCode, isSuccess })) });
   const codes = useMemo(() => values.map(response => response.statusCode), [values]);
-  const method = useWatch({ control: form.control, name: "method" });
-  const next = nextResponseStatus(values, method);
+  const next = nextResponseStatus(values);
   return <div className="flex min-w-0 flex-col gap-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <p className="max-w-lg text-xs leading-relaxed text-muted-foreground">Start with a real response. Lumen generates its contract; you can refine it when needed.</p>

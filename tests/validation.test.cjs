@@ -68,9 +68,9 @@ test('schema-required body fields remain required when separate rows exist', () 
 
 test('response status codes are unique and Add response chooses an unused code', () => {
   const { nextResponseStatus } = require('../src/lib/response-status.ts');
-  assert.equal(nextResponseStatus([], 'POST'), 201);
-  assert.equal(nextResponseStatus([{ statusCode: 201 }], 'POST'), 202);
-  assert.equal(nextResponseStatus([{ statusCode: 201 }, { statusCode: 202 }, { statusCode: 204 }], 'POST'), 203);
+  assert.equal(nextResponseStatus([]), 200);
+  assert.equal(nextResponseStatus([{ statusCode: 200 }]), 201);
+  assert.equal(nextResponseStatus([{ statusCode: 200 }, { statusCode: 201 }, { statusCode: 202 }, { statusCode: 204 }]), 203);
   assert.equal(nextResponseStatus([{ statusCode: 200 }, { statusCode: 202 }], 'GET'), 201);
   const result = endpointInputSchema.safeParse({ ...base, responses: [{ statusCode: 200 }, { statusCode: 200 }] });
   assert.equal(result.success, false); assert.match(result.error.issues[0].message, /different status code/);

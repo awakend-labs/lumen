@@ -726,7 +726,7 @@ function EndpointLayout({
     <div
       className={
         mode === "grid"
-          ? "grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))]"
+          ? "grid auto-rows-fr gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))]"
           : "flex flex-col gap-2"
       }
     >
@@ -775,7 +775,7 @@ function EndpointItem({
   return (
     <div ref={setNodeRef} style={style} className={cn(isDragging && "relative z-10")}>
       {mode === "grid" ? (
-        <m.div whileHover={isSorting ? undefined : { y: -2 }} transition={{ duration: 0.15 }}>
+        <m.div className="h-full" whileHover={isSorting ? undefined : { y: -2 }} transition={{ duration: 0.15 }}>
           <Card
             role="link"
             tabIndex={0}

@@ -332,11 +332,11 @@ function toFormValues(
           }))
         : [
             {
-              statusCode: endpoint?.method === "POST" ? 201 : 200,
+              statusCode: 200,
               isSuccess: true,
               useSharedError: false,
               schemaMode: "generated",
-              description: endpoint?.method === "POST" ? "Created" : "Success",
+              description: "Success",
               body: "",
               schema: "",
             },
@@ -443,26 +443,6 @@ export function EndpointForm({
     }),
   );
   const method = form.watch("method");
-
-  useEffect(() => {
-    if (endpoint || draft.loading || !form.getFieldState("method").isDirty)
-      return;
-    const current = form.getValues("responses");
-    if (
-      current.length === 1 &&
-      (current[0].statusCode === 200 || current[0].statusCode === 201) &&
-      ["Success", "Created"].includes(current[0].description) &&
-      !current[0].body &&
-      !current[0].schema &&
-      !form.getFieldState("responses").isDirty
-    ) {
-      form.setValue("responses.0.statusCode", method === "POST" ? 201 : 200);
-      form.setValue(
-        "responses.0.description",
-        method === "POST" ? "Created" : "Success",
-      );
-    }
-  }, [method, endpoint, draft.loading, form]);
 
   const allowLeave = useRef(false);
   const { isCurrentSaved } = draft;
