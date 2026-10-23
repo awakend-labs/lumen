@@ -21,7 +21,7 @@ import { ProjectFrame } from "@/features/projects/components/project-frame";
 export default function SettingsPage({
   params,
 }: {
-  params: Promise<{ projectId: string; }>;
+  params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = use(params);
 
@@ -52,7 +52,9 @@ export default function SettingsPage({
                   <BreadcrumbSeparator />
                   <BreadcrumbItem>
                     <BreadcrumbLink asChild>
-                      <Link href={`/projects/${project.id}`}>{project.name}</Link>
+                      <Link href={`/projects/${project.id}`}>
+                        {project.name}
+                      </Link>
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator />
@@ -68,7 +70,10 @@ export default function SettingsPage({
               description={`Members, invitations, and access for ${project.name}.`}
             />
           </header>
-          <ProjectBaseUrlSettings key={`base-url-${project.id}`} project={project} />
+          <ProjectBaseUrlSettings
+            key={`base-url-${project.id}`}
+            project={project}
+          />
           <ProjectAuthSettings key={`auth-${project.id}`} project={project} />
           <ProjectSettings projectId={project.id} role={project.role} />
         </div>

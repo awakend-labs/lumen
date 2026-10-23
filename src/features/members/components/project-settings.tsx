@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link2Icon, UsersIcon } from "lucide-react";
+import { CalendarDaysIcon, Link2Icon, UserMinusIcon, UsersIcon } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { CopyButton } from "@/components/copy-button";
@@ -123,7 +123,10 @@ export function ProjectSettings({
                             })
                           }
                         >
-                          <SelectTrigger className="w-32" size="sm">
+                          <SelectTrigger
+                            className="h-6 min-h-6 w-24 py-0 pl-2 text-xs data-[size=sm]:h-6 [&_svg]:size-3.5"
+                            size="sm"
+                          >
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -134,18 +137,48 @@ export function ProjectSettings({
                           </SelectContent>
                         </Select>
                       ) : (
-                        <Badge variant="secondary">{member.role}</Badge>
+                        <Badge variant="secondary" className="h-6 px-2.5">
+                          {member.role}
+                        </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {formatDate(member.createdAt)}
+                    <TableCell>
+                      <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <CalendarDaysIcon
+                          className="size-3.5 shrink-0 text-primary"
+                          aria-hidden
+                        />
+                        <time dateTime={member.createdAt}>
+                          {formatDate(member.createdAt)}
+                        </time>
+                      </span>
                     </TableCell>
                     {owner ? (
                       <TableCell className="text-right">
                         {member.role === "owner" ? null : (
-                          <ConfirmDelete title="Remove collaborator?" description={`${member.name} (${member.email}) will lose access to this project. You can invite them again later.`}
-                            confirmLabel="Remove collaborator" pending={remove.isPending} onConfirm={() => remove.mutate(member.id)}
-                            trigger={<Button variant="ghost" size="sm" disabled={remove.isPending}>Remove</Button>} />
+                          <ConfirmDelete
+                            title="Remove collaborator?"
+                            description={`${member.name} (${member.email}) will lose access to this project. You can invite them again later.`}
+                            confirmLabel="Remove collaborator"
+                            pending={remove.isPending}
+                            onConfirm={() => remove.mutate(member.id)}
+                            trigger={
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="xs"
+                                className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                disabled={remove.isPending}
+                              >
+                                {remove.isPending ? (
+                                  <Spinner data-icon="inline-start" />
+                                ) : (
+                                  <UserMinusIcon data-icon="inline-start" />
+                                )}
+                                Remove
+                              </Button>
+                            }
+                          />
                         )}
                       </TableCell>
                     ) : null}

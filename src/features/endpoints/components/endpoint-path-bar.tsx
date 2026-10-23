@@ -74,19 +74,19 @@ export function EndpointPathBar({
   const copyLabel = origin ? "Copy request URL" : "Copy path";
 
   return (
-    <div className="mt-3 flex min-w-0 flex-col gap-1.5">
+    <div className="mt-3 flex w-fit max-w-full min-w-0 flex-col gap-1.5">
       <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <Link2Icon className="size-3.5 shrink-0 opacity-80" aria-hidden />
         {origin ? "Request URL" : "Route"}
       </div>
       <div
         className={cn(
-          "flex min-w-0 overflow-hidden rounded-md border border-border/80 bg-muted/30 dark:bg-muted/20",
+          "flex w-fit max-w-full min-w-0 overflow-hidden rounded-md border border-border/80 bg-muted/30 dark:bg-muted/20",
           "border-l-[3px]",
           methodRouteAccentClass[method],
         )}
       >
-        <div className="flex min-w-0 flex-1 items-center px-3 py-2 sm:px-3.5 sm:py-2.5">
+        <div className="flex min-w-0 items-center px-3 py-2 sm:px-3.5 sm:py-2.5">
           <code
             className="block min-w-0 overflow-x-auto font-mono text-[13px] leading-relaxed tracking-tight whitespace-nowrap text-foreground/90 [scrollbar-width:thin] sm:text-sm"
           >
