@@ -610,7 +610,7 @@ function WorkspaceSummary({ projects }: { projects: ProjectListItem[] }) {
       ].map(({ label, value, note }) => (
         <div key={label} className="min-w-0">
           <p
-            className="eyebrow text-[9px] text-[color-mix(in_srgb,var(--primary)_82%,var(--foreground))] sm:text-[10px]"
+            className="eyebrow text-[9px] text-[color-mix(in_srgb,var(--primary-text)_82%,var(--foreground))] sm:text-[10px]"
           >
             {label}
           </p>

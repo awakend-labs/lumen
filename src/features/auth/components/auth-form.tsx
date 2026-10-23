@@ -103,17 +103,17 @@ export function AuthForm({ mode }: { mode: "login" | "signup"; }) {
                 <FieldGroup className="gap-4">
                   {isSignup && <Field data-invalid={Boolean(form.formState.errors.name) || undefined} className="gap-2">
                     <FieldLabel htmlFor="name" className="text-xs font-medium">Full name</FieldLabel>
-                    <div className="relative"><UserRoundIcon aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground/70" /><Input id="name" autoComplete="name" placeholder="Ada Lovelace" className="h-11 bg-background/60 pl-10 dark:bg-background/35" disabled={pending} aria-invalid={Boolean(form.formState.errors.name)} {...form.register("name")} /></div>
+                    <div className="relative"><UserRoundIcon aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground dark:text-muted-foreground/70" /><Input id="name" autoComplete="name" placeholder="Ada Lovelace" className="h-11 bg-background/60 pl-10 dark:bg-background/35" disabled={pending} aria-invalid={Boolean(form.formState.errors.name)} {...form.register("name")} /></div>
                     <FieldError errors={[form.formState.errors.name]} />
                   </Field>}
                   <Field data-invalid={Boolean(form.formState.errors.email) || undefined} className="gap-2">
                     <FieldLabel htmlFor="email" className="text-xs font-medium">Email address</FieldLabel>
-                    <div className="relative"><MailIcon aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground/70" /><Input id="email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="you@company.com" className="h-11 bg-background/60 pl-10 dark:bg-background/35" disabled={pending} aria-invalid={Boolean(form.formState.errors.email)} {...form.register("email")} /></div>
+                    <div className="relative"><MailIcon aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground dark:text-muted-foreground/70" /><Input id="email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="you@company.com" className="h-11 bg-background/60 pl-10 dark:bg-background/35" disabled={pending} aria-invalid={Boolean(form.formState.errors.email)} {...form.register("email")} /></div>
                     <FieldError errors={[form.formState.errors.email]} />
                   </Field>
                   <Field data-invalid={Boolean(form.formState.errors.password) || undefined} className="gap-2">
                     <FieldLabel htmlFor="password" className="text-xs font-medium">Password</FieldLabel>
-                    <div className="relative"><LockKeyholeIcon aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground/70" /><Input id="password" type={showPassword ? "text" : "password"} autoComplete={isSignup ? "new-password" : "current-password"} placeholder={isSignup ? "At least 8 characters" : "Enter your password"} className="h-11 bg-background/60 pr-11 pl-10 dark:bg-background/35" disabled={pending} aria-invalid={Boolean(form.formState.errors.password)} {...form.register("password")} /><button type="button" className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-sm text-muted-foreground transition-colors hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} aria-controls="password" onClick={() => setShowPassword(value => !value)} disabled={pending}>{showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}</button></div>
+                    <div className="relative"><LockKeyholeIcon aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground dark:text-muted-foreground/70" /><Input id="password" type={showPassword ? "text" : "password"} autoComplete={isSignup ? "new-password" : "current-password"} placeholder={isSignup ? "At least 8 characters" : "Enter your password"} className="h-11 bg-background/60 pr-11 pl-10 dark:bg-background/35" disabled={pending} aria-invalid={Boolean(form.formState.errors.password)} {...form.register("password")} /><button type="button" className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-sm text-muted-foreground transition-colors hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} aria-controls="password" onClick={() => setShowPassword(value => !value)} disabled={pending}>{showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}</button></div>
                     <FieldError errors={[form.formState.errors.password]} />
                   </Field>
                 </FieldGroup>
@@ -128,7 +128,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup"; }) {
             <p className="mt-6 text-center text-xs leading-6 text-muted-foreground">{isSignup ? "Already have an account?" : "New to Lumen?"}{" "}<Link href={switchHref} className="inline-flex items-center gap-1 font-medium text-foreground underline decoration-primary/70 decoration-2 underline-offset-4 hover:decoration-primary">{isSignup ? "Sign in" : "Create an account"}<ArrowRightIcon className="size-3" /></Link></p>
           </div>
         </div>
-        <p className="text-center text-[10px] tracking-wide text-muted-foreground/70">Your APIs. Your team. One clear workspace.</p>
+        <p className="text-center text-[10px] tracking-wide text-muted-foreground dark:text-muted-foreground/70">Your APIs. Your team. One clear workspace.</p>
       </main>
     </div>
   );

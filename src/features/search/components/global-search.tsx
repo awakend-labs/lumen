@@ -86,8 +86,8 @@ export function GlobalSearch() {
         )}
         onClick={() => changeOpen(true)}
       >
-        <Search className="size-4 shrink-0 text-muted-foreground/80" aria-hidden />
-        <span className="truncate text-sm text-muted-foreground/90">
+        <Search className="size-4 shrink-0 text-muted-foreground dark:text-muted-foreground/80" aria-hidden />
+        <span className="truncate text-sm text-muted-foreground dark:text-muted-foreground/90">
           <span className="hidden sm:inline">Search workspace…</span>
           <span className="sm:hidden">Search…</span>
         </span>

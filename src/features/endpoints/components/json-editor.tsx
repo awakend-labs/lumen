@@ -37,7 +37,7 @@ export const JsonEditor = forwardRef<{ focus: () => void }, JsonEditorProps>(fun
     catch { setFormatError("Fix the JSON syntax before formatting. Your text has been kept."); }
   }
 
-  return <div ref={root} className="min-w-0"
+  return <div ref={root} className="lumen-json-editor min-w-0"
     onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) onBlur?.(); }}
     onKeyDownCapture={event => {
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "f") {

@@ -92,14 +92,14 @@ export function EndpointDetail({
                     aria-label="Tags"
                   >
                     <TagIcon
-                      className="size-3.5 shrink-0 text-[color-mix(in_srgb,var(--primary)_22%,var(--muted-foreground))]"
+                      className="size-3.5 shrink-0 text-[color-mix(in_srgb,var(--primary-text)_22%,var(--muted-foreground))]"
                       aria-hidden
                     />
                     {endpoint.tags.map((tag) => (
                       <Badge
                         key={tag}
                         variant="outline"
-                        className="border-primary/12 bg-[color-mix(in_srgb,var(--primary)_5%,var(--card))] font-normal text-[color-mix(in_srgb,var(--primary)_34%,var(--muted-foreground))] dark:border-primary/14 dark:bg-[color-mix(in_srgb,var(--primary)_8%,var(--card))] dark:text-[color-mix(in_srgb,var(--primary)_44%,var(--muted-foreground))]"
+                        className="border-primary/12 bg-[color-mix(in_srgb,var(--primary)_5%,var(--card))] font-normal text-[color-mix(in_srgb,var(--primary-text)_34%,var(--muted-foreground))] dark:border-primary/14 dark:bg-[color-mix(in_srgb,var(--primary)_8%,var(--card))] dark:text-[color-mix(in_srgb,var(--primary-text)_44%,var(--muted-foreground))]"
                       >
                         <span
                           className="font-mono text-[11px] text-inherit"
@@ -257,7 +257,7 @@ export function EndpointDetail({
                   className={cn(
                     "h-6 w-fit px-2.5 font-mono text-[11px] font-medium tracking-tight",
                     /json/i.test(endpoint.requestBody.contentType)
-                      ? "border-primary/18 bg-[color-mix(in_srgb,var(--primary)_6%,var(--card))] text-[color-mix(in_srgb,var(--primary)_36%,var(--muted-foreground))] dark:border-primary/16 dark:bg-[color-mix(in_srgb,var(--primary)_9%,var(--card))] dark:text-[color-mix(in_srgb,var(--primary)_44%,var(--muted-foreground))]"
+                      ? "border-primary/18 bg-[color-mix(in_srgb,var(--primary)_6%,var(--card))] text-[color-mix(in_srgb,var(--primary-text)_36%,var(--muted-foreground))] dark:border-primary/16 dark:bg-[color-mix(in_srgb,var(--primary)_9%,var(--card))] dark:text-[color-mix(in_srgb,var(--primary-text)_44%,var(--muted-foreground))]"
                       : "border-border/80 bg-muted/30 text-muted-foreground",
                   )}
                 >

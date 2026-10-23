@@ -18,7 +18,7 @@ export function ResponseFieldTree({ schema }: { schema: unknown }) {
   const visible =
     rows.length > 1 && rows[0].type === "object" ? rows.slice(1) : rows;
   return (
-    <div className="min-w-0 overflow-hidden rounded-md border border-border/70">
+    <div className="lumen-response-fields min-w-0 overflow-hidden rounded-md border border-border/70">
       <div className="border-b border-border/70 bg-muted/25 px-3 py-2.5">
         <h4 className="text-xs font-semibold">Response fields</h4>
         <p className="mt-1 text-[11px] text-muted-foreground">
@@ -68,7 +68,7 @@ export function ResponseFieldTree({ schema }: { schema: unknown }) {
                           "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-sm",
                           isObject
                             ? "bg-muted text-muted-foreground"
-                            : "text-muted-foreground/70",
+                            : "text-muted-foreground dark:text-muted-foreground/70",
                         )}
                         aria-hidden
                       >

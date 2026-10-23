@@ -88,7 +88,7 @@ const PARAM_COPY: Record<
 };
 
 const cellInputClass =
-  "h-11 rounded-sm border-0 bg-transparent px-3 text-sm shadow-none placeholder:text-muted-foreground/65 focus-visible:bg-primary/[0.08] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring dark:bg-transparent dark:focus-visible:bg-primary/[0.06]";
+  "h-11 rounded-sm border-0 bg-transparent px-3 text-sm shadow-none placeholder:text-muted-foreground focus-visible:bg-primary/[0.08] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring dark:bg-transparent dark:placeholder:text-muted-foreground/65 dark:focus-visible:bg-primary/[0.06]";
 
 const cellSelectClass =
   "h-11 data-[size=default]:h-11 w-full rounded-sm border-0 bg-transparent px-3 shadow-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring dark:bg-transparent dark:hover:bg-primary/[0.04]";
@@ -145,7 +145,7 @@ export function ParamTable({
         <button
           type="button"
           onClick={append}
-          className="flex min-h-10 items-center gap-2 px-3 py-2 text-left text-xs font-medium text-[color-mix(in_srgb,var(--primary)_40%,var(--muted-foreground))] transition-colors hover:bg-primary/10 hover:text-[color-mix(in_srgb,var(--primary)_55%,var(--foreground))] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:opacity-50 dark:text-[color-mix(in_srgb,var(--primary)_46%,var(--muted-foreground))] dark:hover:bg-primary/[0.08] dark:hover:text-[color-mix(in_srgb,var(--primary)_62%,var(--foreground))]"
+          className="flex min-h-10 items-center gap-2 px-3 py-2 text-left text-xs font-medium text-[color-mix(in_srgb,var(--primary-text)_40%,var(--muted-foreground))] transition-colors hover:bg-primary/10 hover:text-[color-mix(in_srgb,var(--primary-text)_55%,var(--foreground))] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:opacity-50 dark:text-[color-mix(in_srgb,var(--primary-text)_46%,var(--muted-foreground))] dark:hover:bg-primary/[0.08] dark:hover:text-[color-mix(in_srgb,var(--primary-text)_62%,var(--foreground))]"
         >
           <PlusIcon className="size-3.5" aria-hidden />
           {copy.add}
@@ -200,7 +200,7 @@ function ParamTableRow({
   const [required, type] = useWatch({ control, name: [`${name}.${index}.required`, `${name}.${index}.type`] });
   return (
     <tr className={parameterRowClass(index)}>
-      <td className="p-0 align-middle focus-within:bg-white dark:focus-within:bg-primary/[0.04]">
+      <td className="p-0 align-middle focus-within:bg-card dark:focus-within:bg-primary/[0.04]">
         <Input
           aria-label={`${copy.nameLabel}, row ${index + 1}`}
           readOnly={isPath}
@@ -248,7 +248,7 @@ function ParamTableRow({
           </Select>
         </td>
       ) : null}
-      <td className="border-l border-primary/10 p-0 align-middle focus-within:bg-white dark:border-primary/10 dark:focus-within:bg-primary/[0.04]">
+      <td className="border-l border-primary/10 p-0 align-middle focus-within:bg-card dark:border-primary/10 dark:focus-within:bg-primary/[0.04]">
         <Input
           aria-label={`${copy.valueLabel}, row ${index + 1}`}
           placeholder={copy.valuePlaceholder}
@@ -260,7 +260,7 @@ function ParamTableRow({
           {...register(`${name}.${index}.value`)}
         />
       </td>
-      <td className="border-l border-primary/10 p-0 align-middle focus-within:bg-white dark:border-primary/10 dark:focus-within:bg-primary/[0.04]">
+      <td className="border-l border-primary/10 p-0 align-middle focus-within:bg-card dark:border-primary/10 dark:focus-within:bg-primary/[0.04]">
         <Input
           aria-label={`Description, row ${index + 1}`}
           placeholder={copy.descriptionPlaceholder}
@@ -289,7 +289,7 @@ function ParamTableRow({
           variant="ghost"
           size="icon-sm"
           aria-label={`Remove row ${index + 1}`}
-          className="text-muted-foreground/70 hover:bg-primary/10 hover:text-destructive dark:text-muted-foreground/70 dark:hover:bg-primary/[0.08]"
+          className="text-muted-foreground hover:bg-primary/10 hover:text-destructive dark:text-muted-foreground/70 dark:hover:bg-primary/[0.08]"
           onClick={onRemove}
         >
           <Trash2Icon />

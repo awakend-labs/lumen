@@ -185,7 +185,7 @@
 .faq summary svg { color: var(--muted-foreground); flex-shrink: 0; transition: transform 150ms; }
 .faq details[open] svg { transform: rotate(180deg); }
 .faq details p { color: var(--muted-foreground); font-size: 13px; line-height: 1.9; padding-bottom: 20px; max-width: 500px; }
-.closing { background: #f5cd47; color: #292510; border-radius: 6px; padding: 48px 56px; display: flex; align-items: center; justify-content: space-between; gap: 40px; overflow: hidden; }
+.closing { background: var(--primary); color: #292510; border-radius: 6px; padding: 48px 56px; display: flex; align-items: center; justify-content: space-between; gap: 40px; overflow: hidden; }
 .closing .eyebrow { color: #665523; }
 .closing h2 { font-size: clamp(30px,3.5vw,44px); line-height: 1.1; letter-spacing: -.045em; font-weight: 620; margin-top: 20px; }
 .closing p:not(.eyebrow) { font-size: 13px; margin: 18px 0 25px; color: #574a23; line-height: 1.7; }
