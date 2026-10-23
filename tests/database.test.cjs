@@ -208,6 +208,34 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   await assert.rejects(groups.saveApiGroup('owner', a.id, secondStash.id, 'email authentication'), error => error.cause?.code === '23505');
   const groupedEndpoint = await service.createEndpoint('owner', a.id, { ...input, stashId: secondStash.id, groupId: group.id, name: 'Grouped sign in', path: '/sign-in', pathParams: [] });
   assert.equal(groupedEndpoint.groupId, group.id);
+  const destinationGroup = await groups.saveApiGroup('owner', a.id, secondStash.id, 'Destination group');
+  const groupedContext = { params: Promise.resolve({ projectId: a.id, endpointId: groupedEndpoint.id }) };
+  const moveGroupRequest = (groupId, overrides = {}) => new Request('http://localhost', {
+    method: 'PATCH', body: JSON.stringify({ stashId: secondStash.id, groupId, expectedUpdatedAt: groupedEndpoint.updatedAt, ...overrides }),
+  });
+  const movedGroupResponse = await endpointRoute.PATCH(moveGroupRequest(destinationGroup.id), groupedContext);
+  assert.equal(movedGroupResponse.status, 200);
+  const movedGroup = await movedGroupResponse.json();
+  assert.equal(movedGroup.groupId, destinationGroup.id);
+  assert.notEqual(movedGroup.updatedAt, groupedEndpoint.updatedAt);
+  const { groupId: _oldGroup, updatedAt: _oldTime, ...originalDocumentation } = groupedEndpoint;
+  const { groupId: _newGroup, updatedAt: _newTime, ...movedDocumentation } = movedGroup;
+  assert.deepEqual(movedDocumentation, originalDocumentation);
+  assert.equal((await endpointRoute.PATCH(moveGroupRequest(group.id), groupedContext)).status, 409);
+  assert.equal((await endpointRoute.PATCH(moveGroupRequest(otherGroup.id), groupedContext)).status, 400);
+  assert.equal((await endpointRoute.PATCH(moveGroupRequest('invalid'), groupedContext)).status, 400);
+  assert.equal((await endpointRoute.PATCH(moveGroupRequest(null, { expectedUpdatedAt: undefined }), groupedContext)).status, 400);
+  assert.equal((await endpointRoute.PATCH(moveGroupRequest(null, { stashId: stash.id }), groupedContext)).status, 409);
+  assert.equal((await endpointRoute.PATCH(moveGroupRequest(group.id), { params: Promise.resolve({ projectId: a.id, endpointId: secret.id }) })).status, 404);
+  testUser = { id: 'viewer', email: 'viewer@example.com' };
+  assert.equal((await endpointRoute.PATCH(moveGroupRequest(null, { expectedUpdatedAt: movedGroup.updatedAt }), groupedContext)).status, 403);
+  testUser = { id: 'owner', email: 'owner@example.com' };
+  const ungroupResponse = await endpointRoute.PATCH(moveGroupRequest(null, { expectedUpdatedAt: movedGroup.updatedAt }), groupedContext);
+  assert.equal(ungroupResponse.status, 200);
+  const ungroupedEndpoint = await ungroupResponse.json();
+  assert.equal(ungroupedEndpoint.groupId, null);
+  assert.equal((await endpointRoute.PATCH(moveGroupRequest(group.id, { expectedUpdatedAt: ungroupedEndpoint.updatedAt }), groupedContext)).status, 200);
+  await groups.deleteApiGroup('owner', a.id, secondStash.id, destinationGroup.id);
   await assert.rejects(service.createEndpoint('owner', a.id, { ...input, groupId: group.id, name: 'Invalid grouping', path: '/invalid' }), /API group in this stash/);
   await assert.rejects(updateEndpoint('owner', a.id, groupedEndpoint.id, { ...input, stashId: secondStash.id, groupId: otherGroup.id }), /API group in this stash/);
   await assert.rejects(pg.query('update endpoints set group_id = $1 where id = $2', [otherGroup.id, groupedEndpoint.id]), error => error.code === '23503');

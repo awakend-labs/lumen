@@ -1,9 +1,10 @@
 import { renameEndpoint } from "@/server/rename";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { endpointInputSchema } from "@/lib/validators";
 import { requireUser } from "@/server/access";
 import { handle, readJson } from "@/server/http";
-import { deleteEndpoint, getEndpoint, moveEndpoint, updateEndpoint } from "@/server/projects";
+import { deleteEndpoint, getEndpoint, moveEndpoint, moveEndpointToGroup, updateEndpoint } from "@/server/projects";
 
 type Context = { params: Promise<{ projectId: string; endpointId: string }> };
 
@@ -27,6 +28,14 @@ export function PATCH(request: Request, context: Context) {
     if (body && typeof body === "object" && Object.keys(body).length === 1 && "stashId" in body) {
       const stashId = endpointInputSchema.shape.stashId.parse(body.stashId);
       return NextResponse.json(await moveEndpoint(user.id, projectId, endpointId, stashId));
+    }
+    if (body && typeof body === "object" && Object.keys(body).length <= 3 && "groupId" in body) {
+      const input = z.object({
+        stashId: endpointInputSchema.shape.stashId,
+        groupId: endpointInputSchema.shape.groupId.unwrap(),
+        expectedUpdatedAt: endpointInputSchema.shape.expectedUpdatedAt.unwrap(),
+      }).strict().parse(body);
+      return NextResponse.json(await moveEndpointToGroup(user.id, projectId, endpointId, input));
     }
     const input = endpointInputSchema.parse(body);
     return NextResponse.json(

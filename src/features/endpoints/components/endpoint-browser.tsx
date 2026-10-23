@@ -38,6 +38,8 @@ import { useRouter } from "next/navigation";
 import { lazy, useRef, useState } from "react";
 const loadMoveEndpointDialog = () => import("./move-endpoint-dialog").then(module => ({ default: module.MoveEndpointDialog }));
 const MoveEndpointDialog = lazy(loadMoveEndpointDialog);
+const loadMoveEndpointGroupDialog = () => import("./move-endpoint-group-dialog").then(module => ({ default: module.MoveEndpointGroupDialog }));
+const MoveEndpointGroupDialog = lazy(loadMoveEndpointGroupDialog);
 const loadRenameDialog = () => import("@/components/rename-dialog").then(module => ({ default: module.RenameDialog }));
 const RenameDialog = lazy(loadRenameDialog);
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -939,6 +941,7 @@ function EndpointMenu({
   const [renaming, setRenaming] = useState(false);
   const actionTrigger = useRef<HTMLButtonElement>(null);
   const [moving, setMoving] = useState(false);
+  const [movingGroup, setMovingGroup] = useState(false);
   return (
     <>
       <DropdownMenu>
@@ -954,6 +957,9 @@ function EndpointMenu({
             </DropdownMenuItem>
             <DropdownMenuItem onFocus={() => { void loadMoveEndpointDialog(); }} onPointerEnter={() => { void loadMoveEndpointDialog(); }} onSelect={() => setMoving(true)}>
               Move to stash…
+            </DropdownMenuItem>
+            <DropdownMenuItem onFocus={() => { void loadMoveEndpointGroupDialog(); }} onPointerEnter={() => { void loadMoveEndpointGroupDialog(); }} onSelect={() => setMovingGroup(true)}>
+              Move to API group…
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() =>
@@ -990,6 +996,13 @@ function EndpointMenu({
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+      {movingGroup && (
+        <DeferredDialog returnFocus={actionTrigger} title="Move to API group" onClose={() => setMovingGroup(false)}><MoveEndpointGroupDialog
+          projectId={projectId}
+          endpoint={endpoint}
+          onClose={() => setMovingGroup(false)}
+        /></DeferredDialog>
+      )}
       {moving && (
         <DeferredDialog returnFocus={actionTrigger} title="Move endpoint" onClose={() => setMoving(false)}><MoveEndpointDialog
           projectId={projectId}

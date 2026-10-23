@@ -469,6 +469,34 @@ export async function updateEndpoint(
   return toEndpoint(updated);
 }
 
+export async function moveEndpointToGroup(
+  userId: string,
+  projectId: string,
+  endpointId: string,
+  input: { stashId: string; groupId: string | null; expectedUpdatedAt: string },
+) {
+  await requireEditor(userId, projectId);
+  const { endpoint } = await getEndpoint(userId, projectId, endpointId);
+  if (endpoint.stashId !== input.stashId) {
+    throw new HttpError(409, "This endpoint moved to another stash. Reload before changing its group.");
+  }
+  await validateGroup(endpoint.stashId, input.groupId);
+  const [moved] = await db.update(endpoints).set({
+    groupId: input.groupId,
+    updatedAt: sql`greatest(date_trunc('milliseconds', clock_timestamp()), ${endpoints.updatedAt} + interval '1 millisecond')`,
+  }).where(and(
+    eq(endpoints.id, endpointId),
+    eq(endpoints.projectId, projectId),
+    eq(endpoints.stashId, input.stashId),
+    sql`date_trunc('milliseconds', ${endpoints.updatedAt}) = ${input.expectedUpdatedAt}::timestamptz`,
+  )).returning();
+  if (!moved) {
+    throw new HttpError(409, "This endpoint was changed since you opened it. Reload the latest version before moving it again.");
+  }
+  await touchProject(projectId);
+  return toEndpoint(moved);
+}
+
 export async function moveEndpoint(userId: string, projectId: string, endpointId: string, stashId: string) {
   await requireEditor(userId, projectId);
   const { endpoint } = await getEndpoint(userId, projectId, endpointId);
