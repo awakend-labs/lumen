@@ -27,6 +27,7 @@ Module._load = function(request, parent, isMain) {
 };
 const { ResponsesEditor } = require('../src/features/endpoints/components/responses-editor.tsx');
 const { ResponsesView } = require('../src/features/endpoints/components/responses-view.tsx');
+const { ResponseStatusField } = require('../src/features/endpoints/components/response-status-field.tsx');
 const text = node => typeof node === 'string' ? node : (node.children ?? []).map(text).join('');
 
 test('inactive response tabs do no resolution work and TypeScript is generated only when copied', async t => {
@@ -80,6 +81,25 @@ async function fixture(t) {
   return { renderer, get form() { return form; } };
 }
 
+test('status descriptions are read-only and follow the selected code in the form and draft', async t => {
+  const f = await fixture(t);
+  const descriptionInputs = () => f.renderer.root.findAll(node => node.type === 'input' && node.props.name?.endsWith('.description'));
+  assert.deepEqual(descriptionInputs().map(node => node.props.value), ['CREATED', 'CONFLICT']);
+  assert.ok(descriptionInputs().every(node => node.props.readOnly === true && !node.props.onChange));
+  assert.equal(f.form.getValues('responses.0.description'), 'CREATED');
+  await act(async () => f.renderer.root.findAllByType(ResponseStatusField)[0].props.onChange(404));
+  assert.equal(descriptionInputs()[0].props.value, 'NOT FOUND');
+  assert.equal(f.form.getValues('responses.0.description'), 'NOT FOUND');
+  assert.equal(f.form.getValues('responses.0.isSuccess'), false);
+  await act(async () => f.renderer.root.findAllByType(ResponseStatusField)[0].props.onChange(200));
+  assert.equal(descriptionInputs()[0].props.value, 'OK');
+  assert.equal(f.form.getValues('responses.0.description'), 'OK');
+  const add = f.renderer.root.findAllByType('button').find(node => text(node).includes('Add response'));
+  await act(async () => add.props.onClick());
+  assert.equal(descriptionInputs()[2].props.value, 'CREATED');
+  assert.equal(f.form.getValues('responses.2.description'), 'CREATED');
+});
+
 test('response example generates a schema; custom edits survive later example edits', async t => {
   const f = await fixture(t);
   assert.equal(JSON.parse(f.form.getValues('responses.0.schema')).properties.accessToken.type, 'string');
@@ -102,7 +122,7 @@ test('error rows can use the project format without an example and can switch ba
   assert.equal(f.form.getValues('responses.1.useSharedError'), true);
   assert.equal(f.renderer.root.findAllByType('textarea').length, 1);
   assert.match(JSON.stringify(f.renderer.toJSON()), /Uses the project error format/);
-  assert.equal(f.form.getValues('responses.1.description'), 'Email already registered');
+  assert.equal(f.form.getValues('responses.1.description'), 'CONFLICT');
   await act(async () => checkbox.props.onChange({ target: { checked: false } }));
   assert.equal(f.renderer.root.findAllByType('textarea').length, 2);
 });

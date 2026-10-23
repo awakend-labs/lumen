@@ -17,7 +17,6 @@ export function ResponseStatusField({ id, value, usedCodes, onChange, error }: {
     ? `Status ${duplicate} is already used by another response. Choose a different code.`
     : error?.message;
   const errorId = `${id}-error`;
-  const label = RESPONSE_STATUS_CODES.find(([code]) => code === value)?.[1];
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
@@ -33,7 +32,7 @@ export function ResponseStatusField({ id, value, usedCodes, onChange, error }: {
             aria-invalid={Boolean(message)}
             aria-describedby={message ? errorId : undefined}
           >
-            <SelectValue placeholder="Code">{value === "" ? undefined : `${value}${label ? ` - ${label}` : ""}`}</SelectValue>
+            <SelectValue placeholder="Code">{value === "" ? undefined : value}</SelectValue>
           </SelectTrigger>
           <SelectContent className="max-h-64 w-80">
             {value !== "" && !RESPONSE_STATUS_CODES.some(([code]) => code === value) && (

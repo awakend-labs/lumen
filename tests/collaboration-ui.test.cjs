@@ -230,7 +230,7 @@ test('enum values are separate removable entries, including a value containing a
 test('POST response defaults to 200 and path parameter Add is no longer permanently disabled', () => {
   reset(); const stashId = '11111111-1111-4111-8111-111111111111';
   const html = renderToStaticMarkup(React.createElement(EndpointForm, { projectId: 'p', stashes: [{ id: stashId, groups: [], endpoints: [] }], endpoint: { id: 'e', stashId, method: 'POST', responses: [] } }));
-  assert.match(html, /200 - OK/);
+  assert.match(html, /value="OK"/);
   const section = html.slice(html.indexOf('id="path-parameters"'), html.indexOf('id="body-fields"'));
   assert.ok(section.length); const add = section.match(/<button[^>]*>/)?.[0];
   assert.ok(add); assert.doesNotMatch(add, /\sdisabled(?:=|\s|>)/);

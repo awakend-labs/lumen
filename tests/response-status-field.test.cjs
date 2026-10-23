@@ -42,9 +42,9 @@ test('selecting a status sends a number to the form and displays the chosen code
   assert.equal(renderer.root.findByType(SelectTrigger).props['aria-invalid'], false);
 });
 
-test('the default status displays 200 - OK', async t => {
+test('the closed status selector displays only the code', async t => {
   const { renderer } = await fixture(t, { value: 200 });
-  assert.equal(renderer.root.findByType(SelectValue).props.children, '200 - OK');
+  assert.equal(renderer.root.findByType(SelectValue).props.children, 200);
 });
 
 test('menu lists labeled standard codes, disables duplicates, and caps its height', async t => {

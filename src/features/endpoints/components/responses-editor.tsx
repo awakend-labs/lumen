@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useProject } from "@/features/projects/queries";
-import { nextResponseStatus } from "@/lib/response-status";
+import { nextResponseStatus, RESPONSE_STATUS_CODES } from "@/lib/response-status";
 import type { EndpointFormValues } from "./endpoint-form";
 import type { ResponseErrorFormat } from "@/lib/types";
 import { ResponseStatusField } from "./response-status-field";
@@ -49,6 +49,12 @@ const ResponseRow = memo(function ResponseRow({ id, index, form, shared, disable
   const successResponse = value.statusCode !== "" && value.statusCode >= 200 && value.statusCode < 300;
   const state = useFormState({ control: form.control, name: `responses.${index}` });
   const errors = state.errors.responses?.[index];
+  const description = value.statusCode === "" ? "" : RESPONSE_STATUS_CODES.find(([code]) => code === value.statusCode)?.[1].toUpperCase() ?? value.description;
+  useEffect(() => {
+    if (value.description !== description) {
+      form.setValue(`responses.${index}.description`, description, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [description, value.description, form, index]);
   const set = (key: "body" | "schema", next: string) => form.setValue(`responses.${index}.${key}`, next, { shouldDirty: true, shouldValidate: true });
   useEffect(() => {
     if (paused || mode !== "generated" || value.useSharedError) return;
@@ -67,7 +73,7 @@ const ResponseRow = memo(function ResponseRow({ id, index, form, shared, disable
           if (statusCode === "" || statusCode < 200 || statusCode >= 300) form.setValue(`responses.${index}.isSuccess`, false, { shouldDirty: true });
           void form.trigger("responses");
         }} />
-      <Field className="min-w-0"><FieldLabel htmlFor={`response-desc-${id}`}>When it happens</FieldLabel><Input id={`response-desc-${id}`} placeholder={errorResponse ? "Email already registered" : "Login succeeded"} {...form.register(`responses.${index}.description`)} /></Field>
+      <Field className="min-w-0"><FieldLabel htmlFor={`response-desc-${id}`}>When it happens</FieldLabel><Input id={`response-desc-${id}`} readOnly value={description} name={`responses.${index}.description`} /></Field>
       <Button type="button" variant="ghost" size="icon" className="justify-self-end text-muted-foreground hover:text-destructive" aria-label={`Remove response ${value.statusCode || index + 1}`} onClick={() => onRemove(index)}><Trash2Icon /></Button>
     </div>
     <div className="flex flex-wrap items-center gap-3">
