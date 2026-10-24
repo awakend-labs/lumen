@@ -390,6 +390,7 @@ export async function createEndpoint(
       tags: input.tags,
       version: input.version,
       access: input.access,
+      authScheme: input.authScheme,
       isDeprecated: input.isDeprecated,
       order: sql`(select coalesce(max(sort_order), -1) + 1 from endpoints where stash_id = ${input.stashId})`,
     })
@@ -453,6 +454,7 @@ export async function updateEndpoint(
       tags: input.tags,
       version: input.version,
       access: input.access,
+      authScheme: input.authScheme,
       isDeprecated: input.isDeprecated,
       // Advance even when two saves arrive within the same millisecond.
       updatedAt: sql`greatest(date_trunc('milliseconds', clock_timestamp()), ${endpoints.updatedAt} + interval '1 millisecond')`,

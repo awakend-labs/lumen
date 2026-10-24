@@ -3,4 +3,5 @@ export const authLabels = {
   bearer: "Bearer / JWT",
   api_key: "API key",
   basic: "Basic",
+  session_token: "Session token",
 };

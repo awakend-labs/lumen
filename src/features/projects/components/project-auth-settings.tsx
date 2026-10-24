@@ -54,7 +54,7 @@ export function ProjectAuthSettings({ project }: { project: ProjectSummary }) {
           <h2 className="text-base font-semibold tracking-tight">API authentication</h2>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             Document how callers authenticate. Use placeholders in examples; credentials are
-            not needed here.
+            not needed here. This is the default for every endpoint unless it has its own auth scheme.
           </p>
         </div>
       </header>
@@ -74,7 +74,7 @@ export function ProjectAuthSettings({ project }: { project: ProjectSummary }) {
             <Select
               value={value.scheme}
               onValueChange={(scheme) =>
-                setValue({ ...value, scheme: scheme as ProjectAuth["scheme"] })
+                setValue({ ...value, scheme: scheme as ProjectAuth["scheme"], headerName: scheme === "session_token" ? "session_token" : scheme === "api_key" ? "X-API-Key" : value.headerName })
               }
             >
               <SelectTrigger id="auth-scheme" className="w-full sm:w-72">
@@ -91,10 +91,10 @@ export function ProjectAuthSettings({ project }: { project: ProjectSummary }) {
               </SelectContent>
             </Select>
           </Field>
-          {value.scheme === "api_key" && (
+          {(value.scheme === "api_key" || value.scheme === "session_token") && (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field>
-                <FieldLabel htmlFor="auth-header-name">Parameter name</FieldLabel>
+                <FieldLabel htmlFor="auth-header-name">{value.scheme === "session_token" ? "Cookie name" : "Parameter name"}</FieldLabel>
                 <Input
                   id="auth-header-name"
                   required
@@ -104,7 +104,7 @@ export function ProjectAuthSettings({ project }: { project: ProjectSummary }) {
                   }
                 />
               </Field>
-              <Field>
+              {value.scheme === "api_key" && <Field>
                 <FieldLabel htmlFor="auth-location">Location</FieldLabel>
                 <Select
                   value={value.location}
@@ -125,7 +125,7 @@ export function ProjectAuthSettings({ project }: { project: ProjectSummary }) {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-              </Field>
+              </Field>}
             </div>
           )}
           <Field>

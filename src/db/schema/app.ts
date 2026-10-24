@@ -143,6 +143,7 @@ export const endpoints = pgTable(
     tags: text("tags").array().notNull().default([]),
     version: text("version").notNull().default("v1"),
     access: text("access").$type<"public" | "authenticated" | "admin_only">().notNull().default("public"),
+    authScheme: text("auth_scheme").$type<ProjectAuth["scheme"]>(),
     isDeprecated: boolean("is_deprecated").notNull().default(false),
     order: integer("sort_order").notNull().default(0),
     ...timestamps,

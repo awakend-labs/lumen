@@ -1,0 +1,1 @@
+ALTER TABLE "endpoints" ADD COLUMN "auth_scheme" text;

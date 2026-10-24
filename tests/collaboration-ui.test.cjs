@@ -252,12 +252,17 @@ test('new endpoints inherit project auth, while edits and duplicates retain expl
   const props = { projectId: 'p', stashes: [{ id: stashId, groups: [], endpoints: [] }], initialStashId: stashId, projectAuth: auth };
   renderToStaticMarkup(React.createElement(EndpointForm, props));
   assert.equal(lastFormDefaults.access, 'authenticated');
+  assert.equal(lastFormDefaults.authScheme, null);
   assert.match(generateCurl({ ...lastFormDefaults, requestBody: null }, auth), /Authorization: Bearer YOUR_TOKEN/);
   const existing = { id: 'e', name: 'Public endpoint', stashId, access: 'public', updatedAt: '2026-10-20T00:00:00.000Z' };
   renderToStaticMarkup(React.createElement(EndpointForm, { ...props, endpoint: existing }));
   assert.equal(lastFormDefaults.access, 'public'); assert.equal(lastFormDefaults.expectedUpdatedAt, existing.updatedAt);
   renderToStaticMarkup(React.createElement(EndpointForm, { ...props, duplicateFrom: existing }));
   assert.equal(lastFormDefaults.access, 'public');
+  renderToStaticMarkup(React.createElement(EndpointForm, { ...props, endpoint: { ...existing, authScheme: 'session_token' } }));
+  assert.equal(lastFormDefaults.authScheme, 'session_token');
+  renderToStaticMarkup(React.createElement(EndpointForm, { ...props, duplicateFrom: { ...existing, authScheme: 'basic' } }));
+  assert.equal(lastFormDefaults.authScheme, 'basic');
   renderToStaticMarkup(React.createElement(EndpointForm, { ...props, projectAuth: { ...auth, scheme: 'none' } }));
   assert.equal(lastFormDefaults.access, 'public');
 });

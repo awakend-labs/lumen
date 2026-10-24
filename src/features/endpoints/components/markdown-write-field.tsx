@@ -31,10 +31,12 @@ const actions: {
 
 export function MarkdownWriteField({
   registration,
+  value,
   onValue,
   className,
 }: {
   registration: UseFormRegisterReturn;
+  value: string;
   onValue: (value: string) => void;
   className?: string;
 }) {
@@ -84,6 +86,8 @@ export function MarkdownWriteField({
         placeholder="What this endpoint does, who should call it, and any caveats."
         className="min-h-40 resize-y border-0 bg-transparent font-mono text-sm leading-6 shadow-none focus-visible:ring-0 dark:bg-transparent"
         {...registration}
+        value={value}
+        onChange={(event) => onValue(event.target.value)}
         ref={(node) => {
           field.current = node;
           registration.ref(node);

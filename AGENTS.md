@@ -12,7 +12,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Do not persist app-related state in the browser; Postgres is the source of truth for projects, collaboration data, and user preferences (display-only theme via next-themes is fine).
 - Use pnpm for installs, scripts, and CI-style commands in this repo.
-- Use yellow as the primary accent on soft charcoal surfaces in dark mode and white surfaces in light mode (avoid pure black backgrounds).
+- Use yellow as the primary accent on soft charcoal surfaces in dark mode and white surfaces in light mode (avoid pure black backgrounds); keep the established light-theme yellow primary/accent token values (e.g. `#edc647`) unless the user explicitly asks to change them.
+- For light-mode theme or palette work, change only `:root` and light-specific CSS rules; leave `.dark` and `dark:` styling unchanged unless the user asks otherwise.
 - Prefer modern, polished UI with icons and accent colors wherever they fit.
 - Prefer default browser text selection styling; do not add custom `::selection` highlight colors.
 - Use only `rounded-sm` and `rounded-md` for border radius across the whole app (inputs, cards, buttons, dialogs); avoid larger radius utilities.
@@ -31,4 +32,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Project `baseUrl` is stored in Postgres on `projects`; owners set or change it in the create/edit dialog and on project settings (`ProjectBaseUrlSettings`); new endpoints default to this URL (each endpoint may override).
 - Project status (`documented` or `in_progress`) is stored in the Postgres `projects.status` column, changed from the project page and create/edit dialog (dashboard cards show status read-only), and filterable on the dashboard.
 - Stash status (`in_development`, `active`, `testing`, or `deprecated`) is stored in Postgres on `stashes.status` and is editable per stash.
-- Endpoints have a `version` field (e.g. `v1`, `v2`) for route versioning, stored in Postgres on `endpoints.version`.
+- Endpoints have an optional `version` field (e.g. `v1`, `v2`) stored in Postgres on `endpoints.version`; the create-endpoint form leaves version empty by default (placeholder `v1`).

@@ -45,7 +45,7 @@ export const STASH_COLORS = [
 
 export type StashColor = (typeof STASH_COLORS)[number];
 
-export const AUTH_SCHEMES = ["none", "bearer", "api_key", "basic"] as const;
+export const AUTH_SCHEMES = ["none", "bearer", "api_key", "basic", "session_token"] as const;
 export const ACCESS_LEVELS = ["public", "authenticated", "admin_only"] as const;
 export const FIELD_TYPES = ["string", "integer", "number", "boolean", "object", "array"] as const;
 export type ProjectAuth = { scheme: typeof AUTH_SCHEMES[number]; headerName: string; location: "header" | "query"; description: string };
@@ -87,6 +87,7 @@ export type ResponseDoc = {
 export type ResponseErrorFormat = Pick<ResponseDoc, "body" | "bodySource" | "schema" | "schemaSource" | "schemaMode">;
 
 export type EndpointRecord = {
+  authScheme: ProjectAuth["scheme"] | null;
   groupId: string | null;
   access: typeof ACCESS_LEVELS[number];
   id: string;

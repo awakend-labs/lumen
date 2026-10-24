@@ -1,6 +1,7 @@
 import { HTTP_METHODS, type EndpointRecord, type HttpMethod, type ParamField, type ProjectAuth, type RequestBodyDoc } from "./types";
 import { endpointUrl, pathParameterNames, splitVersionPath, validEndpointPath } from "./endpoint-path";
 import { stringifyJson } from "./json-source";
+import { resolveEndpointAuth } from "./endpoint-auth";
 
 export type CurlDraft = Pick<EndpointRecord, "name" | "method" | "baseUrl" | "path" | "headers" | "queryParams" | "pathParams" | "requestBody" | "access" | "version">;
 
@@ -185,7 +186,8 @@ function schemaExample(schema: unknown, depth = 0): unknown {
   return sampleValue({ key: "", value: "", required: false, description: "", type: value.type as ParamField["type"], format: value.format as string });
 }
 
-export function generateCurl(endpoint: Pick<EndpointRecord, "method" | "path" | "baseUrl" | "headers" | "queryParams" | "pathParams" | "requestBody" | "access"> & { version?: string }, auth?: ProjectAuth): string {
+export function generateCurl(endpoint: Pick<EndpointRecord, "method" | "path" | "baseUrl" | "headers" | "queryParams" | "pathParams" | "requestBody" | "access"> & { version?: string; authScheme?: EndpointRecord["authScheme"] }, auth?: ProjectAuth): string {
+  auth = resolveEndpointAuth(endpoint, auth);
   const path = endpoint.path.replace(/\{([A-Za-z_][A-Za-z0-9_]*)\}|:([A-Za-z_][A-Za-z0-9_]*)/g, (_, brace, colon) => {
     const key = brace ?? colon, field = endpoint.pathParams.find(item => item.key === key);
     return encodeURIComponent(field?.value || field?.default || placeholder(key));
@@ -204,6 +206,7 @@ export function generateCurl(endpoint: Pick<EndpointRecord, "method" | "path" | 
   if (endpoint.access !== "public" && auth) {
     if (auth.scheme === "bearer" && !hasHeader("Authorization")) headers.push({ key: "Authorization", value: "Bearer YOUR_TOKEN" });
     if (auth.scheme === "basic" && !hasHeader("Authorization")) headers.push({ key: "Authorization", value: "Basic YOUR_BASE64_CREDENTIALS" });
+    if (auth.scheme === "session_token" && !hasHeader("Cookie")) headers.push({ key: "Cookie", value: `${auth.headerName}=YOUR_SESSION_TOKEN` });
     if (auth.scheme === "api_key") {
       if (auth.location === "query" && !url.searchParams.has(auth.headerName)) url.searchParams.set(auth.headerName, "YOUR_API_KEY");
       else if (auth.location === "header" && !hasHeader(auth.headerName)) headers.push({ key: auth.headerName, value: "YOUR_API_KEY" });

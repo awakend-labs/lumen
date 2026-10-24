@@ -18,6 +18,7 @@ import { CurlExample } from "./curl-example";
 import { FieldTable, requestBodyFields } from "./field-table";
 import { ResponsesView } from "./responses-view";
 import { authLabels } from "@/lib/auth-labels";
+import { resolveEndpointAuth } from "@/lib/endpoint-auth";
 import { useProject } from "@/features/projects/queries";
 import { SectionNav, sectionId } from "@/components/section-nav";
 import { EndpointPathBar } from "./endpoint-path-bar";
@@ -46,7 +47,7 @@ export function EndpointDetail({
   role: ProjectRole;
 }) {
   const project = useProject(projectId);
-  const auth = project.data?.auth;
+  const auth = resolveEndpointAuth(endpoint, project.data?.auth);
   return (
     <div className="grid min-w-0 gap-7 lg:grid-cols-[155px_minmax(0,1fr)] lg:gap-10">
       <SectionNav
@@ -205,6 +206,7 @@ export function EndpointDetail({
                 </p>
               )}
               {auth?.description && <MarkdownView content={auth.description} />}
+              {auth?.scheme === "session_token" && <p>Cookie: <code>{auth.headerName}=&lt;session-token&gt;</code></p>}
               {auth?.scheme === "none" && (
                 <p>Configure the authentication scheme in project settings.</p>
               )}

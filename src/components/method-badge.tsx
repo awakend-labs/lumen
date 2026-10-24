@@ -6,30 +6,30 @@ export const methodRouteAccentClass: Record<HttpMethod, string> = {
   GET: "border-l-method-get",
   POST: "border-l-method-post",
   PUT: "border-l-method-put",
-  PATCH: "border-l-method-put",
+  PATCH: "border-l-method-patch",
   DELETE: "border-l-method-delete",
-  OPTIONS: "border-l-muted-foreground/40",
-  HEAD: "border-l-muted-foreground/40",
+  OPTIONS: "border-l-method-options",
+  HEAD: "border-l-method-head",
 };
 
 export const methodTextClass: Record<HttpMethod, string> = {
   GET: "text-method-get",
   POST: "text-method-post",
   PUT: "text-method-put",
-  PATCH: "text-method-put",
+  PATCH: "text-method-patch",
   DELETE: "text-method-delete",
-  OPTIONS: "text-muted-foreground",
-  HEAD: "text-muted-foreground",
+  OPTIONS: "text-method-options",
+  HEAD: "text-method-head",
 };
 
 const methodClass: Record<HttpMethod, string> = {
   GET: `bg-method-get/12 ${methodTextClass.GET}`,
   POST: `bg-method-post/12 ${methodTextClass.POST}`,
   PUT: `bg-method-put/15 ${methodTextClass.PUT}`,
-  PATCH: `bg-method-put/15 ${methodTextClass.PATCH}`,
+  PATCH: `bg-method-patch/12 ${methodTextClass.PATCH}`,
   DELETE: `bg-method-delete/12 ${methodTextClass.DELETE}`,
-  OPTIONS: `bg-muted ${methodTextClass.OPTIONS}`,
-  HEAD: `bg-muted ${methodTextClass.HEAD}`,
+  OPTIONS: `bg-method-options/12 ${methodTextClass.OPTIONS}`,
+  HEAD: `bg-method-head/12 ${methodTextClass.HEAD}`,
 };
 
 export function EndpointVersionBadge({
@@ -75,14 +75,14 @@ export function MethodBadge({
 }
 
 export function statusClass(code: number) {
-  if (code >= 200 && code < 300) return "bg-method-post/12 text-method-post";
+  if (code >= 200 && code < 300) return "bg-stash-green/12 text-stash-green";
   if (code >= 400 && code < 500) return "bg-method-put/15 text-method-put";
   if (code >= 500) return "bg-method-delete/12 text-method-delete";
   return "bg-muted text-muted-foreground";
 }
 
 export function statusTextClass(code: number) {
-  if (code >= 200 && code < 300) return "text-method-post";
+  if (code >= 200 && code < 300) return "text-stash-green";
   if (code >= 400 && code < 500) return "text-method-put";
   if (code >= 500) return "text-method-delete";
   return "text-muted-foreground";

@@ -15,7 +15,8 @@ export const projectAuthSchema = z.object({
   headerName: z.string().trim().max(120).default("X-API-Key"),
   location: z.enum(["header", "query"]).default("header"),
   description: z.string().max(2000).default(""),
-}).refine(value => value.scheme !== "api_key" || /^[A-Za-z0-9_-]+$/.test(value.headerName), "Enter an API key parameter name");
+}).refine(value => value.scheme !== "api_key" || /^[A-Za-z0-9_-]+$/.test(value.headerName), "Enter an API key parameter name")
+  .refine(value => value.scheme !== "session_token" || /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(value.headerName), "Enter a valid session cookie name");
 
 export const signInSchema = z.object({
   email: z.email("Enter a valid email"),
@@ -151,6 +152,7 @@ export const endpointInputSchema = z.object({
   groupId: z.uuid().nullable().optional(),
   baseUrl: baseUrlSchema.default(""),
   access: z.enum(ACCESS_LEVELS).default("public"),
+  authScheme: z.enum(AUTH_SCHEMES).nullable().default(null),
   stashId: z.uuid(),
   name: z.string().trim().min(1, "Name is required").max(120, "Name must be 120 characters or fewer."),
   method: z.enum(HTTP_METHODS),

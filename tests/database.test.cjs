@@ -56,6 +56,14 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   const input = endpointInputSchema.parse({ baseUrl: 'https://service.example.com', stashId: stash.id, name: 'Alpha user', method: 'GET', path: '/users/{id}', pathParams: [{ key: 'id', required: true }], access: 'authenticated' });
   const created = await service.createEndpoint('owner', a.id, input);
   assert.equal(created.access, 'authenticated');
+  assert.equal(created.authScheme, null);
+  const overridden = await updateEndpoint('owner', a.id, created.id, { ...input, authScheme: 'session_token', description: '## Saved on first entry' });
+  assert.equal(overridden.authScheme, 'session_token');
+  const persisted = (await service.getEndpoint('owner', a.id, created.id)).endpoint;
+  assert.equal(persisted.authScheme, 'session_token');
+  assert.equal(persisted.description, '## Saved on first entry');
+  const inheritedAuth = await updateEndpoint('owner', a.id, created.id, { ...input, authScheme: null });
+  assert.equal(inheritedAuth.authScheme, null);
   assert.equal(created.baseUrl, 'https://service.example.com');
   await assert.rejects(service.createEndpoint('owner', a.id, { ...input, name: 'Different', path: '/users/:userId' }), error => error.cause?.code === '23505');
   await assert.rejects(service.createEndpoint('owner', a.id, { ...input, name: 'ALPHA USER', path: '/other' }), error => error.cause?.code === '23505');

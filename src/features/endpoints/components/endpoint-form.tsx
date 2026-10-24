@@ -36,6 +36,7 @@ import { Controller, useFieldArray, useForm, useWatch,
   type UseFormReturn,
 } from "react-hook-form";
 import { z } from "zod";
+import { authLabels } from "@/lib/auth-labels";
 const loadCurlImportDialog = () => import("./curl-import-dialog").then(module => ({ default: module.CurlImportDialog }));
 const CurlImportDialog = lazy(loadCurlImportDialog);
 import { EndpointTagsField } from "./endpoint-tags-field";
@@ -72,6 +73,7 @@ import {
   HTTP_METHODS,
   FIELD_TYPES,
   ACCESS_LEVELS,
+  AUTH_SCHEMES,
   type ParamField,
   type EndpointRecord,
   type StashSummary,
@@ -163,6 +165,7 @@ const endpointFormSchema = z.object({
   ]),
   requestRaw: z.string().max(20000),
   access: z.enum(ACCESS_LEVELS),
+  authScheme: z.enum(AUTH_SCHEMES).nullable(),
   bodyFields: z.array(paramFormSchema),
   stashId: z.string().min(1, "Choose a stash"),
   groupId: z.string(),
@@ -256,6 +259,7 @@ function parseEndpointDraftPayload(payload: string) {
   const parsed = JSON.parse(payload) as Record<string, unknown>;
   return endpointDraftFormSchema.parse({
     ...parsed,
+    authScheme: parsed.authScheme ?? null,
     tags: normalizeTagsForForm(parsed.tags),
   });
 }
@@ -289,6 +293,7 @@ function toFormValues(
     bodyFormat: (endpoint?.requestBody?.contentType ??
       "application/json") as EndpointFormValues["bodyFormat"],
     requestRaw: endpoint?.requestBody?.raw ?? "",
+    authScheme: endpoint?.authScheme ?? null,
     access:
       endpoint?.access ??
       (projectAuth && projectAuth.scheme !== "none"
@@ -342,7 +347,7 @@ function toFormValues(
             },
           ],
     tags: endpoint?.tags ?? [],
-    version: endpoint?.version ?? "v1",
+    version: endpoint?.version ?? "",
     isDeprecated: endpoint?.isDeprecated ?? false,
   };
 }
@@ -530,6 +535,7 @@ export function EndpointForm({
       draft: draft.token(),
       baseUrl: values.baseUrl,
       access: values.access,
+      authScheme: values.authScheme,
       stashId: fixedStashId,
       ...(!endpoint || values.groupId !== (endpoint.groupId ?? "ungrouped")
         ? { groupId: values.groupId === "ungrouped" ? null : values.groupId }
@@ -932,7 +938,7 @@ export function EndpointForm({
                       <SelectGroup>
                         {HTTP_METHODS.map((item) => (
                           <SelectItem key={item} value={item}>
-                            {item}
+                            <span className={methodTextClass[item]}>{item}</span>
                           </SelectItem>
                         ))}
                       </SelectGroup>
@@ -1048,8 +1054,9 @@ export function EndpointForm({
           <FormSection
             icon={VariableIcon}
             title="Access"
-            description="Uses the authentication scheme configured in project settings."
+            description="Inherit project authentication or choose a scheme for this endpoint."
           >
+            <div className="grid gap-4 sm:grid-cols-2">
             <Field>
               <FieldLabel htmlFor="endpoint-access" className="gap-1.5">
                 <EyeIcon
@@ -1080,6 +1087,17 @@ export function EndpointForm({
                 </SelectContent>
               </Select>
             </Field>
+            <Field>
+              <FieldLabel htmlFor="endpoint-auth-scheme">Auth scheme</FieldLabel>
+              <Select value={form.watch("authScheme") ?? "inherit"} onValueChange={(value) => form.setValue("authScheme", value === "inherit" ? null : value as EndpointFormValues["authScheme"], { shouldDirty: true })}>
+                <SelectTrigger id="endpoint-auth-scheme" className="w-full sm:w-56"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectGroup>
+                  <SelectItem value="inherit">Inherit project{projectAuth ? ` · ${authLabels[projectAuth.scheme]}` : ""}</SelectItem>
+                  {AUTH_SCHEMES.map((scheme) => <SelectItem key={scheme} value={scheme}>{authLabels[scheme]}</SelectItem>)}
+                </SelectGroup></SelectContent>
+              </Select>
+            </Field>
+            </div>
           </FormSection>
           <DescriptionSection form={form} />
 
@@ -1358,6 +1376,7 @@ function fieldToForm(field: ParamField) {
 }
 
 const DescriptionSection = memo(function DescriptionSection({ form }: { form: UseFormReturn<EndpointFormValues> }) {
+  const description = useWatch({ control: form.control, name: "description" });
   return (          <FormSection
             icon={FileTextIcon}
             title="Description"
@@ -1379,6 +1398,7 @@ const DescriptionSection = memo(function DescriptionSection({ form }: { form: Us
               </TabsList>
               <TabsContent value="write">
                 <MarkdownWriteField
+                  value={description}
                   className={insetSurfaceClass}
                   registration={form.register("description")}
                   onValue={(value) =>
