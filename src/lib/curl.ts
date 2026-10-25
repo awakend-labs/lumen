@@ -201,7 +201,15 @@ export function generateCurl(endpoint: Pick<EndpointRecord, "method" | "path" | 
     }
     for (const value of values) url.searchParams.append(field.key, value);
   }
-  const headers = endpoint.headers.map(header => ({ key: header.key, value: header.value || header.default || placeholder(header.key) }));
+  const headers = endpoint.headers.filter(header => {
+    // Optional credential examples defer to the endpoint's effective auth scheme.
+    // Edited values and explicitly required headers remain authoritative.
+    if (header.required) return true;
+    const key = header.key.toLowerCase();
+    if (key === "authorization" && ["Bearer YOUR_TOKEN", "Basic YOUR_BASE64_CREDENTIALS", "YOUR_AUTHORIZATION"].includes(header.value)) return false;
+    if (key === "cookie" && /^(?:YOUR_COOKIE|[^=;\s]+=YOUR_SESSION_TOKEN)$/.test(header.value)) return false;
+    return true;
+  }).map(header => ({ key: header.key, value: header.value || header.default || placeholder(header.key) }));
   const hasHeader = (key: string) => headers.some(header => header.key.toLowerCase() === key.toLowerCase());
   if (endpoint.access !== "public" && auth) {
     if (auth.scheme === "bearer" && !hasHeader("Authorization")) headers.push({ key: "Authorization", value: "Bearer YOUR_TOKEN" });

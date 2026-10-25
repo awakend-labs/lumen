@@ -2,7 +2,7 @@
 
 import { DeferredDialog } from "@/components/deferred-dialog";
 
-import { lazy, memo, useEffect, useRef, useState } from "react";
+import { lazy, memo, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import { stringifyJson } from "@/lib/json-source";
@@ -106,6 +106,7 @@ const insetSurfaceClass = "lumen-inset";
 
 const JSON_SCHEMA_PLACEHOLDER = '{ "type": "object" }';
 const JSON_EXAMPLE_PLACEHOLDER = '{ "id": "example" }';
+const subscribeToHydration = () => () => {};
 
 const jsonText = z.string().refine((value) => {
   if (!value.trim()) return true;
@@ -306,7 +307,39 @@ function toFormValues(
     method: endpoint?.method ?? "GET",
     path: endpoint?.path ?? "",
     description: endpoint?.description ?? "",
-    headers: (endpoint?.headers ?? []).map(fieldToForm),
+    headers: endpoint
+      ? (endpoint.headers ?? []).map(fieldToForm)
+      : [
+          {
+            key: "Content-Type",
+            value: "application/json",
+            description: "Media type of the request body.",
+          },
+          {
+            key: "Origin",
+            value: "https://example.com",
+            description: "Origin of the client making the request.",
+          },
+          {
+            key: "Accept",
+            value: "application/json",
+            description: "Media type expected in the response.",
+          },
+          {
+            key: "Authorization",
+            value: projectAuth?.scheme === "basic"
+              ? "Basic YOUR_BASE64_CREDENTIALS"
+              : "Bearer YOUR_TOKEN",
+            description: "Credentials used to authenticate the request.",
+          },
+          {
+            key: "Cookie",
+            value: projectAuth?.scheme === "session_token"
+              ? `${projectAuth.headerName}=YOUR_SESSION_TOKEN`
+              : "session=YOUR_SESSION_TOKEN",
+            description: "Session cookies sent with the request.",
+          },
+        ].map((header) => fieldToForm({ ...header, required: false })),
     queryParams: (endpoint?.queryParams ?? []).map(fieldToForm),
     pathParams: (endpoint?.pathParams ?? []).map(fieldToForm),
     requestSchema: pretty(
@@ -396,8 +429,7 @@ export function EndpointForm({
 }) {
   const router = useRouter();
   const formElement = useRef<HTMLFormElement>(null);
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const [importOpen, setImportOpen] = useState(importCurl);
   const [imported, setImported] = useState(false);
   const [duplicatePending, setDuplicatePending] = useState(
@@ -447,7 +479,10 @@ export function EndpointForm({
       stashId: fixedStashId,
     }),
   );
-  const method = form.watch("method");
+  const [method, groupId, baseUrl, isDeprecated, access, authScheme] = useWatch({
+    control: form.control,
+    name: ["method", "groupId", "baseUrl", "isDeprecated", "access", "authScheme"],
+  });
 
   const allowLeave = useRef(false);
   const { isCurrentSaved } = draft;
@@ -636,7 +671,7 @@ export function EndpointForm({
         ref={formElement}
         noValidate
         className="flex min-w-0 max-w-full flex-col gap-5 pb-20"
-        onSubmit={form.handleSubmit(submit, () => {
+        onSubmit={(event) => form.handleSubmit(submit, () => {
           toast.error("Could not save. Check the highlighted fields.");
           requestAnimationFrame(() => {
             const invalid = formElement.current?.querySelector<HTMLElement>(
@@ -645,7 +680,7 @@ export function EndpointForm({
             invalid?.scrollIntoView({ block: "center", behavior: "instant" });
             invalid?.focus({ preventScroll: true });
           });
-        })}
+        })(event)}
       >
         {saveConflict && (
           <div
@@ -848,7 +883,7 @@ export function EndpointForm({
                     <span className="text-muted-foreground">(optional)</span>
                   </FieldLabel>
                   <Select
-                    value={form.watch("groupId")}
+                    value={groupId}
                     onValueChange={(value) =>
                       form.setValue("groupId", value, { shouldDirty: true })
                     }
@@ -884,7 +919,7 @@ export function EndpointForm({
                   placeholder="https://api.example.com"
                   aria-invalid={Boolean(form.formState.errors.baseUrl)}
                   {...form.register("baseUrl")}
-                  value={form.watch("baseUrl")}
+                  value={baseUrl}
                 />
                 <FieldError errors={[form.formState.errors.baseUrl]} />
               </Field>
@@ -1032,7 +1067,7 @@ export function EndpointForm({
                 <Field orientation="horizontal" className="h-8">
                   <Switch
                     id="deprecated"
-                    checked={form.watch("isDeprecated")}
+                    checked={isDeprecated}
                     onCheckedChange={(checked) =>
                       form.setValue("isDeprecated", checked, {
                         shouldDirty: true,
@@ -1066,7 +1101,7 @@ export function EndpointForm({
                 Endpoint access
               </FieldLabel>
               <Select
-                value={form.watch("access")}
+                value={access}
                 onValueChange={(value) =>
                   form.setValue(
                     "access",
@@ -1089,7 +1124,7 @@ export function EndpointForm({
             </Field>
             <Field>
               <FieldLabel htmlFor="endpoint-auth-scheme">Auth scheme</FieldLabel>
-              <Select value={form.watch("authScheme") ?? "inherit"} onValueChange={(value) => form.setValue("authScheme", value === "inherit" ? null : value as EndpointFormValues["authScheme"], { shouldDirty: true })}>
+              <Select value={authScheme ?? "inherit"} onValueChange={(value) => form.setValue("authScheme", value === "inherit" ? null : value as EndpointFormValues["authScheme"], { shouldDirty: true })}>
                 <SelectTrigger id="endpoint-auth-scheme" className="w-full sm:w-56"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectGroup>
                   <SelectItem value="inherit">Inherit project{projectAuth ? ` · ${authLabels[projectAuth.scheme]}` : ""}</SelectItem>
@@ -1266,7 +1301,7 @@ function EndpointDraftBar({
         type="button"
         size="sm"
         variant="outline"
-        className="w-full shrink-0 bg-background/80 sm:w-auto"
+        className="w-full shrink-0 border-destructive/10 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive dark:border-destructive/10 dark:bg-destructive/10 dark:hover:bg-destructive/20 sm:w-auto"
         disabled={loading}
         onClick={onDiscard}
       >

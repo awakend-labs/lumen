@@ -267,6 +267,59 @@ test('new endpoints inherit project auth, while edits and duplicates retain expl
   assert.equal(lastFormDefaults.access, 'public');
 });
 
+test('fresh endpoints have five fully populated editable header rows while existing and duplicated headers are preserved', () => {
+  reset();
+  const stashId = '11111111-1111-4111-8111-111111111111';
+  const props = { projectId: 'p', stashes: [{ id: stashId, groups: [], endpoints: [] }], initialStashId: stashId };
+  const html = renderToStaticMarkup(React.createElement(EndpointForm, props));
+  assert.deepEqual(lastFormDefaults.headers.map(header => header.key), ['Content-Type', 'Origin', 'Accept', 'Authorization', 'Cookie']);
+  for (const [index, header] of lastFormDefaults.headers.entries()) {
+    assert.ok(header.value.length > 0); assert.ok(header.description.length > 0);
+    assert.equal(header.required, false);
+    assert.ok(html.includes(`name="headers.${index}.key"`));
+  }
+  assert.match(html, /Add header/); assert.match(html, /Remove row 1/);
+  const endpoint = { id: 'e', name: 'Existing', stashId, headers: [] };
+  for (const source of [{ endpoint }, { duplicateFrom: endpoint }]) {
+    renderToStaticMarkup(React.createElement(EndpointForm, { ...props, ...source }));
+    assert.deepEqual(lastFormDefaults.headers, []);
+  }
+  renderToStaticMarkup(React.createElement(EndpointForm, { ...props, endpoint: { ...endpoint, headers: [{ key: 'X-Custom', value: 'example', description: 'Custom header', required: true }] } }));
+  assert.equal(lastFormDefaults.headers.length, 1); assert.equal(lastFormDefaults.headers[0].key, 'X-Custom');
+});
+
+test('cURL with prefilled headers follows endpoint auth changes and preserves customized credential values', () => {
+  reset();
+  const { generateCurl } = require('../src/lib/curl.ts');
+  const stashId = '11111111-1111-4111-8111-111111111111';
+  renderToStaticMarkup(React.createElement(EndpointForm, { projectId: 'p', stashes: [{ id: stashId, groups: [], endpoints: [] }], initialStashId: stashId }));
+  const endpoint = { ...lastFormDefaults, baseUrl: 'https://api.example.com', path: '/users', requestBody: null };
+  const auth = { scheme: 'bearer', headerName: 'X-API-Key', location: 'header', description: '' };
+  const command = (overrides = {}, projectAuth = auth) => generateCurl({ ...endpoint, access: 'authenticated', ...overrides }, projectAuth);
+  assert.match(command(), /Authorization: Bearer YOUR_TOKEN/);
+  assert.doesNotMatch(command(), /Cookie:/);
+  assert.match(command({ authScheme: 'basic' }), /Authorization: Basic YOUR_BASE64_CREDENTIALS/);
+  assert.doesNotMatch(command({ authScheme: 'basic' }), /Bearer YOUR_TOKEN|Cookie:/);
+  assert.match(command({ authScheme: 'session_token' }), /Cookie: session_token=YOUR_SESSION_TOKEN/);
+  assert.doesNotMatch(command({ authScheme: 'session_token' }), /Authorization:/);
+  assert.match(command({}, { ...auth, scheme: 'session_token', headerName: 'app.session' }), /Cookie: app.session=YOUR_SESSION_TOKEN/);
+  assert.doesNotMatch(command({ access: 'public' }), /Authorization:|Cookie:/);
+  assert.doesNotMatch(command({ authScheme: 'none' }), /Authorization:|Cookie:/);
+  const apiKey = { ...auth, scheme: 'api_key' };
+  assert.match(command({}, apiKey), /X-API-Key: YOUR_API_KEY/);
+  assert.doesNotMatch(command({}, apiKey), /Authorization:|Cookie:/);
+  assert.match(command({}, { ...apiKey, location: 'query', headerName: 'key' }), /users\?key=YOUR_API_KEY/);
+  assert.match(command({}, { ...apiKey, headerName: 'Authorization' }), /Authorization: YOUR_API_KEY/);
+  const headers = endpoint.headers.map(header => header.key === 'Authorization' ? { ...header, value: 'Custom YOUR_CUSTOM_TOKEN' } : header);
+  assert.match(command({ headers, authScheme: 'basic' }), /Authorization: Custom YOUR_CUSTOM_TOKEN/);
+  assert.doesNotMatch(command({ headers, authScheme: 'basic' }), /Basic YOUR_BASE64_CREDENTIALS/);
+  const cookies = endpoint.headers.map(header => header.key === 'Cookie' ? { ...header, value: 'custom=YOUR_CUSTOM_SESSION' } : header);
+  assert.match(command({ headers: cookies, authScheme: 'session_token' }), /Cookie: custom=YOUR_CUSTOM_SESSION/);
+  assert.doesNotMatch(command({ headers: cookies, authScheme: 'session_token' }), /Cookie: session_token=/);
+  const required = endpoint.headers.map(header => header.key === 'Authorization' ? { ...header, required: true } : header);
+  assert.match(command({ headers: required, access: 'public' }), /Authorization: Bearer YOUR_TOKEN/);
+});
+
 test('deprecated endpoint details show a warning and strike through the title', () => {
   reset();
   const { EndpointDetail } = require('../src/features/endpoints/components/endpoint-detail.tsx');
