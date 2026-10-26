@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@/db";
+import { sendPasswordResetEmail } from "@/server/password-reset-email";
 import { account, accountRelations, session, sessionRelations, user, userRelations, verification } from "@/db/schema";
 
 const baseURL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
@@ -20,6 +21,11 @@ export const auth = betterAuth({
   advanced: { database: { joins: true } },
   emailAndPassword: {
     enabled: true,
+    resetPasswordTokenExpiresIn: 60 * 30,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      await sendPasswordResetEmail({ email: user.email, url });
+    },
   },
   trustedOrigins: [...new Set([baseURL, publicURL].filter(Boolean))],
   plugins: [nextCookies()],
