@@ -5,7 +5,7 @@
 	"vars": {
 		"BETTER_AUTH_URL": "https://lumen.snipful.in",
 		"NEXT_PUBLIC_APP_URL": "https://lumen.snipful.in",
-		"RESEND_PASSWORD_RESET_TEMPLATE_ID": "password-reset"
+		"RESEND_PASSWORD_RESET_TEMPLATE_ID": "lumen-password-reset-template"
 	},
 	"compatibility_date": "2026-10-18",
 	"compatibility_flags": [

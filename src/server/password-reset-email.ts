@@ -1,7 +1,7 @@
 // Server-only: credentials are read when sending, after Worker bindings are available.
 export async function sendPasswordResetEmail({ email, url }: { email: string; url: string }) {
   const apiKey = process.env.RESEND_API_KEY?.trim();
-  const templateId = process.env.RESEND_PASSWORD_RESET_TEMPLATE_ID?.trim() || "password-reset";
+  const templateId = process.env.RESEND_PASSWORD_RESET_TEMPLATE_ID?.trim() || "lumen-password-reset-template";
   if (!apiKey) throw new Error("Password reset email is not configured.");
 
   let response: Response;

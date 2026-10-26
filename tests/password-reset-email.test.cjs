@@ -22,7 +22,7 @@ test('Resend uses the published template, server credentials and exact RESET_URL
     assert.equal(options.method, 'POST');
     assert.equal(options.headers.Authorization, 'Bearer test-only-key');
     assert.ok(options.signal instanceof AbortSignal);
-    assert.deepEqual(JSON.parse(options.body), { to: [input.email], template: { id: 'password-reset', variables: { RESET_URL: input.url } } });
+    assert.deepEqual(JSON.parse(options.body), { to: [input.email], template: { id: 'lumen-password-reset-template', variables: { RESET_URL: input.url } } });
     return Response.json({ id: 'accepted-message' });
   };
   await sendPasswordResetEmail(input);

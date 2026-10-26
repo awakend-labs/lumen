@@ -36,7 +36,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 | `BETTER_AUTH_URL` | Origin Better Auth calls home to |
 | `NEXT_PUBLIC_APP_URL` | Origin used in invite links |
 | `RESEND_API_KEY` | Server-only Resend key for password reset email |
-| `RESEND_PASSWORD_RESET_TEMPLATE_ID` | Published Resend template ID or alias; defaults to `password-reset` |
+| `RESEND_PASSWORD_RESET_TEMPLATE_ID` | Published Resend template ID or alias; defaults to `lumen-password-reset-template` |
 
 Password recovery starts at **Forgot password?** on the sign-in screen. Resend's published `password-reset` template supplies the sender, subject and reply-to and must declare a `RESET_URL` string variable used in the button and fallback link. Reset links expire after 30 minutes, can be used once, and sign out existing sessions when the password changes. Reset tokens use the existing Postgres verification table; no new migration is needed. Configure both URL variables for the environment where the link should open.
 
