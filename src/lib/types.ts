@@ -47,7 +47,7 @@ export type StashColor = (typeof STASH_COLORS)[number];
 
 export const AUTH_SCHEMES = ["none", "bearer", "api_key", "basic", "session_token"] as const;
 export const ACCESS_LEVELS = ["public", "authenticated", "admin_only"] as const;
-export const FIELD_TYPES = ["string", "integer", "number", "boolean", "object", "array"] as const;
+export const FIELD_TYPES = ["string", "uuid", "integer", "number", "boolean", "object", "array"] as const;
 export type ProjectAuth = { scheme: typeof AUTH_SCHEMES[number]; headerName: string; location: "header" | "query"; description: string };
 export type ParamField = {
   type?: typeof FIELD_TYPES[number];

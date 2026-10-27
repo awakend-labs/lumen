@@ -25,7 +25,7 @@ export type ParamSectionName =
   | "pathParams"
   | "bodyFields";
 
-const QUERY_AND_PATH_TYPES = ["string", "integer", "number", "boolean"] as const;
+const QUERY_AND_PATH_TYPES = ["string", "uuid", "integer", "number", "boolean"] as const;
 
 const PARAM_COPY: Record<
   ParamSectionName,

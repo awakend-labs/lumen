@@ -172,6 +172,7 @@ function sampleValue(field: ParamField): unknown {
   if (field.type === "boolean") return true;
   if (field.type === "object") return {};
   if (field.type === "array") return [];
+  if (field.type === "uuid" || field.format === "uuid") return "550e8400-e29b-41d4-a716-446655440000";
   return field.format === "email" ? "you@example.com" : "example";
 }
 

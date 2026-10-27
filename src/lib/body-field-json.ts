@@ -9,7 +9,7 @@ type BodyField = Omit<ParamField, "min" | "max"> & {
 };
 
 function typedValue(value: string, type: BodyField["type"]): unknown {
-  if (type === "string" || !type) return value;
+  if (type === "string" || type === "uuid" || !type) return value;
   try {
     const parsed: unknown = JSON.parse(value);
     if ((type === "integer" && typeof parsed === "number" && Number.isInteger(parsed)) ||
@@ -31,13 +31,14 @@ export function bodyFieldsToJson(fields: BodyField[]) {
   for (const field of named) {
     const key = field.key.trim();
     const type = field.type ?? "string";
-    const property: Record<string, unknown> = { type };
+    const property: Record<string, unknown> = { type: type === "uuid" ? "string" : type };
     if (field.description.trim()) property.description = field.description;
-    if (field.format) property.format = field.format;
+    if (type === "uuid") property.format = "uuid";
+    else if (field.format) property.format = field.format;
     const allowed = field.enumValues ?? field.enum;
     if (allowed?.length) property.enum = allowed.map(value => typedValue(value, type));
     if (field.default !== undefined && field.default !== "") property.default = typedValue(field.default, type);
-    const bounds = type === "string" ? ["minLength", "maxLength"] : type === "array" ? ["minItems", "maxItems"] : type === "object" ? ["minProperties", "maxProperties"] : ["minimum", "maximum"];
+    const bounds = type === "string" || type === "uuid" ? ["minLength", "maxLength"] : type === "array" ? ["minItems", "maxItems"] : type === "object" ? ["minProperties", "maxProperties"] : ["minimum", "maximum"];
     [field.min, field.max].forEach((value, index) => {
       if (value !== undefined && value !== "" && Number.isFinite(Number(value)) && type !== "boolean") property[bounds[index]] = Number(value);
     });
@@ -45,8 +46,8 @@ export function bodyFieldsToJson(fields: BodyField[]) {
     if (field.required && !required.includes(key)) required.push(key);
     const source = field.value !== "" ? field.value : field.default !== undefined && field.default !== "" ? field.default : allowed?.[0];
     example[key] = source !== undefined ? typedValue(source, type)
-      : type === "integer" || type === "number" ? 0 : type === "boolean" ? false : type === "array" ? [] : type === "object" ? {} : "";
-    if (source !== undefined && type !== "string" && matchesJsonSource(example[key], source)) exampleSources[key] = source.trim();
+      : type === "uuid" ? "550e8400-e29b-41d4-a716-446655440000" : type === "integer" || type === "number" ? 0 : type === "boolean" ? false : type === "array" ? [] : type === "object" ? {} : "";
+    if (source !== undefined && type !== "string" && type !== "uuid" && matchesJsonSource(example[key], source)) exampleSources[key] = source.trim();
   }
   return {
     requestSchema: JSON.stringify({ type: "object", properties, ...(required.length ? { required } : {}) }, null, 2),
