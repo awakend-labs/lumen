@@ -6,6 +6,7 @@ import type { InvitationPreview, InvitationRecord, MemberRecord } from "@/lib/ty
 import type { InvitationInput } from "@/lib/validators";
 import { requireEditor, requireOwner } from "./access";
 import { HttpError } from "./http";
+import { sendProjectInvitationEmail } from "./project-invitation-email";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -128,6 +129,14 @@ export async function createInvitation(
   input: InvitationInput,
 ) {
   await requireOwner(userId, projectId);
+  if (!process.env.RESEND_API_KEY?.trim()) {
+    throw new HttpError(503, "Invitation email is not configured. Ask the administrator to configure Resend.");
+  }
+  const [project] = await db.select({ name: projects.name }).from(projects)
+    .where(eq(projects.id, projectId)).limit(1);
+  const [inviter] = await db.select({ name: user.name }).from(user)
+    .where(eq(user.id, userId)).limit(1);
+  if (!project || !inviter) throw new HttpError(404, "Project or inviter not found");
   const email = input.email.trim().toLowerCase();
 
   const [existingUser] = await db
@@ -174,6 +183,10 @@ export async function createInvitation(
       .where(eq(invitations.id, pending.id))
       .returning();
     if (!updated) throw new HttpError(500, "Could not create the invitation");
+    await sendProjectInvitationEmail({
+      email: updated.email, url: inviteLink(updated.token),
+      inviterName: inviter.name, projectName: project.name, role: input.role,
+    });
     return {
       id: updated.id,
       email: updated.email,
@@ -196,6 +209,10 @@ export async function createInvitation(
     })
     .returning();
   if (!created) throw new HttpError(500, "Could not create the invitation");
+  await sendProjectInvitationEmail({
+    email: created.email, url: inviteLink(created.token),
+    inviterName: inviter.name, projectName: project.name, role: input.role,
+  });
   return {
     id: created.id,
     email: created.email,

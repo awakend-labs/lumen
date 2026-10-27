@@ -49,9 +49,12 @@ export function useInviteMember(projectId: string) {
       await queryClient.cancelQueries({ queryKey: memberKeys.invites(projectId) });
       queryClient.setQueryData<InvitationRecord[]>(memberKeys.invites(projectId), current => [invitation, ...(current ?? []).filter(item => item.id !== invitation.id)]);
       await queryClient.invalidateQueries({ queryKey: memberKeys.invites(projectId) });
-      toast.success("Invitation ready to share");
+      toast.success("Invitation email sent");
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.invites(projectId) });
+      toast.error(error.message);
+    },
   });
 }
 

@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarDaysIcon, Link2Icon, UserMinusIcon, UsersIcon } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { CopyButton } from "@/components/copy-button";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -63,6 +63,7 @@ export function ProjectSettings({
     resolver: zodResolver(invitationInputSchema),
     defaultValues: { email: "", role: "editor" },
   });
+  const inviteRole = useWatch({ control: form.control, name: "role" });
 
   if (!canEditContent(role)) return null;
 
@@ -137,7 +138,14 @@ export function ProjectSettings({
                           </SelectContent>
                         </Select>
                       ) : (
-                        <Badge variant="secondary" className="h-6 px-2.5">
+                        <Badge
+                          variant="secondary"
+                          className={
+                            member.role === "owner"
+                              ? "h-6 border border-emerald-500/40 bg-emerald-500/10 px-2.5 text-emerald-700 dark:text-emerald-400"
+                              : "h-6 px-2.5"
+                          }
+                        >
                           {member.role}
                         </Badge>
                       )}
@@ -203,7 +211,7 @@ export function ProjectSettings({
               <div className="flex min-w-0 flex-col gap-1.5">
                 <CardTitle>Invite</CardTitle>
                 <CardDescription>
-                  Create a link and send it yourself. Invites expire after 7 days.
+                  Send an invitation link by email. Invites expire after 7 days.
                 </CardDescription>
               </div>
             </div>
@@ -240,7 +248,7 @@ export function ProjectSettings({
                 <Field className="w-full shrink-0 md:w-40">
                   <FieldLabel htmlFor="invite-role">Role</FieldLabel>
                   <Select
-                    value={form.watch("role")}
+                    value={inviteRole}
                     onValueChange={(value) =>
                       form.setValue("role", value as InvitationInput["role"])
                     }
@@ -263,14 +271,14 @@ export function ProjectSettings({
                   disabled={invite.isPending}
                 >
                   {invite.isPending ? <Spinner data-icon="inline-start" /> : null}
-                  Create link
+                  {invite.isPending ? "Sending…" : "Send link"}
                 </Button>
               </div>
             </form>
 
             {created && invitations.data?.some(invitation => invitation.id === created.id) ? (
               <Alert>
-                <AlertTitle>Share this link</AlertTitle>
+                <AlertTitle>Invitation sent</AlertTitle>
                 <AlertDescription>
                   <span className="mt-2 flex items-center gap-2">
                     <code className="truncate rounded bg-muted px-2 py-1 text-xs">{created.link}</code>

@@ -20,7 +20,21 @@ db = require('drizzle-orm/pglite').drizzle(pg);
 // Exercise the same SQL in local Postgres. This does not simulate Neon HTTP transport.
 db.batch = async queries => { const result = []; for (const query of queries) result.push(await query); return result; };
 
-test('migrations, endpoint scope/uniqueness, search, auth, invitations, and status persist in PostgreSQL', async () => {
+test('migrations, endpoint scope/uniqueness, search, auth, invitations, and status persist in PostgreSQL', async t => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.RESEND_API_KEY;
+  const invitationEmails = [];
+  process.env.RESEND_API_KEY = 'test-only-key';
+  global.fetch = async (url, options) => {
+    assert.equal(url, 'https://api.resend.com/emails');
+    invitationEmails.push(JSON.parse(options.body));
+    return Response.json({ id: 'accepted-message' });
+  };
+  t.after(() => {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.RESEND_API_KEY;
+    else process.env.RESEND_API_KEY = originalKey;
+  });
   const dir = path.resolve(__dirname, '../drizzle');
   for (const file of fs.readdirSync(dir).filter(file => file.endsWith('.sql')).sort()) {
     if (file === '0007_odd_rhino.sql') {
@@ -89,6 +103,12 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   assert.equal((await service.getProjectDetail('owner', a.id)).stashes[0].endpoints[0].id, v2.id);
   await assert.rejects(service.reorderEndpoints('owner', a.id, stash.id, [created.id, created.id]), /out of date/);
   const invite = await collaboration.createInvitation('owner', a.id, { email: 'viewer@example.com', role: 'viewer' });
+  assert.deepEqual(invitationEmails.at(-1), {
+    to: ['viewer@example.com'],
+    template: { id: 'lumen-project-invitation-template', variables: {
+      INVITER_NAME: 'Owner', PROJECT_NAME: 'Alpha', ROLE: 'Viewer', INVITE_URL: invite.link,
+    } },
+  });
   assert.equal((await collaboration.listInvitations('owner', a.id))[0].id, invite.id);
   await collaboration.revokeInvitation('owner', a.id, invite.id);
   assert.equal((await collaboration.listInvitations('owner', a.id)).length, 0);
@@ -471,5 +491,25 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   const customSchema = { type: 'object', required: ['user'], properties: { user: { type: 'object', required: ['image'], properties: { image: { type: ['string', 'null'] } } } } };
   const editedResponses = await service.updateEndpoint('owner', a.id, responseEndpoint.id, { ...storedInput, name: responseEndpoint.name, path: responseEndpoint.path, expectedUpdatedAt: responseEndpoint.updatedAt, responses: [{ ...savedResponses[0], schemaMode: 'custom', schema: customSchema }] });
   assert.deepEqual(editedResponses.responses[0].schema, customSchema);
+  // Provider failure preserves a retryable invite, and missing configuration writes nothing.
+  const emailCount = invitationEmails.length;
+  await assert.rejects(collaboration.createInvitation('other', a.id, { email: 'retry@example.com', role: 'editor' }), error => error.status === 403);
+  assert.equal(invitationEmails.length, emailCount);
+  delete process.env.RESEND_API_KEY;
+  await assert.rejects(collaboration.createInvitation('owner', a.id, { email: 'retry@example.com', role: 'editor' }), error => error.status === 503);
+  assert.equal((await collaboration.listInvitations('owner', a.id)).some(invite => invite.email === 'retry@example.com'), false);
+  process.env.RESEND_API_KEY = 'test-only-key';
+  const acceptedFetch = global.fetch;
+  global.fetch = async () => Response.json({ error: 'provider failed' }, { status: 500 });
+  await assert.rejects(collaboration.createInvitation('owner', a.id, { email: 'retry@example.com', role: 'editor' }), error => error.status === 502);
+  const savedInvite = (await collaboration.listInvitations('owner', a.id)).find(invite => invite.email === 'retry@example.com');
+  assert.ok(savedInvite);
+  global.fetch = acceptedFetch;
+  const resent = await collaboration.createInvitation('owner', a.id, { email: 'retry@example.com', role: 'viewer' });
+  assert.equal(resent.id, savedInvite.id);
+  assert.notEqual(resent.link, savedInvite.link);
+  assert.equal(invitationEmails.at(-1).template.variables.INVITE_URL, resent.link);
+  assert.equal(invitationEmails.at(-1).template.variables.ROLE, 'Viewer');
+  await assert.rejects(collaboration.previewInvitation(savedInvite.link.split('/').pop()), /not found/);
   await pg.close();
 });
