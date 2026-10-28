@@ -11,7 +11,7 @@ import {
   TagIcon,
 } from "lucide-react";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import {
   DialogFormHeader,
   FieldIconLabel,
@@ -77,7 +77,8 @@ export function StashDialog({
     }
   }, [open, stash, form]);
 
-  const color = form.watch("color");
+  const color = useWatch({ control: form.control, name: "color" });
+  const status = useWatch({ control: form.control, name: "status" });
 
   const dialogTitle = stash ? "Edit stash" : "New stash";
   const HeaderIcon = stash ? PencilLineIcon : LayersIcon;
@@ -112,7 +113,7 @@ export function StashDialog({
             <Field>
               <FieldIconLabel icon={ActivityIcon}>Status</FieldIconLabel>
               <Select
-                value={form.watch("status")}
+                value={status}
                 onValueChange={(value) => form.setValue("status", value as StashStatus)}
               >
                 <SelectTrigger className="w-full">

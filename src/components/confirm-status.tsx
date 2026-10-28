@@ -57,9 +57,7 @@ export function ConfirmStatusChange({
         onOpenChange(next);
       }}
     >
-      <AlertDialogContent
-        className="status-change-dialog gap-5 border-border px-5 py-5 sm:max-w-md"
-      >
+      <AlertDialogContent className="status-change-dialog gap-5 border-border px-5 py-5 sm:max-w-md">
         <AlertDialogHeader>
           <AlertDialogMedia
             className={cn(

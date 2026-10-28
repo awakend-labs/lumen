@@ -20,6 +20,11 @@ export function RenameDialog({ kind, projectId, itemId, name, open, onOpenChange
 }) {
   const inputId = useId();
   const [draft, setDraft] = useState(name);
+  const [previous, setPrevious] = useState({ open, name });
+  if (previous.open !== open || previous.name !== name) {
+    setPrevious({ open, name });
+    if (open) setDraft(name);
+  }
   const client = useQueryClient();
   const maxLength = kind === "endpoint" ? 120 : 80;
   const title = `Rename ${kind}`;
@@ -43,7 +48,7 @@ export function RenameDialog({ kind, projectId, itemId, name, open, onOpenChange
   });
   const reset = rename.reset;
   useEffect(() => {
-    if (open) { setDraft(name); reset(); }
+    if (open) reset();
   }, [open, name, reset]);
 
   return (

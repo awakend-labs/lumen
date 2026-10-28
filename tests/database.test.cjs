@@ -246,8 +246,12 @@ test('migrations, endpoint scope/uniqueness, search, auth, invitations, and stat
   const movedGroup = await movedGroupResponse.json();
   assert.equal(movedGroup.groupId, destinationGroup.id);
   assert.notEqual(movedGroup.updatedAt, groupedEndpoint.updatedAt);
-  const { groupId: _oldGroup, updatedAt: _oldTime, ...originalDocumentation } = groupedEndpoint;
-  const { groupId: _newGroup, updatedAt: _newTime, ...movedDocumentation } = movedGroup;
+  const originalDocumentation = { ...groupedEndpoint };
+  const movedDocumentation = { ...movedGroup };
+  delete originalDocumentation.groupId;
+  delete originalDocumentation.updatedAt;
+  delete movedDocumentation.groupId;
+  delete movedDocumentation.updatedAt;
   assert.deepEqual(movedDocumentation, originalDocumentation);
   assert.equal((await endpointRoute.PATCH(moveGroupRequest(group.id), groupedContext)).status, 409);
   assert.equal((await endpointRoute.PATCH(moveGroupRequest(otherGroup.id), groupedContext)).status, 400);

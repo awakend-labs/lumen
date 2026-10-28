@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowRightIcon, FolderIcon, GlobeIcon } from "lucide-react";
 import { useUpdateProjectBaseUrl } from "@/features/projects/queries";
 import type { ProjectSummary } from "@/lib/types";
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 
 export function ProjectBaseUrlSettings({ project }: { project: ProjectSummary }) {
   const [baseUrl, setBaseUrl] = useState(project.baseUrl);
+  const [previousBaseUrl, setPreviousBaseUrl] = useState(project.baseUrl);
   const [error, setError] = useState<string | null>(null);
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -25,9 +26,10 @@ export function ProjectBaseUrlSettings({ project }: { project: ProjectSummary })
   const endpointCount = selectedStashes.reduce((total, stash) => total + stash.endpoints.length, 0);
   const allSelected = project.stashes.length > 0 && selectedStashes.length === project.stashes.length;
 
-  useEffect(() => {
+  if (previousBaseUrl !== project.baseUrl) {
+    setPreviousBaseUrl(project.baseUrl);
     setBaseUrl(project.baseUrl);
-  }, [project.baseUrl]);
+  }
 
   function save(event: React.FormEvent) {
     event.preventDefault();

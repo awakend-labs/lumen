@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeftIcon, CheckIcon, LockKeyholeIcon, UserRoundIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useForm } from "react-hook-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -22,14 +22,14 @@ import {
 } from "../validators";
 
 const emptyPasswords = { currentPassword: "", newPassword: "", confirmPassword: "" };
+const subscribeToHydration = () => () => {};
 
 export function ProfileSettings({ user }: { user: { name: string; email: string; image?: string | null } }) {
   const router = useRouter();
-  const [hydrated, setHydrated] = useState(false);
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const [savedName, setSavedName] = useState(user.name);
   const [nameSaved, setNameSaved] = useState(false);
   const [passwordSaved, setPasswordSaved] = useState(false);
-  useEffect(() => setHydrated(true), []);
 
   const nameForm = useForm<ProfileNameInput>({
     resolver: zodResolver(profileNameSchema),

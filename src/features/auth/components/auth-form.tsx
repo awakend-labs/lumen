@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -27,12 +27,13 @@ import { safeCallbackPath } from "@/lib/app-url";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { signInSchema, signUpSchema } from "@/lib/validators";
 
+const subscribeToHydration = () => () => {};
+
 export function AuthForm({ mode }: { mode: "login" | "signup"; }) {
   const params = useSearchParams();
   const callbackUrl = safeCallbackPath(params.get("callbackUrl"));
   const [pending, setPending] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState("");
   const isSignup = mode === "signup";

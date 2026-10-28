@@ -33,7 +33,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
         : "Something went wrong";
     if (response.status === 401 && typeof window !== "undefined") {
       const next = `${window.location.pathname}${window.location.search}`;
-      window.location.href = `/login?callbackUrl=${encodeURIComponent(next)}`;
+      window.location.href = new URL(`/login?callbackUrl=${encodeURIComponent(next)}`, window.location.origin).href;
     }
     throw new ApiError(response.status, message);
   }

@@ -25,10 +25,11 @@ export function useEndpointDraft<T extends FieldValues>(projectId: string, key: 
   const isCurrentSaved = useCallback(() => hasSavedSnapshot.current && !awaitingChoice.current && JSON.stringify(form.getValues()) === lastSaved.current, [form]);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const path = `/api/projects/${projectId}/drafts/${encodeURIComponent(key)}`;
-  const parseRef = useRef(parse); parseRef.current = parse;
+  const parseRef = useRef(parse);
+  useEffect(() => { parseRef.current = parse; }, [parse]);
 
   const recoverConflict = useRef(async () => {});
-  recoverConflict.current = async () => {
+  useEffect(() => { recoverConflict.current = async () => {
     const current = ++generation.current;
     awaitingChoice.current = true;
     conflictLoaded.current = false;
@@ -51,10 +52,10 @@ export function useEndpointDraft<T extends FieldValues>(projectId: string, key: 
       if (!active.current || current !== generation.current) return;
       setStatus("Draft changed in another tab. Could not check the saved draft. Choose Keep current edits to retry; your form has been kept.");
     }
-  };
+  }; }, [path]);
 
   const flushRef = useRef(() => {});
-  flushRef.current = () => {
+  useEffect(() => { flushRef.current = () => {
     if (!active.current || awaitingChoice.current || !revision.current) return;
     // Flushes must include edits made since the last debounced snapshot.
     latest.current = JSON.stringify(form.getValues());
@@ -63,7 +64,7 @@ export function useEndpointDraft<T extends FieldValues>(projectId: string, key: 
     void fetch(path, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ revision: revision.current, writeOrder: ++writeOrder.current, payload: latest.current }), keepalive: true }).then(response => {
       if (response.status === 409 && active.current && current === generation.current) void recoverConflict.current();
     }).catch(() => {});
-  };
+  }; }, [path, form]);
 
   useEffect(() => {
     let disposed = false; active.current = true; ++generation.current;

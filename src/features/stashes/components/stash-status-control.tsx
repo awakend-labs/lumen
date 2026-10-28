@@ -106,7 +106,7 @@ export function StashStatusControl({
               key={option.value}
               value={option.value}
               aria-label={option.label}
-              className={cn("h-7 gap-1.5 rounded-sm px-2.5 text-xs", option.on)}
+              className={cn("h-7 gap-1.5 rounded-full px-2.5 text-xs", option.on)}
             >
               <Icon className="size-3.5" />
               {option.label}
