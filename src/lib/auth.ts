@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@/db";
@@ -19,6 +20,14 @@ export const auth = betterAuth({
     schema: { user, session, account, verification, userRelations, sessionRelations, accountRelations },
   }),
   advanced: { database: { joins: true } },
+  user: { deleteUser: { enabled: true } },
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === "/delete-user" && (typeof ctx.body?.password !== "string" || !ctx.body.password)) {
+        throw new APIError("BAD_REQUEST", { code: "PASSWORD_REQUIRED", message: "Enter your current password to delete your account." });
+      }
+    }),
+  },
   emailAndPassword: {
     enabled: true,
     resetPasswordTokenExpiresIn: 60 * 30,

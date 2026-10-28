@@ -23,7 +23,7 @@ function PathHighlight({ text }: { text: string }) {
           return (
             <span
               key={index}
-              className="rounded-sm bg-primary/12 px-0.5 font-medium text-primary dark:bg-primary/18"
+              className="rounded-sm px-0.5 font-medium text-primary"
             >
               {part}
             </span>

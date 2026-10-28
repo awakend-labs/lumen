@@ -408,8 +408,11 @@
   .project-card:hover .project-card-body {
     background-color: color-mix(in srgb, var(--foreground) 3%, var(--card));
   }
-  .dark .project-card:hover .project-card-body {
+  .dark .project-card .project-card-body {
     background-color: color-mix(in srgb, var(--background) 18%, var(--card));
+  }
+  .dark .project-card:hover .project-card-body {
+    background-color: transparent;
   }
   .api-group-panel {
     border-color: color-mix(in srgb, var(--foreground) 5%, var(--border));

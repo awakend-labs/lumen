@@ -113,7 +113,7 @@ function StashView({
             {stash.description || "Endpoints documented in this stash."}
           </p>
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <span className="inline-flex items-center gap-1.5 rounded-sm bg-muted/70 px-2.5 py-1 text-xs text-muted-foreground">
+            <span className="inline-flex h-7 items-center gap-1.5 rounded-sm bg-muted/70 px-2.5 text-xs text-muted-foreground">
               <Route className="size-3.5 text-primary" />
               <span className="font-medium text-foreground">{endpointCount}</span>
               {endpointCount === 1 ? "endpoint" : "endpoints"}

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { authClient } from "@/lib/auth-client";
 import { ProfileThemeSettings } from "./profile-theme-settings";
+import { ProfileDeleteAccount } from "./profile-delete-account";
 import {
   profileNameSchema,
   profilePasswordSchema,
@@ -161,6 +162,7 @@ export function ProfileSettings({ user }: { user: { name: string; email: string;
               </fieldset>
             </form>
           </section>
+          <ProfileDeleteAccount />
         </div>
       </div>
     </div>
